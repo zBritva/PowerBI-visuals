@@ -1,0 +1,288 @@
+{
+  "dataRoles": [
+    {
+      "displayName": "Category",
+      "kind": "Grouping",
+      "name": "Category"
+    },
+    {
+      "displayName": "Measure",
+      "kind": "Measure",
+      "name": "Value"
+    }
+  ],
+  "dataViewMappings": [
+    {
+      "conditions": [
+        {
+          "Category": {
+            "max": 1
+          },
+          "Value": {
+            "max": 4
+          }
+        }
+      ],
+      "scriptResult": {
+        "dataInput": {
+          "table": {
+            "rows": {
+              "select": [
+                {
+                  "for": {
+                    "in": "Category"
+                  }
+                },
+                {
+                  "for": {
+                    "in": "Value"
+                  }
+                }
+              ],
+              "dataReductionAlgorithm": {
+                "top": {
+                  "count": 300
+                }
+              }
+            }
+          }
+        },
+        "script": {
+          "scriptProviderDefault": "R",
+          "scriptOutputType": "html",
+          "source": {
+            "objectName": "rcv_script",
+            "propertyName": "source"
+          },
+          "provider": {
+            "objectName": "rcv_script",
+            "propertyName": "provider"
+          }
+        }
+      }
+    }
+  ],
+  "objects": {
+    "rcv_script": {
+      "properties": {
+        "provider": {
+          "type": {
+            "text": true
+          }
+        },
+        "source": {
+          "type": {
+            "scripting": {
+              "source": true
+            }
+          }
+        }
+      }
+    },
+    "visualColors": {
+      "displayName": "Colors",
+      "properties": {
+        "valueColor1": {
+          "displayName": "Measure 1",
+          "description": "First measure color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "valueColor2": {
+          "displayName": "Measure 2",
+          "description": "Second measure color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "valueColor3": {
+          "displayName": "Measure 3",
+          "description": "Third measure color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "valueColor4": {
+          "displayName": "Measure 4",
+          "description": "Fourth measure color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "segmentColor": {
+          "displayName": "Connector 1",
+          "description": "First connector color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "segment2Color": {
+          "displayName": "Connector 2",
+          "description": "Second connector color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "segment3Color": {
+          "displayName": "Connector 3",
+          "description": "Third connector color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "chartColor": {
+          "displayName": "Plot background",
+          "description": "Color of plot background",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "plotColor": {
+          "displayName": "Axis background",
+          "description": "Color of axis backgroud",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "xAxis": {
+      "displayName": "X-axis",
+      "properties": {
+        "titleText": {
+          "displayName": "Title",
+          "description": "Enter the title for x-axis",
+          "placeHolderText": "Auto",
+          "type": {
+            "text": true
+          },
+          "suppressFormatPainterCopy": false
+         
+        },
+        "showLabel": {
+          "displayName": "Label",
+          "description": "X-axis label",
+          "type": {
+            "bool": true
+          },
+          "suppressFormatPainterCopy": false
+        },
+        "labelColor": {
+          "displayName": "Label color",
+          "description": "Color of x-axis label",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "titleColor": {
+          "displayName": "Title color",
+          "description": "Color of legend text on x-axis",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "yAxis": {
+      "displayName": "Y-axis",
+      "properties": {
+        "titleText": {
+          "displayName": "Title",
+          "description": "Enter the title for y-axis",
+          "placeHolderText": "Auto",
+          "type": {
+            "text": true
+          },
+          "suppressFormatPainterCopy": false
+        },
+        "showLabel": {
+          "displayName": "Label",
+          "description": "Y-axis label",
+          "type": {
+            "bool": true
+          },
+          "suppressFormatPainterCopy": false
+        },
+        "labelColor": {
+          "displayName": "Label color",
+          "description": "Color of y-axis label",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "titleColor": {
+          "displayName": "Title color",
+          "description": "Color of legend text on y-axis",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "legend": {
+      "displayName": "Legend",
+      "properties": {
+        "show": {
+          "displayName": "Show",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    }
+  },
+  "suppressDefaultTitle": true
+}
