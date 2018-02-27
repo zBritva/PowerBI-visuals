@@ -1,0 +1,13 @@
+Brief Description:
+Displays stage-wise metrics and the source (entry point) of any data point.
+
+Long Description:
+Funnel with Source by MAQ Software shows a funnel journey for any metric or data point. This visual allows users to follow the path of a metric over various stages, as well as track the entry channel through which the metric reached the funnel.
+
+Funnel with Source by MAQ Software is excellent for visualizing sales paths. It showcases the channel through which a lead enters the funnel and the lead's corresponding journey through the various stages of the sales cycle.
+
+Key features:
+•	Filter data based on the channel selected and on the selection of any stage of the sales journey.
+•	Support for cross-visual filtering.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

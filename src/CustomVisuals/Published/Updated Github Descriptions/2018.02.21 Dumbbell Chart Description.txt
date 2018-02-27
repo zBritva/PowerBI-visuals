@@ -1,0 +1,12 @@
+Brief Description:
+Display critical business measures and show changes over time or across various categories.
+
+Long Description:
+Dumbbell Chart by MAQ Software helps users analyze changes in critical data. This visual consists of a dual-axis combination chart: one axis of is marked by a circle, the other is marked by a line that spans data points provided by the user. Dumbbell Chart by MAQ Software is ideal for illustrating change and comparing the distance between data points. R package dependencies (auto-installed): plotly and ggplot2.
+ 
+Key features:
+•	Display the performance of multiple indicators.
+•	Compare the growth or loss of indicators across various categories.
+•	Quickly download an image of the chart with the capture image widget.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

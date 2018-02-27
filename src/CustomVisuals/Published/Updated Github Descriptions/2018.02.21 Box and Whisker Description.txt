@@ -1,0 +1,14 @@
+Brief Description:
+Display data distribution quartiles in a box plot.
+
+Long Description:
+Box and Whisker Chart by MAQ Software is useful for quickly comparing distributions between several sets of data. In addition to showing the median, first and third quartiles, and the maximum and minimum values, Box and Whisker Chart by MAQ Software displays the mean, standard deviation, and quartile deviation. 
+
+This visual is useful for any application that requires comparing large datasets in a compact space.
+
+Key Features:
+•	Display parent and child data segments.
+•	Flip or swap axis data points based on reporting requirements.
+•	Choose different shapes (circle, square, rectangle) for mean and data points.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

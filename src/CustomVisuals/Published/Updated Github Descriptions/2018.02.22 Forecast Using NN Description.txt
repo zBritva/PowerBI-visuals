@@ -1,0 +1,14 @@
+Brief Description:
+Use the Neural Network algorithm to forecast future values based on historical data.
+
+Long Description:
+Forecasting using Neural Network by MAQ Software implements an “Artificial Neural Network” to learn from historical data and predict future values. This visual uses a single layer feed forward network with lagged inputs to process time series values. R package dependencies (auto-installed): forecast, plotly, zoo, xts.
+
+Forecasting using Neural Network by MAQ Software is useful for forecasting budgets, sales, demand, or inventory. 
+
+Key features:
+•	Ability to use years or distinct numerical values in place of date and time field. (The visual will work for both numerical series, i.e. years or numbers, and proper date and time values).
+•	Hover tooltips and highlighting of specific portions of the plot.
+•	Capability to manually adjust the parameters of the learning model.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

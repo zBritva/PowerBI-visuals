@@ -1,0 +1,12 @@
+Brief Description:
+Box chart with shaded bricks that show the percentage breakdown of a dataset.
+
+Long Description:
+Brick Chart by MAQ Software allows users to display a percentage breakdown of a category in an alternative format to a donut or pie chart. This visual is useful for showing percentages or positions occupied, such as seats in a legislature. It is also useful for comparing each portion of a category to the whole.
+
+Key features:
+•	Tooltip to indicate the category each color represents and its corresponding percentage.
+•	Option to include a legend with a customizable title, size, and color.
+•	Customizable chart width and height.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

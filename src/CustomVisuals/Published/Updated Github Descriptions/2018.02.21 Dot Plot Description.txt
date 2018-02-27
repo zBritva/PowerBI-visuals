@@ -1,0 +1,14 @@
+Brief Description:
+Display distributions among multiple categories to highlight gaps, clusters, and outliers.
+
+Long Description:
+Dot Plot by MAQ Software displays data points (bubbles), plotted on an X/Y axis, and distributed over a desired set of values. The size of the bubble represents the magnitude, and the color represents the category. Users can view data through multiple parent and child sub-categories, a significant improvement over other dot plot diagrams. 
+
+Dot Plot by MAQ Software is useful for displaying multi-dimensional sales data in one visual, such as sales quantity per year over various regions.
+
+Key features:
+•	Support for selection and multi-selection with partial highlighting.
+•	Display distinct bubble color for different categories.
+•	Modify bubble size and bubble animation on click.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

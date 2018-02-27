@@ -1,0 +1,14 @@
+Brief Description:
+Combination line and column chart that measures progress toward key performance indicator (KPI) targets.
+
+Long Description:
+KPI Column by MAQ Software is a combination of a line and column chart where each column value changes color depending on its relation to a target line value. Columns represent performance and lines represent KPI targets. 
+
+KPI Column by MAQ Software has many business applications including measuring sales, revenue, or profit data against target values.
+
+Key features:
+•	Include an optional target value that's common for all columns.
+•	Represent forecasted data in columns, using the same target line.
+•	Display forecasted columns in a translucent color to differentiate from actual values.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

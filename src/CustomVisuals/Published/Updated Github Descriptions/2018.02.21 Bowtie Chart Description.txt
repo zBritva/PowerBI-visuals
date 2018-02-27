@@ -1,0 +1,14 @@
+Brief Description:
+Show a flow of data from one process or category to another.
+
+Long Description:
+Use Bowtie Chart by MAQ Software to quickly compare values in one or more categories. The thickness of the bowtie's branches indicates the relative weight of each category. Users can create a half bowtie, showcasing the distribution of data within a source. Or, by entering values in the source, destination, and value fields, users can create a full bowtie, showcasing how an aggregate value splits into two distinct sub-categories.
+
+Bowtie Chart by MAQ Software is ideal for displaying sales metrics, such as the flow of channel category sales into subcategory sales.
+
+Key features:
+•	Configurable branch color.
+•	Configurable font-size, color, and decimal precision for data labels and summary labels.
+•	Optional use in either half bowtie or full bowtie format.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.
