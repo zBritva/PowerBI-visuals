@@ -1,0 +1,14 @@
+Brief Description:
+Displays density of distribution using bars along with actual values represented by points.
+
+Long Description:
+While histogram charts are good at illustrating the density of distributed data, they normally do not show specific values. Histogram with Points by MAQ Software addresses this issue by combining a histogram chart with points that show the actual data for each range.
+
+Histogram with Points by MAQ Software is useful in many business applications, such as displaying employee salary distribution as well as salary variation for individual employees in specific salary ranges.
+
+Key features:
+•	Show or hide points and histogram bars.
+•	Show or hide the X-axis, Y-axis-right, or Y-axis-left.
+•	Show or hide gridlines.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

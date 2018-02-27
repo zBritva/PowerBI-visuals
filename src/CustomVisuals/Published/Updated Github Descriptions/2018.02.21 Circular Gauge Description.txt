@@ -1,0 +1,14 @@
+Brief Description:
+Illustrate progress toward goals in either a pie or donut chart format.
+
+Long Description:
+Circular Gauge by MAQ Software shows the progress of a task in a circular chart. Progress is shown either as the actual value or as a percentage of the target value. Users can display the visual in either a pie or a donut chart format. Users can also set a threshold value for the chart.
+ 
+Circular Gauge by MAQ Software is useful for displaying key performance indicators (KPIs), such as sales achieved against a set target.
+
+Key features:
+•	One color illustrates actual progress and the other displays the target.
+•	The percentage displayed on the report tracks progress against the target.
+•	Text size and ring size are customizable.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

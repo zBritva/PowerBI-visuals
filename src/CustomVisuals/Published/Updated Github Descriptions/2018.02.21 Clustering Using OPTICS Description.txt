@@ -1,0 +1,12 @@
+Brief Description:	
+Use the density-based clustering algorithm OPTICS to analyze groups within a dataset.
+
+Long Description:
+Clustering using OPTICS by MAQ Software analyzes and identifies data clusters. The algorithm relies on density-based clustering, allowing users to identify outlier points and closely-knit groups within larger groups. This visual includes adjustable clustering parameters to control hierarchy depth and cluster sizes. R package dependencies (auto-installed): Dbscan, plotly, ggplot2.
+
+Key features: 
+•	Data is scaled and pre-processed automatically, eliminating the need to do so externally.
+•	Hover tooltips and zoom effects.
+•	Capability to manually adjust the parameters of the clustering model.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

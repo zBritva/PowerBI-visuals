@@ -1,0 +1,14 @@
+Brief Description:
+Display various stages of a process and related metrics in a horizontally oriented funnel.
+
+Long Description:
+While other Power BI funnels are limited to displaying one key metric for each funnel stage, Horizontal Funnel by MAQ Software allows users to display a second, customizable metric beneath the primary measure. The secondary measure defines the size of the colored funnel segments. For example, users can call out the dropout value or percentage next to the primary measure.
+
+Horizontal Funnel by MAQ Software is useful in many applications, including sales pipeline analysis (allowing users to view both the sales process and conversion rates at each stage), website traffic analysis, order fulfillment, or any business process analysis that involves multiple stages.  
+
+Key features:
+•	Display a secondary measure below the colored bars.
+•	Tooltip to display a brief explanation of the data.
+•	Change the color configuration of the funnel stage and change the color, font size, display units, and decimal places of the labels.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

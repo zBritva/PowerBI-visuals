@@ -1,0 +1,14 @@
+Brief Description:
+Transform dense statistical data into graphs that show networks of categories and relationships.
+
+Long Description:
+Journey Chart by MAQ Software lets users display complex, multi-stage lead paths in a clean, uncluttered visual. In this visual, nodes represent categories and vertices represent relationships between categories. The bigger the node or vertex, the larger the value. Customizable node colors make distinguishing between categories easy.
+
+Journey Chart by MAQ Software is useful for explaining process flow, uncovering underlying patterns, highlighting subcategories stemming from a single source, and showing connections between categories.
+
+Key features:
+•	Text labels and tooltips for each node provide information such as title or value.
+•	Customize colors and sizes for text labels.
+•	Option to add a legend to clarify complex graphs. 
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

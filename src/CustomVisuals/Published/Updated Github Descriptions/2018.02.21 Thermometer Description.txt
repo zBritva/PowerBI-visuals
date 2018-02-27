@@ -1,0 +1,12 @@
+Brief Description:
+Represent progress toward goals with a highly customizable thermometer graphic.
+
+Long Description:
+Whether measuring event registrations, sales data, or online conversions, Thermometer by MAQ Software is the perfect tool for visualizing progress toward a target goal.
+
+Key features:
+•	Set the fill and border color of the thermometer.
+•	Adjust the minimum and maximum value of the scale.
+•	Turn off the tick bar for a minimalist look.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.
