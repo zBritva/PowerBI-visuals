@@ -307,7 +307,7 @@
                     }
                 },
                 "constantLineDataLabel": {
-                    "displayName": "Data label for average line",
+                    "displayName": "Data label for constant line",
                     "type": {
                         "bool": true
                     }
