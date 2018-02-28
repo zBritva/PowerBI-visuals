@@ -12,6 +12,21 @@
         }
     ],
     "objects": {
+        "colorSelector": {
+            "displayName": "Data colors",
+            "properties": {
+                "fill": {
+                    "displayName": "0",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "general": {
             "displayName": "General",
             "properties": {
@@ -149,5 +164,8 @@
                 }
             }
         }
-    ]
+    ],
+    "sorting": {
+        "default": {}
+    }
 }
