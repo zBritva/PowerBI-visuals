@@ -13,17 +13,32 @@
         {
             "displayName": "Measure data",
             "name": "measure",
-            "kind": "Measure"
+            "kind": "Measure",
+           "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
         },
         {
             "displayName": "Target",
             "name": "fytarget",
-            "kind": "Measure"
+            "kind": "Measure",
+             "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
         },
         {
             "displayName": "Individual target",
             "name": "ytdtarget",
-            "kind": "Measure"
+            "kind": "Measure",
+            "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
         },
         {
             "displayName": "Tooltip",
