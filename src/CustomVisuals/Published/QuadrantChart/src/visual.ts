@@ -1,11 +1,10 @@
-
 module powerbi.extensibility.visual {
 
     import IColorPalette = powerbi.extensibility.IColorPalette;
     import ValueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
     import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
-    var legendValues = {};
-    var legendValuesTorender = {};
+    const legendValues: {} = {};
+    const legendValuesTorender: {} = {};
     import ILegend = powerbi.extensibility.utils.chart.legend.ILegend;
     import LegendData = powerbi.extensibility.utils.chart.legend.LegendData;
     import createLegend = powerbi.extensibility.utils.chart.legend.createLegend;
@@ -14,170 +13,192 @@ module powerbi.extensibility.visual {
     import LegendPosition = powerbi.extensibility.utils.chart.legend.LegendPosition;
     import legendIcon = powerbi.extensibility.utils.chart.legend.LegendIcon;
     import textMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
-
-    var series = [];
-    interface QuadrantChartViewModel {
+    // tslint:disable-next-line:no-any
+    let series: any[] = [];
+    interface IQuadrantChartViewModel {
         legendData: LegendData;
-        dataPoints: QuadrantChartDataPoint[];
+        dataPoints: IQuadrantChartDataPoint[];
     }
 
-    interface QuadrantChartDataPoint {
+    interface IQuadrantChartDataPoint {
         category: string;
         color: string;
         selectionId: powerbi.visuals.ISelectionId;
     }
 
-    function findLegend(array, n, x) {
-        var i;
+    // tslint:disable-next-line:no-any
+    function findLegend(array: any, n: number, x: any): number {
+        let i: number;
         for (i = 0; i < n; i++) {
             if (array[i].name === x) {
                 return i;
             }
         }
+
         return -1;
     }
 
-    function visualTransform(options: VisualUpdateOptions, host: IVisualHost, context: any): QuadrantChartViewModel {
-        if (!options.dataViews)
+    // tslint:disable-next-line:no-any
+    function visualTransform(options: VisualUpdateOptions, host: IVisualHost, context: any): IQuadrantChartViewModel {
+        if (!options.dataViews) {
             return;
-        if (!options.dataViews[0])
+        }
+        if (!options.dataViews[0]) {
             return;
-        if (!options.dataViews[0].categorical)
+        }
+        if (!options.dataViews[0].categorical) {
             return;
-        let dataViews = options.dataViews[0];
-        let categorical: any;
-        categorical = options.dataViews[0].categorical;
+        }
+        const dataViews: DataView = options.dataViews[0];
+        const categorical: DataViewCategorical = options.dataViews[0].categorical;
+        // tslint:disable-next-line:no-any
         let category: any;
         if (categorical.categories) {
             category = categorical.categories[0];
-        }
-        else {
+        } else {
             category = categorical.values[0];
         }
-        let QuadrantChartDataPoints: QuadrantChartDataPoint[] = [];
-        let dataMax: number;
-        let colorPalette: IColorPalette = host.colorPalette;
-        let objects = options.dataViews[0];
-        for (let iIterator = 0; iIterator < series.length; iIterator++) {
-            let defaultColor: Fill = {
+        const quadrantChartDataPoints: IQuadrantChartDataPoint[] = [];
+        const colorPalette: IColorPalette = host.colorPalette;
+        const objects: DataView = options.dataViews[0];
+        for (let iIterator: number = 0; iIterator < series.length; iIterator++) {
+            const defaultColor: Fill = {
                 solid: {
                     color: colorPalette.getColor(series[iIterator].name).value
                 }
             };
-            QuadrantChartDataPoints.push({
+            quadrantChartDataPoints.push({
                 category: series[iIterator].name,
                 color: getCategoricalObjectValue<Fill>(category, iIterator, 'legendColors', 'legendColor', defaultColor).solid.color,
                 selectionId: host.createSelectionIdBuilder().withCategory(category, iIterator).createSelectionId()
             });
         }
+
         return {
-            legendData: context.getLegendData(dataViews, QuadrantChartDataPoints, host),
-            dataPoints: QuadrantChartDataPoints
+            legendData: context.getLegendData(dataViews, quadrantChartDataPoints, host),
+            dataPoints: quadrantChartDataPoints
         };
     }
 
     export class QuadrantChart implements IVisual {
+        // tslint:disable-next-line:no-any
         private bubbleChartWithAxis: any;
         public host: IVisualHost;
         private viewport: IViewport;
         private svg: d3.Selection<SVGElement>;
+        // tslint:disable-next-line:no-any
         private settings: any;
+        // tslint:disable-next-line:no-any
         public dataView: any;
-        private quadrantChartPoints: QuadrantChartDataPoint[];
+        private quadrantChartPoints: IQuadrantChartDataPoint[];
         private selectionManager: ISelectionManager;
-        private prevDataViewObjects: any = {}; // workaround temp variable because the PBI SDK doesn't correctly identify style changes. See getSettings method.
+        // workaround temp variable because the PBI SDK doesn't correctly identify style changes. See getSettings method.
+        private prevDataViewObjects: {} = {};
         private legend: ILegend;
         private legendObjectProperties: DataViewObject;
         public groupLegends: d3.Selection<SVGElement>;
-        private legendData;
+        // tslint:disable-next-line:no-any
+        private legendData: any;
         private currentViewport: IViewport;
-        private rootElement;
+        // tslint:disable-next-line:no-any
+        private rootElement: any;
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
-            this.viewport;
             this.rootElement = d3.select(options.element);
-            let svg = this.svg = this.rootElement.append('div').classed('container', true);
-            svg.attr("id", "container");
-            var oElement: any = $('div');
+            // tslint:disable-next-line:no-any
+            const svg: any = this.svg = this.rootElement.append('div').classed('container', true);
+            svg.attr('id', 'container');
+            const oElement: JQuery = $('div');
             this.legend = createLegend(oElement, false, null, true);
             this.rootElement.select('.legend').style('top', 0);
         }
 
-        public getLegendData(dataView: DataView, QuadrantChartDataPoints: any, host: IVisualHost): LegendData {
-            var SelectionId: powerbi.visuals.ISelectionId;
-            var sTitle = "";
-            if (dataView && dataView.categorical && dataView.categorical.categories && dataView.categorical.categories[0] && dataView.categorical.categories[0].source) {
+        // tslint:disable-next-line:no-any
+        public getLegendData(dataView: DataView, quadrantChartDataPoints: any, host: IVisualHost): LegendData {
+            let sTitle: string = '';
+            if (dataView && dataView.categorical && dataView.categorical.categories
+                && dataView.categorical.categories[0] && dataView.categorical.categories[0].source) {
                 sTitle = dataView.categorical.categories[0].source.displayName;
             }
-            var legendData: LegendData = {
+            const legendData: LegendData = {
                 fontSize: 8,
                 dataPoints: [],
                 title: sTitle
             };
-            for (var i = 0; i < QuadrantChartDataPoints.length; ++i) {
+            for (let i: number = 0; i < quadrantChartDataPoints.length; ++i) {
                 if (dataView && dataView.categorical && dataView.categorical.categories && dataView.categorical.categories[0]) {
                     legendData.dataPoints.push({
-                        label: QuadrantChartDataPoints[i].category,
-                        color: QuadrantChartDataPoints[i].color,
+                        label: quadrantChartDataPoints[i].category,
+                        color: quadrantChartDataPoints[i].color,
                         icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box,
                         selected: false,
                         identity: host.createSelectionIdBuilder().withCategory(dataView.categorical.categories[0], i).createSelectionId()
                     });
                 }
-                legendValues[i] = QuadrantChartDataPoints[i].category;
+                legendValues[i] = quadrantChartDataPoints[i].category;
             }
+
             return legendData;
-            }
-        public update(options: VisualUpdateOptions) {
+        }
+        // tslint:disable-next-line:cyclomatic-complexity
+        public update(options: VisualUpdateOptions): void {
             this.currentViewport = {
                 height: Math.max(0, options.viewport.height),
                 width: Math.max(0, options.viewport.width)
             };
             this.rootElement.select('.MAQChartsSvgRoot').remove();
             d3.select('.errorMessage').remove();
-            let width = options.viewport.width;
-            let height = options.viewport.height;
+            const width: number = options.viewport.width;
+            const height: number = options.viewport.height;
             this.svg.attr({
                 width: width,
                 height: height
             });
-            var skipFlag = 0;
+            let skipFlag: number = 0;
             // Grab the dataview object
-            if (!options.dataViews || 0 === options.dataViews.length || !options.dataViews[0].categorical)
+            if (!options.dataViews || 0 === options.dataViews.length || !options.dataViews[0].categorical) {
                 return;
+            }
             this.dataView = options.dataViews[0];
             // data binding:start
-            var assignData = [-1, -1, -1, -1];
-            var iCounter, jCounter;
+            const assignData: number[] = [-1, -1, -1, -1];
+            let iCounter: number;
+            let jCounter: number;
             for (iCounter = 0; iCounter < this.dataView.categorical.values.length; iCounter++) {
                 if (this.dataView.categorical.values[iCounter].source.roles.xAxis) {
                     assignData[0] = iCounter;
-                }
-                else if (this.dataView.categorical.values[iCounter].source.roles.yAxis) {
+                } else if (this.dataView.categorical.values[iCounter].source.roles.yAxis) {
                     assignData[1] = iCounter;
-                }
-                else if (this.dataView.categorical.values[iCounter].source.roles.radialAxis) {
+                } else if (this.dataView.categorical.values[iCounter].source.roles.radialAxis) {
                     assignData[2] = iCounter;
                 }
             }
-            if (this.dataView.categorical.categories !== undefined)
-            assignData[3] = 0;
-            var dataViewObject = this.dataView.categorical;
-            var isLegends = true, isRadius = true;
+            if (this.dataView.categorical.categories !== undefined) {
+                assignData[3] = 0;
+            }
+            // tslint:disable-next-line:no-any
+            const dataViewObject: any = this.dataView.categorical;
+            let isLegends: boolean = true;
+            let isRadius: boolean = true;
             if (-1 === assignData[0] || -1 === assignData[1]) {
                 this.rootElement.select('.legend #legendGroup').selectAll('*').style('visibility', 'hidden');
-                $("#container").removeAttr('style');
-                d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Please select both x-axis and y-axis values");
+                $('#container').removeAttr('style');
+                d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                d3.select('svg')
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Please select both x-axis and y-axis values');
+
                 return;
-            }
-            else {
+            } else {
                 this.rootElement.selectAll('.legend #legendGroup').selectAll('*').style('visibility', 'visible');
             }
-            var legendNumbers = 0;
+            let legendNumbers: number = 0;
             // if the whole column is null
-            var loopctr1 = 0, loopctr2 = 0, iColLength;
+            let loopctr1: number = 0;
+            let loopctr2: number = 0;
+            let iColLength: number;
             iColLength = dataViewObject.values[assignData[0]].values.length;
             while (loopctr1 < iColLength) {
                 if (dataViewObject.values[assignData[0]].values[loopctr1] !== null) {
@@ -186,26 +207,38 @@ module powerbi.extensibility.visual {
                 loopctr1++;
             }
             while (loopctr2 < iColLength) {
-                if (dataViewObject.values[assignData[0]].values[loopctr2] !== "") {
+                if (dataViewObject.values[assignData[0]].values[loopctr2] !== '') {
                     break;
                 }
                 loopctr2++;
             }
             if (loopctr1 === iColLength || loopctr2 === iColLength) {
-                $("#container").removeAttr('style');
-                d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Only null values present for X axis");
+                $('#container').removeAttr('style');
+                d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                d3.select('svg')
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Only null values present for X axis');
+
                 return;
             }
+            let loopctr: number = 0;
             // vacant the visual if x-axis contains negative values.
             loopctr = 0;
-            while (loopctr < iColLength && (dataViewObject.values[assignData[0]].values[loopctr] === null || dataViewObject.values[assignData[0]].values[loopctr] === "" || (typeof (dataViewObject.values[assignData[0]].values[loopctr]) === 'number' && (dataViewObject.values[assignData[0]].values[loopctr] >= 0)))) {
+            while (loopctr < iColLength && (dataViewObject.values[assignData[0]].values[loopctr] === null
+                || dataViewObject.values[assignData[0]].values[loopctr] === ''
+                || (typeof (dataViewObject.values[assignData[0]].values[loopctr]) === 'number'
+                    && (dataViewObject.values[assignData[0]].values[loopctr] >= 0)))) {
                 loopctr++;
             }
             if (loopctr !== iColLength) {
-                $("#container").removeAttr('style');
-                d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Data not supported");
+                $('#container').removeAttr('style');
+                d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                d3.select('svg')
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Data not supported');
+
                 return;
             }
 
@@ -219,36 +252,46 @@ module powerbi.extensibility.visual {
                 loopctr1++;
             }
             while (loopctr2 < iColLength) {
-                if (dataViewObject.values[assignData[1]].values[loopctr2] !== "") {
+                if (dataViewObject.values[assignData[1]].values[loopctr2] !== '') {
                     break;
                 }
                 loopctr2++;
             }
             if (loopctr1 === iColLength || loopctr2 === iColLength) {
-                $("#container").removeAttr('style');
-                d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Only null values present for Y axis");
+                $('#container').removeAttr('style');
+                d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                d3.select('svg')
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Only null values present for Y axis');
+
                 return;
             }
+
             // vacant the visual if y-axis contains negative values.
             loopctr = 0;
-            while (loopctr < iColLength && (dataViewObject.values[assignData[1]].values[loopctr] === null || dataViewObject.values[assignData[1]].values[loopctr] === "" || (typeof (dataViewObject.values[assignData[1]].values[loopctr]) === 'number' && (dataViewObject.values[assignData[1]].values[loopctr] >= 0)))) {
+            while (loopctr < iColLength && (dataViewObject.values[assignData[1]].values[loopctr] === null
+                || dataViewObject.values[assignData[1]].values[loopctr] === ''
+                || (typeof (dataViewObject.values[assignData[1]].values[loopctr]) === 'number'
+                    && (dataViewObject.values[assignData[1]].values[loopctr] >= 0)))) {
                 loopctr++;
             }
             if (loopctr !== iColLength) {
-                $("#container").removeAttr('style');
-                d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Data not supported");
+                $('#container').removeAttr('style');
+                d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                d3.select('svg')
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Data not supported');
+
                 return;
             }
             if (-1 === assignData[2]) {
                 isRadius = false;
-            }
-            // if we have radius axis, check for negative numbers, or all nulls
-            else {
-                var loopctr = 0;
+            } else {
+                // if we have radius axis, check for negative numbers, or all nulls
                 // check for all null
-                 loopctr1 = 0, loopctr2 = 0;
+                loopctr1 = 0, loopctr2 = 0;
                 iColLength = dataViewObject.values[assignData[2]].values.length;
                 while (loopctr1 < iColLength) {
                     if (dataViewObject.values[assignData[2]].values[loopctr1] !== null) {
@@ -257,34 +300,44 @@ module powerbi.extensibility.visual {
                     loopctr1++;
                 }
                 while (loopctr2 < iColLength) {
-                    if (dataViewObject.values[assignData[2]].values[loopctr2] !== "") {
+                    if (dataViewObject.values[assignData[2]].values[loopctr2] !== '') {
                         break;
                     }
                     loopctr2++;
                 }
                 if (loopctr1 === iColLength || loopctr2 === iColLength) {
-                    $("#container").removeAttr('style');
-                    d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                    d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Only null values present for Radius axis");
+                    $('#container').removeAttr('style');
+                    d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                    d3.select('svg')
+                        .append('text')
+                        .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                        .text('Only null values present for Radius axis');
+
                     return;
                 }
                 // check for negative numbers
                 loopctr = 0;
-                while (loopctr < iColLength && (dataViewObject.values[assignData[2]].values[loopctr] === "" || dataViewObject.values[assignData[2]].values[loopctr] === null || (typeof (dataViewObject.values[assignData[2]].values[loopctr]) === 'number' && (dataViewObject.values[assignData[2]].values[loopctr] >= 0)))) {
+                while (loopctr < iColLength && (dataViewObject.values[assignData[2]].values[loopctr] === ''
+                    || dataViewObject.values[assignData[2]].values[loopctr] === null
+                    || (typeof (dataViewObject.values[assignData[2]].values[loopctr]) === 'number'
+                        && (dataViewObject.values[assignData[2]].values[loopctr] >= 0)))) {
                     loopctr++;
                 }
                 if (loopctr !== iColLength) {
-                    $("#container").removeAttr('style');
-                    d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                    d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Data not supported");
+                    $('#container').removeAttr('style');
+                    d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                    d3.select('svg')
+                        .append('text')
+                        .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                        .text('Data not supported');
+
                     return;
                 }
             }
             if (-1 === assignData[3]) {
                 isLegends = false;
-            }
-            // check for all nulls in legend-axis
-            else {
+            } else {
+                // check for all nulls in legend-axis
                 loopctr1 = 0, loopctr2 = 0;
                 iColLength = dataViewObject.categories[assignData[3]].values.length;
                 while (loopctr1 < iColLength) {
@@ -294,47 +347,75 @@ module powerbi.extensibility.visual {
                     loopctr1++;
                 }
                 while (loopctr2 < iColLength) {
-                    if (dataViewObject.categories[assignData[3]].values[loopctr2] !== "") {
+                    if (dataViewObject.categories[assignData[3]].values[loopctr2] !== '') {
                         break;
                     }
                     loopctr2++;
                 }
                 if (loopctr1 === iColLength || loopctr2 === iColLength) {
-                    $("#container").removeAttr('style');
-                    d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                    d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("Only null values present for Legend axis");
+                    $('#container').removeAttr('style');
+                    d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                    d3.select('svg')
+                        .append('text')
+                        .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                        .text('Only null values present for Legend axis');
+
                     return;
                 }
             }
             loopctr = 0;
-            var length1 = dataViewObject.values[assignData[0]].values.length; skipFlag = 0;
+            // tslint:disable-next-line:no-any
+            const length1: any = dataViewObject.values[assignData[0]].values.length; skipFlag = 0;
             while (loopctr < length1) {
-                if (dataViewObject.values[assignData[0]].values[loopctr] === null || dataViewObject.values[assignData[0]].values[loopctr] === "" || dataViewObject.values[assignData[1]].values[loopctr] === null
-                    || dataViewObject.values[assignData[1]].values[loopctr] === "" || (assignData[2] !== -1 && (dataViewObject.values[assignData[2]].values[loopctr] === null || dataViewObject.values[assignData[2]].values[loopctr] === "")) ||
-                    (assignData[3] !== -1 && (dataViewObject.categories[assignData[3]].values[loopctr] === null || dataViewObject.categories[assignData[3]].values[loopctr] === ""))) {
+                if (dataViewObject.values[assignData[0]].values[loopctr] === null
+                    || dataViewObject.values[assignData[0]].values[loopctr] === ''
+                    || dataViewObject.values[assignData[1]].values[loopctr] === null
+                    || dataViewObject.values[assignData[1]].values[loopctr] === ''
+                    || (assignData[2] !== -1
+                        && (dataViewObject.values[assignData[2]].values[loopctr] === null
+                            || dataViewObject.values[assignData[2]].values[loopctr] === ''))
+                    || (assignData[3] !== -1
+                        && (dataViewObject.categories[assignData[3]].values[loopctr] === null
+                            || dataViewObject.categories[assignData[3]].values[loopctr] === ''))) {
                     skipFlag++;
                 }
                 loopctr++;
             }
             if (skipFlag === length1) {
-                $("#container").removeAttr('style');
-                d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("No data available");
+                $('#container').removeAttr('style');
+                d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                d3.select('svg')
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('No data available');
+
                 return;
             }
             series = [];
             for (jCounter = 0; jCounter < dataViewObject.values[0].values.length; jCounter++) {
-                var objSeries = {
-                    "name": "",
-                    "data": {
-                        "scaleX": [],
-                        "scaleY": [],
-                        "radius": []
-                    }
-                };
+                const objSeries: {
+                    'name': string;
+                    'data': {
+                        // tslint:disable-next-line:no-any
+                        'scaleX': any[];
+                        // tslint:disable-next-line:no-any
+                        'scaleY': any[];
+                        // tslint:disable-next-line:no-any
+                        'radius': any[];
+                    };
+                } = {
+                        name: '',
+                        data: {
+                            scaleX: [],
+                            scaleY: [],
+                            radius: []
+                        }
+                    };
+                let legendIndex: number;
                 if (options.dataViews[0].categorical.categories !== undefined) {
-                    if (dataViewObject.categories[0].values[jCounter] !== null && dataViewObject.categories[0].values[jCounter] !== "") {
-                        var legendIndex = findLegend(series, legendNumbers, (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA'));
+                    if (dataViewObject.categories[0].values[jCounter] !== null && dataViewObject.categories[0].values[jCounter] !== '') {
+                        legendIndex = findLegend(series, legendNumbers,
+                            (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA'));
 
                         if (legendIndex === -1) {
                             objSeries.name = (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA');
@@ -346,8 +427,7 @@ module powerbi.extensibility.visual {
                         series[legendIndex].data.scaleY.push(dataViewObject.values[assignData[1]].values[jCounter]);
                         series[legendIndex].data.radius.push((isRadius ? dataViewObject.values[assignData[2]].values[jCounter] : 4));
                     }
-                }
-                else {
+                } else {
                     legendIndex = findLegend(series, legendNumbers, (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA'));
 
                     if (legendIndex === -1) {
@@ -362,158 +442,181 @@ module powerbi.extensibility.visual {
 
                 }
             }
-            var This = this;
+            const THIS: this = this;
             // data binding: end
-            let viewModel: QuadrantChartViewModel = visualTransform(options, this.host, This);
+            const viewModel: IQuadrantChartViewModel = visualTransform(options, this.host, THIS);
 
-            if (!viewModel)
+            if (!viewModel) {
                 return;
+            }
             if (series.length <= 0) {
-                $("#container").removeAttr('style');
-                d3.select('#container').append('svg').classed('errorMessage', true).attr({ "width": width, "height": height });
-                d3.select('svg').append('text').attr({ "x": width / 2, "y": height / 2, "font-size": "20px", "text-anchor": "middle" }).text("No data available");
+                $('#container').removeAttr('style');
+                d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
+                d3.select('svg')
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('No data available');
+
                 return;
             }
             this.quadrantChartPoints = viewModel.dataPoints;
-            var settingsChanged = this.getSettings(this.dataView.metadata.objects); // workaround because of sdk bug that doesn't notify when only style has changed
+            const settingsChanged: boolean = this.getSettings(this.dataView.metadata.objects);
+            // workaround because of sdk bug that doesn't notify when only style has changed
             this.renderLegend(viewModel);
-
-            if (!this.bubbleChartWithAxis || settingsChanged || ((options.type & VisualUpdateType.Resize) || options.type & VisualUpdateType.ResizeEnd)) {
-                this.svg.selectAll("*").remove();
-                this.bubbleChartWithAxis = MAQDrawChart(this.dataView, this.settings, viewModel, series, assignData, ValueFormatter, textMeasurementService);
+            if (!this.bubbleChartWithAxis || settingsChanged
+                // tslint:disable-next-line:no-bitwise
+                || ((options.type & VisualUpdateType.Resize) || options.type & VisualUpdateType.ResizeEnd)) {
+                this.svg.selectAll('*').remove();
+                this.bubbleChartWithAxis =
+                    MAQDrawChart(this.dataView, this.settings, viewModel, series, assignData, ValueFormatter, textMeasurementService);
             }
 
             this.addBubbleSelection(this.selectionManager, viewModel);
 
             this.addLegendSelection();
-            $('#legendGroup').on('click.load', '.navArrow', function() {
-                This.addLegendSelection();
+            $('#legendGroup').on('click.load', '.navArrow', function (): void {
+                THIS.addLegendSelection();
             });
 
             this.rootElement
-                .on('click', () => this.selectionManager.clear().then(() => this.rootElement.selectAll('.legendItem').attr('opacity', 1), this.rootElement.selectAll('svg .MAQCharts-plotArea circle').attr('opacity', 1)));
+                .on('click',
+                () => this.selectionManager.clear().then(() => this.rootElement.selectAll('.legendItem').attr('opacity', 1),
+                    this.rootElement.selectAll('svg .MAQCharts-plotArea circle').attr('opacity', 1)));
         }
 
-        private addBubbleSelection(selectionManager, viewModel) {
-            var This = this;
-            let bubbles = this.svg.selectAll('svg .MAQCharts-plotArea circle').data(viewModel.dataPoints);
+        // tslint:disable-next-line:no-any
+        private addBubbleSelection(selectionManager: any, viewModel: any): void {
+            // tslint:disable-next-line:variable-name
+            const THIS: this = this;
+            const bubbles: d3.selection.Update<{}> = this.svg.selectAll('svg .MAQCharts-plotArea circle').data(viewModel.dataPoints);
 
-            bubbles.on('click', function (d: any) {
+            // tslint:disable-next-line:no-any
+            bubbles.on('click', function (d: any): void {
+                // tslint:disable-next-line:no-any
                 selectionManager.select(d.selectionId).then((ids: any[]) => {
-                    function CompareIds(legendData) {
+                    // tslint:disable-next-line:no-any
+                    function CompareIds(legendData: any): number {
                         if (ids.length) {
                             if (legendData.identity.key === ids[0].key) {
                                 return 1;
-                            }
-                            else {
+                            } else {
                                 return 0.5;
                             }
-                        }
-                        else {
+                        } else {
                             return 1;
                         }
                     }
-                    var legend: any = This.rootElement.selectAll('.legendItem');
-                    legend.attr('opacity', (d) => {
-                        return CompareIds(d);
+                    // tslint:disable-next-line:no-any
+                    const legendOnBubble: any = THIS.rootElement.selectAll('.legendItem');
+                    // tslint:disable-next-line:no-any
+                    legendOnBubble.attr('opacity', (g: any) => {
+                        return CompareIds(g);
                     });
 
                     bubbles.attr({
-                        'opacity': ids.length > 0 ? 0.5 : 1
+                        opacity: ids.length > 0 ? 0.5 : 1
                     });
                     d3.select(this).attr({
-                        'opacity': 1
+                        opacity: 1
                     });
                 });
                 (<Event>d3.event).stopPropagation();
             });
         }
 
-        private addLegendSelection() {
-            var This = this;
-            var legends = this.rootElement.selectAll('.legendItem');
-            var selectionManager = this.selectionManager;
-
-            legends.on('click', function (d) {
+        private addLegendSelection(): void {
+            // tslint:disable-next-line:variable-name
+            const THIS: this = this;
+            // tslint:disable-next-line:no-any
+            const legends: any = this.rootElement.selectAll('.legendItem');
+            const selectionManager: ISelectionManager = this.selectionManager;
+            // tslint:disable-next-line:no-any
+            legends.on('click', function (d: any): void {
+                // tslint:disable-next-line:no-any
                 selectionManager.select(d.identity).then((ids: any[]) => {
-                    function CompareIds(arcData) {
+                    // tslint:disable-next-line:no-any
+                    function CompareIds(arcData: any): number {
                         if (ids.length) {
                             if (arcData.selectionId.key === ids[0].key) {
                                 return 1;
-                            }
-                            else {
+                            } else {
                                 return 0.5;
                             }
-                        }
-                        else {
+                        } else {
                             return 1;
                         }
                     }
-                    var arcs: any = This.rootElement.selectAll('svg .MAQCharts-plotArea circle');
-                    arcs.attr('opacity', (d) => {
-                        return CompareIds(d);
+                    // tslint:disable-next-line:no-any
+                    const arcs: any = THIS.rootElement.selectAll('svg .MAQCharts-plotArea circle');
+                    // tslint:disable-next-line:no-any
+                    arcs.attr('opacity', (e: any) => {
+                        return CompareIds(e);
                     });
                     legends.attr({
-                        'opacity': ids.length > 0 ? 0.5 : 1
+                        opacity: ids.length > 0 ? 0.5 : 1
                     });
 
                     d3.select(this).attr({
-                        'opacity': 1
+                        opacity: 1
                     });
                 });
                 (<Event>d3.event).stopPropagation();
             });
         }
 
-        private renderLegend(viewModel: QuadrantChartViewModel): void {
-            if (!viewModel || !viewModel.legendData)
+        private renderLegend(viewModel: IQuadrantChartViewModel): void {
+            if (!viewModel || !viewModel.legendData) {
                 return;
-            if (this.dataView && this.dataView.metadata)
-                this.legendObjectProperties = powerbi.extensibility.utils.dataview.DataViewObjects.getObject(this.dataView.metadata.objects, "legend", {});
-            var legendData: LegendData = viewModel.legendData;
-            var legendDataTorender: LegendData = {
+            }
+            if (this.dataView && this.dataView.metadata) {
+                this.legendObjectProperties = powerbi.extensibility.utils.dataview.DataViewObjects
+                    .getObject(this.dataView.metadata.objects, 'legend', {});
+            }
+            const legendData: LegendData = viewModel.legendData;
+            const legendDataTorender: LegendData = {
                 fontSize: 8,
                 dataPoints: [],
                 title: legendData.title
             };
-            for (var j = 0; j < legendData.dataPoints.length; j++) {
+            for (let j: number = 0; j < legendData.dataPoints.length; j++) {
 
-                    legendDataTorender.dataPoints.push({
-                        label: legendData.dataPoints[j].label,
-                        color: legendData.dataPoints[j].color,
-                        icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box,
-                        selected: false,
-                        identity: legendData.dataPoints[j].identity
-                    });
-                    legendValuesTorender[j] = legendValues[j];
+                legendDataTorender.dataPoints.push({
+                    label: legendData.dataPoints[j].label,
+                    color: legendData.dataPoints[j].color,
+                    icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box,
+                    selected: false,
+                    identity: legendData.dataPoints[j].identity
+                });
+                legendValuesTorender[j] = legendValues[j];
             }
             if (this.legendObjectProperties) {
                 powerbi.extensibility.utils.chart.legend.data.update(legendDataTorender, this.legendObjectProperties);
-                var position: string = <string>this.legendObjectProperties[powerbi.extensibility.utils.chart.legend.legendProps.position];
-                if (position)
+                const position: string = <string>this.legendObjectProperties[powerbi.extensibility.utils.chart.legend.legendProps.position];
+                if (position) {
                     this.legend.changeOrientation(LegendPosition[position]);
+                }
             }
             this.legend.drawLegend(legendDataTorender, _.clone(this.currentViewport));
             powerbi.extensibility.utils.chart.legend.positionChartArea(this.svg, this.legend);
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
-            let objectName = options.objectName;
-            let objectEnumeration: VisualObjectInstance[] = [];
+            const objectName: string = options.objectName;
+            const objectEnumeration: VisualObjectInstance[] = [];
             switch (objectName) {
-                case "legendColors":
-                    for (let QuadrantChartPoint of this.quadrantChartPoints) {
+                case 'legendColors':
+                    for (const quadrantChartPoint of this.quadrantChartPoints) {
                         objectEnumeration.push({
                             objectName: objectName,
-                            displayName: QuadrantChartPoint.category,
+                            displayName: quadrantChartPoint.category,
                             properties: {
                                 legendColor: {
                                     solid: {
-                                        color: QuadrantChartPoint.color
+                                        color: quadrantChartPoint.color
                                     }
                                 }
                             },
-                            selector: QuadrantChartPoint.selectionId.getSelector()
+                            selector: quadrantChartPoint.selectionId.getSelector()
                         });
                     }
                     break;
@@ -525,13 +628,16 @@ module powerbi.extensibility.visual {
                         properties: {
                             show: this.settings.showLegend,
                             position: LegendPosition[this.legend.getOrientation()],
-                            showTitle: powerbi.extensibility.utils.dataview.DataViewObject.getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.showTitle, true),
-                            labelColor: powerbi.extensibility.utils.dataview.DataViewObject.getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.labelColor, null),
-                            fontSize: powerbi.extensibility.utils.dataview.DataViewObject.getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.fontSize, 8)
+                            showTitle: powerbi.extensibility.utils.dataview.DataViewObject
+                                .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.showTitle, true),
+                            labelColor: powerbi.extensibility.utils.dataview.DataViewObject
+                                .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.labelColor, null),
+                            fontSize: powerbi.extensibility.utils.dataview.DataViewObject
+                                .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.fontSize, 8)
                         }
                     });
                     break;
-                case "quadrantNames":
+                case 'quadrantNames':
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
@@ -547,7 +653,7 @@ module powerbi.extensibility.visual {
                         selector: null
                     });
                     break;
-                case "xAxis":
+                case 'xAxis':
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
@@ -564,7 +670,7 @@ module powerbi.extensibility.visual {
                         selector: null
                     });
                     break;
-                case "yAxis":
+                case 'yAxis':
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
@@ -595,10 +701,10 @@ module powerbi.extensibility.visual {
                     showLegend: getValue<boolean>(objects, 'legend', 'show', true),
                     showQuadrants: getValue<boolean>(objects, 'quadrantNames', 'show', true),
                     type: getValue<boolean>(objects, 'quadrantNames', 'type', false),
-                    quadrant1: getValue<string>(objects, 'quadrantNames', 'quadrant1', "Quadrant1"),
-                    quadrant2: getValue<string>(objects, 'quadrantNames', 'quadrant2', "Quadrant2"),
-                    quadrant3: getValue<string>(objects, 'quadrantNames', 'quadrant3', "Quadrant3"),
-                    quadrant4: getValue<string>(objects, 'quadrantNames', 'quadrant4', "Quadrant4"),
+                    quadrant1: getValue<string>(objects, 'quadrantNames', 'quadrant1', 'Quadrant1'),
+                    quadrant2: getValue<string>(objects, 'quadrantNames', 'quadrant2', 'Quadrant2'),
+                    quadrant3: getValue<string>(objects, 'quadrantNames', 'quadrant3', 'Quadrant3'),
+                    quadrant4: getValue<string>(objects, 'quadrantNames', 'quadrant4', 'Quadrant4'),
                     // X-Axis and Y-Axis
                     showxAxis: getValue<boolean>(objects, 'xAxis', 'show', true),
                     showyAxis: getValue<boolean>(objects, 'yAxis', 'show', true),
@@ -608,19 +714,36 @@ module powerbi.extensibility.visual {
                     endxAxis: getValue<number>(objects, 'xAxis', 'end', null),
                     endyAxis: getValue<number>(objects, 'yAxis', 'end', null),
 
-                    intervalxAxis: (getValue<number>(objects, 'xAxis', 'interval', null) < 1 && getValue<number>(objects, 'xAxis', 'interval', null) !== null) ? 1 : getValue<number>(objects, 'xAxis', 'interval', null) > 15 ? 15 : getValue<number>(objects, 'xAxis', 'interval', null),
-                    intervalyAxis: (getValue<number>(objects, 'yAxis', 'interval', null) < 1 && getValue<number>(objects, 'yAxis', 'interval', null) !== null) ? 1 : getValue<number>(objects, 'yAxis', 'interval', null) > 15 ? 15 : getValue<number>(objects, 'yAxis', 'interval', null),
+                    intervalxAxis: (getValue<number>(objects, 'xAxis', 'interval', null) < 1
+                        &&
+                        getValue<number>(objects, 'xAxis', 'interval', null) !== null)
+                        ? 1
+                        : getValue<number>(objects, 'xAxis', 'interval', null) > 15 ? 15
+                            : getValue<number>(objects, 'xAxis', 'interval', null),
+                    intervalyAxis: (getValue<number>(objects, 'yAxis', 'interval', null) < 1
+                        &&
+                        getValue<number>(objects, 'yAxis', 'interval', null) !== null) ? 1
+                        : getValue<number>(objects, 'yAxis', 'interval', null) > 15 ? 15
+                            : getValue<number>(objects, 'yAxis', 'interval', null),
 
                     showxAxisTitle: getValue<boolean>(objects, 'xAxis', 'titleEnable', true),
                     showyAxisTitle: getValue<boolean>(objects, 'yAxis', 'titleEnable', true),
                     showxAxisLabel: getValue<boolean>(objects, 'xAxis', 'label', true),
                     showyAxisLabel: getValue<boolean>(objects, 'yAxis', 'label', true),
-                    xTitleText: getValue<string>(objects, 'xAxis', 'titleText', "X"),
-                    yTitleText: getValue<string>(objects, 'yAxis', 'titleText', "Y"),
+                    xTitleText: getValue<string>(objects, 'xAxis', 'titleText', 'X'),
+                    yTitleText: getValue<string>(objects, 'yAxis', 'titleText', 'Y'),
                     xDisplayUnits: getValue<number>(objects, 'xAxis', 'displayUnits', 0),
                     yDisplayUnits: getValue<number>(objects, 'yAxis', 'displayUnits', 0),
-                    xTextPrecision: getValue<number>(objects, 'xAxis', 'textPrecision', 0) < 0 ? 0 : getValue<number>(objects, 'xAxis', 'textPrecision', 0) > 4 ? 4 : getValue<number>(objects, 'xAxis', 'textPrecision', 0),
-                    yTextPrecision: getValue<number>(objects, 'yAxis', 'textPrecision', 0) < 0 ? 0 : getValue<number>(objects, 'yAxis', 'textPrecision', 0) > 4 ? 4 : getValue<number>(objects, 'yAxis', 'textPrecision', 0),
+                    xTextPrecision: getValue<number>(objects, 'xAxis', 'textPrecision', 0) < 0 ? 0
+                        : getValue<number>(objects, 'xAxis', 'textPrecision', 0) > 4 ? 4
+                            : getValue<number>(objects, 'xAxis', 'textPrecision', 0) % 1 !== 0 ?
+                                getValue<number>(objects, 'xAxis', 'textPrecision', 0) - getValue<number>(objects, 'xAxis', 'textPrecision', 0) % 1
+                                : getValue<number>(objects, 'xAxis', 'textPrecision', 0),
+                    yTextPrecision: getValue<number>(objects, 'yAxis', 'textPrecision', 0) < 0 ? 0
+                        : getValue<number>(objects, 'yAxis', 'textPrecision', 0) > 4 ? 4
+                            : getValue<number>(objects, 'yAxis', 'textPrecision', 0) % 1 !== 0 ?
+                                getValue<number>(objects, 'yAxis', 'textPrecision', 0) - getValue<number>(objects, 'yAxis', 'textPrecision', 0) % 1
+                                : getValue<number>(objects, 'yAxis', 'textPrecision', 0),
                     // Quadrant division lines
                     quadrantDivisionX: getValue<number>(objects, 'quadrantNames', 'quadrantDivisionX', -1),
                     quadrantDivisionY: getValue<number>(objects, 'quadrantNames', 'quadrantDivisionY', -1)
@@ -633,8 +756,3 @@ module powerbi.extensibility.visual {
         }
     }
 }
-
-
-
-
-

@@ -16,7 +16,7 @@ function setLegendEnable(iCounter, total) {
     legendsEnable[iCounter] = total;
 }
 function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFormatter, textMeasurementService) {
-  
+
     //data binding
     var dataView = DataStyle;
     //format options
@@ -27,7 +27,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
     var legendHeight = legendContainer.attr('height');
     var legendWidth = legendContainer.attr('width');
     var legendOrient = parseInt(legendContainer.attr('orientation'));
-    if(settings.showLegend){
+    if (settings.showLegend) {
         var container = $('#container');
         container.css('margin-right', 0);
         switch (legendOrient) {
@@ -51,7 +51,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                 break;
         }
     }
-    
+
     var config = {
         "chart": {
             "renderTo": "container",
@@ -223,7 +223,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
     //data binding
     var xAxisName = dataView.categorical.values[assignData[0]].displayName;
     var yAxisName = dataView.categorical.values[assignData[1]].displayName;
-    var radiusAxisName = "";    
+    var radiusAxisName = "";
     var Rformatter;
     if (assignData[2] !== -1) {
         radiusAxisName = dataView.categorical.values[assignData[2]].source.displayName;
@@ -248,8 +248,8 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
     for (var dIterator = 0; dIterator < nodeData.dataPoints.length; dIterator++) {
         config.plotOptions.bubble.color.push(nodeData.dataPoints[dIterator].color);
     }
-    Xformatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[0]].source.format, value: settings.xDisplayUnits, precision: settings.xTextPrecision  });
-    Yformatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[1]].source.format, value: settings.yDisplayUnits, precision: settings.yTextPrecision  });
+    Xformatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[0]].source.format, value: settings.xDisplayUnits, precision: settings.xTextPrecision });
+    Yformatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[1]].source.format, value: settings.yDisplayUnits, precision: settings.yTextPrecision });
     (function (config) {
         /*jslint white: true, devel:true, browser: true, this:true, for:true  */
         /*global MAQ, window,oDimensionTotalTitle,oGrpELESum,oData*/
@@ -2245,6 +2245,29 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                 //Hack to maintain height and width ratio of container div
                 chartConfigOptions.container.style.height = '0';
                 chartConfigOptions.container.style.paddingTop = iHeight / iWidth * 100 + '%';
+                var defaultPaddingTopPercentage = 100;
+                var iHeightMultiplier = 0.9;
+                var PaddingTopPercentage = 78;
+                switch (legendOrient) {
+                    case 0:
+                    case 1:
+                    case 4:
+                    case 5:
+                    case 6:
+                        chartConfigOptions.container.style.paddingTop = iHeight / iWidth * defaultPaddingTopPercentage + '%';
+                        break;
+                    case 2:
+                    case 3:
+                    case 7:
+                    case 8:
+                        if ((chartConfigOptions.availWidth < 315 && chartConfigOptions.availHeight < 235) || (chartConfigOptions.availHeight < 235) || (chartConfigOptions.availWidth < 315)) {
+                            chartConfigOptions.container.style.paddingTop = (iHeight * iHeightMultiplier) / iWidth * PaddingTopPercentage + '%';
+                        }
+                        else {
+                            chartConfigOptions.container.style.paddingTop = iHeight / iWidth * defaultPaddingTopPercentage + '%';
+                        }
+                        break;
+                }
                 svgELE.style.position = 'absolute';
                 svgELE.style.top = '0';
                 svgELE.style.left = '0';
@@ -2407,7 +2430,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
             'use strict';
             //first remove all the previous hover effects
             removeLegendHover(evt, oParam);
-            if(legendClickFlag === 0){
+            if (legendClickFlag === 0) {
                 legendClickFlag = 1;
                 var aLegends = oParam.config.legend.legends, iCount = 0;
                 var iLen = aLegends.length;
@@ -2452,7 +2475,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     MAQ.showHideStaticTooltips(oParam, true);
                 }
             }
-            else{
+            else {
                 legendClickFlag = 0;
             }
         }
@@ -2611,7 +2634,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     }
                 }
             } else {
-                oToolTip.textContent     = oParam.value;
+                oToolTip.textContent = oParam.value;
             }
             //if changeBorder is true and series level tool tip is false then change the border color
             if (oConfig.tooltip.changeBorderColor && !oConfig.tooltip.seriesLevelTooltip) {
@@ -2697,7 +2720,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
         }
 
         MAQ.drawLegend = function (chartConfigOptions) {
-            
+
             'use strict';
             var oLegend = chartConfigOptions.legend, oLegStyle, oChartStyle, oLegCStyle, oChartCStyle, sRectRule, sRectCRule, sTextRule, sTextCRule, sChartRule, sChartCRule, obj;
             if (oLegend.enabled) {
@@ -2824,7 +2847,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                                 oTextAttr.x = oSymbolAttr.x;
                                 MAQ.addAttr(oTextELE, 'x', oTextAttr.x);
                             }
-                            
+
                             MAQ.addAttr(oTextELE, 'y', oSymbolAttr.y + Math.abs(oDim.y) - (oDim.height - oSymbolAttr.height) / 2);
                             if (oLegend.verticalAlignLegend) {
                                 oSymbolAttr.x += imaxWidth + oLegend.individualDistance;
@@ -3267,11 +3290,11 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                 dataView.metadata.objects &&
                 dataView.metadata.objects['quadrantNames'] &&
                 dataView.metadata.objects['quadrantNames']['quadrantDivisionY'])) {
-                    quadrantDivisionYFlag = false;
-                }
-                else {
-                    settings.quadrantDivisionY = -1;
-                }
+                quadrantDivisionYFlag = false;
+            }
+            else {
+                settings.quadrantDivisionY = -1;
+            }
             //to reset it to the middle
             if ((settings.quadrantDivisionY > yAxisSeries[iLength] || settings.quadrantDivisionY < yAxisSeries[0]) && quadrantDivisionYFlag) {
                 config.yAxis.gridLineY = (yAxisSeries[0] + yAxisSeries[iLength]) / 2;
@@ -3303,7 +3326,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
             oGrpYAxisLblNTick.appendChild(oGridAreaGrpELE);
 
             var maxLen = 0;
-            for(var iCOunter = 0; iCOunter < yAxisSeriesLength; iCOunter++) {
+            for (var iCOunter = 0; iCOunter < yAxisSeriesLength; iCOunter++) {
                 var currText = yAxisSeries[iCOunter];
                 formattedText = "";
                 if (settings.yDisplayUnits == '0') {    //auto option selected then
@@ -3338,11 +3361,11 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     fontSize: config.yAxis.labels.style.fontSize
                 };
                 var textwidth = textMeasurementService.measureSvgTextWidth(textProperties);
-                if(textwidth > maxLen){
+                if (textwidth > maxLen) {
                     maxLen = textwidth;
                 }
             }
-            if(settings.showyAxis && settings.showyAxisLabel){
+            if (settings.showyAxis && settings.showyAxisLabel) {
                 leftSpacing = maxLen + 10;
             }
             oAttrYAxis = {
@@ -3416,7 +3439,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
 
             var skipgridsy = yAxis.numberOfGridLines / 2;
             var oAttrLabelOrg;
-            var yTooltipFormatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[1]].source.format});
+            var yTooltipFormatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[1]].source.format });
             for (iCounter = yAxisSeriesLength; yAxisLimit <= iCounter; iCounter -= 1) {
                 if (bSkipPlot) {
                     iSkipInterval -= 1;
@@ -3520,7 +3543,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     'stroke-width': yAxis.gridLineWidth
                 };
 
-                if(settings.type){
+                if (settings.type) {
                     oAttrGridLine['stroke-dasharray'] = MAQ.computeStrokeDashStyle(yAxis.gridLineDashStyle)
                 }
 
@@ -3619,10 +3642,10 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
             var iNumOfCharsAllowed = Math.ceil(chartConfigOptions.plotIntervalWidth * Math.max(iSkipInterval, 1) / oDimAxis.width);
             var sTempText = '', iPrevX, oDim, isDrillBar, oParam, oToolTip, iStartOffset, skipgridsx = xAxis.numberOfGridLines / 2;
             var oAttrLabelOrg;
-            var xTooltipFormatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[0]].source.format});
-            
+            var xTooltipFormatter = valueFormatter.create({ format: DataStyle.categorical.values[assignData[0]].source.format });
+
             for (iCounter = 0; iCounter < xAxisSeries.length; iCounter += 1) {
-                
+
                 isDrillBar = false;
                 //If the next bar is a drill bar
                 if (chartConfigOptions.drillActive && 1 === chartConfigOptions.drillActive && iCounter + 1 > chartConfigOptions.drillIndex && iCounter <= chartConfigOptions.drillIndex + chartConfigOptions.drillDataLength) {
@@ -3730,13 +3753,13 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                 dataView.metadata.objects &&
                 dataView.metadata.objects['quadrantNames'] &&
                 dataView.metadata.objects['quadrantNames']['quadrantDivisionX'])) {
-                    quadrantDivisionXFlag = false;
-                }
-                else {
-                    config.xAxis.gridLineX = -1;
-                }
+                quadrantDivisionXFlag = false;
+            }
+            else {
+                config.xAxis.gridLineX = -1;
+            }
             if (settings.showQuadrants) {
-                if(chartConfigOptions.series.length == 1){
+                if (chartConfigOptions.series.length == 1) {
                     config.xAxis.gridLineX = -1;
                 }
                 if ((config.xAxis.gridLineX > xAxisSeries[(xAxisSeries.length - 1)] || config.xAxis.gridLineX < xAxisSeries[0]) && quadrantDivisionXFlag) {
@@ -3750,7 +3773,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                 }
                 else {
                     finalX = (chartConfigOptions.availWidth) * (config.xAxis.gridLineX) / (xAxisSeries[0] + xAxisSeries[xAxisSeries.length - 1]);
-                    
+
                 }
                 oAttrGridLine = {
                     x: finalX,
@@ -3766,7 +3789,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     'stroke-width': xAxis.gridLineWidth
                 };
 
-                if(settings.type){
+                if (settings.type) {
                     oAttrGridLine['stroke-dasharray'] = MAQ.computeStrokeDashStyle(xAxis.gridLineDashStyle)
                 }
 
@@ -4047,7 +4070,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     'stroke-width': oBubblePlotOptions.borderWidth,
                     'stroke-dasharray': MAQ.computeStrokeDashStyle(oBubblePlotOptions.borderDashStyle)
                 }, oGrpBubbleChart, oDataArray, iXcord, iYcord, height, width, oBubble, oParam, oToolTip;
-                
+
                 //find maximum radius from the input for normalizing the radius
                 var maxRadius = -1;
                 for (iSeriesCounter = 0; iSeriesCounter < iSeriesLength; iSeriesCounter += 1) {
@@ -4074,7 +4097,7 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     iLength = oDataArray.scaleX.length;
                     iXcord = 0;
                     iYcord = 0;
-                    
+
                     for (iCounter = 0; iCounter < iLength; iCounter += 1) {
                         if (isSeriesEnabled(oSeries, iSeriesCounter)) {
                             //don't show a bubble if the data itself is null
