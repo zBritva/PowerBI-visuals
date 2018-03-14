@@ -1,0 +1,14 @@
+Brief Description:
+Display the relationship between two or more datasets.
+
+Long Description:
+Venn Diagram by MAQ Software displays logical relationships between a collection of datasets, each represented as a circle. The intersection of the circles illustrates the qualities that are shared by the overlapping datasets.
+
+One use for Venn Diagram by MAQ Software is showing employee involvement in various products or services. Users can quickly display which employees are involved with which products, and where overlaps between teams occur.
+
+Key features:
+•	Customizable names and colors for each circle or dataset.
+•	Labels let users easily distinguish between individual values and intersected region values.
+•	Users can hover their mouse over different regions, showing individual and intersected values.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

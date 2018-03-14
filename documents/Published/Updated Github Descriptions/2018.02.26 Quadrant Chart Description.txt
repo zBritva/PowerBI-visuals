@@ -1,0 +1,14 @@
+Brief Description:
+Represent data in separate quadrants to show distribution and items that share common traits.
+
+Long Description:
+Quadrant Chart by MAQ Software is a bubble chart with a background divided into four equal sections. This visual is useful for plotting data that contains three measures using an X-axis, a Y-axis, and varying bubble sizes that represent the value of the third measure.
+
+Quadrant Chart by MAQ Software is useful for showing relationships, such as the relationship between production cost and gross profit. Users can place cost values on the X-axis and profit on the Y-axis. The four sections rate the performance (cost vs. profit) as bad, good, better, or best. Bubbles in each quadrant represent the health of each respective quadrant. The size of the bubble represents the number of units sold. Quadrant Chart by MAQ Software is compact, yet shows a great deal of information. 
+
+Key features:
+•	Customizable bubble colors.
+•	Formatting options for quadrants and quadrant lines including naming for each quadrant, X-axis division line, Y-axis division line, and a choice of dotted or solid lines.
+•	Custom title, title text, labels, display units, and decimal points for each axis.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

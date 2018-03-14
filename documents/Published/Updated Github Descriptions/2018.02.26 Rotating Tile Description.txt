@@ -1,0 +1,15 @@
+Brief Description:
+Automatically flipping tile with a set frequency that displays multiple key performance indicators (KPIs).
+
+Long Description:
+Rotating Tile by MAQ Software is a tile that displays one KPI value at a time before flipping to the next value. This visual is useful for showcasing multiple KPIs or metrics on a single report. 
+
+One use for Rotating Tile by MAQ Software is showing many KPIs in a limited space on a year-end financial report.
+
+Key features:
+•	Tile can be rotated on the horizontal or the vertical axis.
+•	The flip delay time can be specified, ensuring that all data shown in the tile is readable.
+•	Includes a 3D effect option, making noticing data changes easier for viewers.
+•	Includes basic formatting options for the label and title, background, and tile borders, including font type, size, and color.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

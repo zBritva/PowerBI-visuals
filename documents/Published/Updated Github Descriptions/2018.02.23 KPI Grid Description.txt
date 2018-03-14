@@ -1,0 +1,14 @@
+Brief Description:
+Display data in hierarchical order with options to separate categories and illustrate trends.
+
+Long Description:
+KPI Grid by MAQ Software allows users to track productivity and performance data by displaying key data in hierarchical order. Users can specify the time periods shown, making gauging performance according to internal deadlines and benchmarks easy.
+
+KPI Grid by MAQ Software is useful for adding visual interest to reports, such as yearly sales data. In addition to displaying the data, users can add images to emphasize trends.
+
+Key features:
+•	Include custom images such as rising or falling arrows.
+•	Include separators between columns, highlighting certain categories for quick comparison.
+•	Change row background colors, text size, and text color.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

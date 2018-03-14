@@ -1,0 +1,14 @@
+Brief Description:
+Display multiple key performance indicators (KPIs) in an automatically rotating visual.
+
+Long Description:
+KPI Ticker by MAQ Software saves space on your reports by displaying multiple KPIs in a series of rotating tiles. Show the percentage increase or decrease of each value and quickly alert viewers of positive, negative, and neutral changes with an optional color-coded trend indicator.
+
+KPI Ticker by MAQ Software works great in applications with frequently changing metrics such as values for multiple stocks or flight delay information for multiple carriers.
+
+Key features:
+•	Adjust the number of tiles in each row and their background color.
+•	Change the font size and color.
+•	Customize the colors of positive, negative, and neutral trend indicators.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.
