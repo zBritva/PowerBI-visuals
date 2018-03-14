@@ -1,0 +1,10 @@
+Brief Description:
+Enable text wrapping in Power BI reports.
+
+Long Description:
+Text Wrapper by MAQ Software retrieves text from any data source and wraps it within the target field, presenting the text in a readable format. This visual also wraps static text strings (statements) with dynamic text field values.
+
+Key features:
+•	The dynamic text field value updates according to the selected filter or slicer, keeping the static text intact.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.
