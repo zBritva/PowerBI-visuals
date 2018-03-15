@@ -1364,6 +1364,7 @@ module powerbi.extensibility.visual {
             // tslint:disable-next-line:no-any
             let categoriesdata: any;
             categoriesdata = dataView.categorical.categories;
+
             let valuesdata: DataViewValueColumn[];
             valuesdata = dataView.categorical.values;
             let kpiRoles: number[];
@@ -1376,14 +1377,29 @@ module powerbi.extensibility.visual {
             Gantt.categoriesTitle = [];
             let tasks: Task[] = [];
             let hashArr: Task[];
+            const kpiValuesNames: string[] = [];
+            const categoryNames: string[] = [];
 
             // tslint:disable-next-line:no-any
             categoriesdata.map((child: any, index: number) => {
+                //Logic to add roles
+                if (child.source.roles[GanttRoles.category]) {
+                    //If roles are are already present then not allowed to enter again
+                    if (!(categoryNames.indexOf(categoriesdata[index].source.displayName) > -1)) {
+                        categoryRoles.push(index);
+                        Gantt.categoriesTitle.push(categoriesdata[index].source.displayName);
+                        categoryNames.push(categoriesdata[index].source.displayName);
+                    }
+
+                }
+
                 if (child.source.roles[GanttRoles.kpiValueBag]) {
-                    kpiRoles.push(index);
-                } else if (child.source.roles[GanttRoles.category]) {
-                    categoryRoles.push(index);
-                    Gantt.categoriesTitle.push(categoriesdata[index].source.displayName);
+                    //If roles are are already present then not allowed to enter again
+                    if (!(kpiValuesNames.indexOf(categoriesdata[index].source.displayName) > -1)) {
+                        kpiRoles.push(index);
+                        kpiValuesNames.push(categoriesdata[index].source.displayName);
+
+                    }
                 }
             });
 
@@ -1413,6 +1429,7 @@ module powerbi.extensibility.visual {
 
             // tslint:disable-next-line:cyclomatic-complexity no-any
             categoriesdata[0].values.map((child: any, index: number) => {
+
                 let startDate: Date = null;
                 let endDate: Date = null;
                 let datamin: number = null;
@@ -1497,6 +1514,7 @@ module powerbi.extensibility.visual {
 
                 let kpiRolesLength: number;
                 kpiRolesLength = kpiRoles.length;
+
                 for (let kpiValueCounter: number = 0; kpiValueCounter < kpiRolesLength; kpiValueCounter++) {
                     let name: string;
                     name = <string>categoriesdata[kpiRoles[kpiValueCounter]].source.displayName;
@@ -2069,6 +2087,7 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
+
             Gantt.kpiLabelWidth = 75;
             Gantt.globalOptions = options;
             if (!options.dataViews || !options.dataViews[0]) {
@@ -3140,13 +3159,13 @@ module powerbi.extensibility.visual {
                 this.bottommilestoneDiv.style({
                     bottom: PixelConverter
                         .toString(this.viewport.height - Gantt.axisHeight - Gantt.bottomMilestoneHeight - Gantt.scrollHeight
-                        - (Gantt.currentTasksNumber * chartLineHeight + 20))
+                            - (Gantt.currentTasksNumber * chartLineHeight + 20))
                 });
 
                 this.bottomTaskDiv.style({
                     bottom: PixelConverter
                         .toString(this.viewport.height - Gantt.axisHeight - Gantt.bottomMilestoneHeight - Gantt.scrollHeight
-                        - (Gantt.currentTasksNumber * chartLineHeight + 20))
+                            - (Gantt.currentTasksNumber * chartLineHeight + 20))
                 });
 
                 thisObj.barDiv.style('height', '100%');
@@ -3779,6 +3798,7 @@ module powerbi.extensibility.visual {
          * @param width : number of characters to be displayed
          */
         private static getKPIValues(kpiValue: KPIValues, property: string): string {
+
             let singleTask: string = kpiValue.value ? kpiValue.value.toString() : '';
             if (property === 'text') {
                 if (singleTask.length > 8) {
@@ -4113,9 +4133,9 @@ module powerbi.extensibility.visual {
                                 'background-color': columnHeaderBgColor
                             })
                             .call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            100,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                100,
+                                textMeasurementService.svgEllipsis);
                     } else {
                         d3.select(categoryClassLiteral + jCount)
                             .text(Gantt.categoriesTitle[jCount])
@@ -4127,10 +4147,10 @@ module powerbi.extensibility.visual {
                                 'background-color': columnHeaderBgColor
                             })
                             .call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            kpiPanelWidth -
-                            lastRectX,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                kpiPanelWidth -
+                                lastRectX,
+                                textMeasurementService.svgEllipsis);
                     }
 
                 } else {
@@ -4190,7 +4210,7 @@ module powerbi.extensibility.visual {
                 });
 
                 let sKPITitle: string;
-                sKPITitle = this.viewModel.kpiData[jCount].name;
+                sKPITitle = tasks[0].KPIValues[jCount].name;
                 let sFirstWord: string;
                 sFirstWord = sKPITitle.substr(0, sKPITitle.indexOf(' '));
                 switch (sFirstWord) {
@@ -4346,23 +4366,23 @@ module powerbi.extensibility.visual {
                             if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 1) || lastRectX > barPanelLeft - 1) {
                                 axisLabel.text(categoryLabel)
                                     .call(
-                                    AxisHelper.LabelLayoutStrategy.clip,
-                                    100,
-                                    textMeasurementService.svgEllipsis);
+                                        AxisHelper.LabelLayoutStrategy.clip,
+                                        100,
+                                        textMeasurementService.svgEllipsis);
                             } else {
                                 axisLabel.text(categoryLabel)
                                     .call(
-                                    AxisHelper.LabelLayoutStrategy.clip,
-                                    parseInt(d3.select('.gantt_kpiPanel').style('left'), 10) - lastRectX - 10,
-                                    textMeasurementService.svgEllipsis);
+                                        AxisHelper.LabelLayoutStrategy.clip,
+                                        parseInt(d3.select('.gantt_kpiPanel').style('left'), 10) - lastRectX - 10,
+                                        textMeasurementService.svgEllipsis);
                             }
 
                         } else {
                             axisLabel.text(categoryLabel)
                                 .call(
-                                AxisHelper.LabelLayoutStrategy.clip,
-                                columnWidthsArr[jCount] - 20,
-                                textMeasurementService.svgEllipsis);
+                                    AxisHelper.LabelLayoutStrategy.clip,
+                                    columnWidthsArr[jCount] - 20,
+                                    textMeasurementService.svgEllipsis);
                         }
 
                         axisLabel.append('title').text(Gantt.getLabelValuesNew(categoryLabel, 'title', width));
@@ -4551,6 +4571,7 @@ module powerbi.extensibility.visual {
                             }).style('font-size', kpiFontSize + pxLiteral);
 
                             axisKPILabel.text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'text'));
+
                             axisKPILabel.append('title').text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'title'));
                         }
                     }
@@ -4702,9 +4723,9 @@ module powerbi.extensibility.visual {
                                 'font-size': labelnormalizer + pxLiteral,
                                 'font-family': dataLabelsFontFamily
                             }).call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
+                                textMeasurementService.svgEllipsis);
                         taskResource.append('title').text(currentLevel.resource);
                     }
                 }
@@ -4829,9 +4850,9 @@ module powerbi.extensibility.visual {
                                 'font-size': labelnormalizer + pxLiteral,
                                 'font-family': dataLabelsFontFamily
                             }).call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
+                                textMeasurementService.svgEllipsis);
                         taskResource.append('title').text(currentLevel.resource);
                     }
                     let selectionManager: ISelectionManager;
@@ -5494,16 +5515,16 @@ module powerbi.extensibility.visual {
                     objectName: 'barColor',
                     displayName: `Show All`,
                     properties: {
-                    showall: settings.barColor.showall
+                        showall: settings.barColor.showall
                     },
                     selector: null
                 });
-                for (let iterator: number  = 0; iterator < limiter; iterator++) {
+                for (let iterator: number = 0; iterator < limiter; iterator++) {
                     instances.push({
                         objectName: 'barColor',
                         displayName: `Bar ${iterator + 1}`,
                         properties: {
-                        fillColor: this.viewModelNew.tasksNew[iterator].color
+                            fillColor: this.viewModelNew.tasksNew[iterator].color
                         },
                         selector: this.viewModelNew.tasksNew[iterator].selectionId.getSelector()
                     });
@@ -5513,7 +5534,7 @@ module powerbi.extensibility.visual {
                     objectName: 'barColor',
                     displayName: `Default color`,
                     properties: {
-                    defaultColor: settings.barColor.defaultColor
+                        defaultColor: settings.barColor.defaultColor
                     },
                     selector: null
                 });
@@ -5522,7 +5543,7 @@ module powerbi.extensibility.visual {
                     objectName: 'barColor',
                     displayName: `Show All`,
                     properties: {
-                    showall: settings.barColor.showall
+                        showall: settings.barColor.showall
                     },
                     selector: null
                 });
