@@ -23,7 +23,6 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-
 module powerbi.extensibility.visual {
     import ValueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
     import TextProperties = powerbi.extensibility.utils.formatting.TextProperties;
@@ -38,9 +37,9 @@ module powerbi.extensibility.visual {
                 return defaultValue;
             }
 
-            const objectOrMap = objects[propertyId.objectName];
+            const objectOrMap: DataViewObject = objects[propertyId.objectName];
 
-            const object = <DataViewObject>objectOrMap;
+            const object: DataViewObject = <DataViewObject>objectOrMap;
 
             return DataViewObject.getValue(object, propertyId.propertyName, defaultValue);
         }
@@ -48,7 +47,7 @@ module powerbi.extensibility.visual {
         /** Gets an object from objects. */
         export function getObject(objects: DataViewObjects, objectName: string, defaultValue?: DataViewObject): DataViewObject {
             if (objects && objects[objectName]) {
-                const object = <DataViewObject>objects[objectName]; {
+                const object: DataViewObject = <DataViewObject>objects[objectName]; {
                     return object;
                 }
             } else {
@@ -59,7 +58,7 @@ module powerbi.extensibility.visual {
         /** Gets a map of user-defined objects. */
         export function getUserDefinedObjects(objects: DataViewObjects, objectName: string): DataViewObjectMap {
             if (objects && objects[objectName]) {
-                const map = <DataViewObjectMap>objects[objectName];
+                const map : DataViewObjectMap = <DataViewObjectMap>objects[objectName];
 
                 return map;
             }
@@ -84,7 +83,7 @@ module powerbi.extensibility.visual {
                 return defaultValue;
             }
 
-            const propertyValue = <T>object[propertyName];
+            const propertyValue : T = <T>object[propertyName];
             if (propertyValue === undefined) {
                 return defaultValue;
             }
@@ -102,8 +101,29 @@ module powerbi.extensibility.visual {
             return value.solid.color;
         }
     }
+    interface IdefaultvisualProperties  {
+        animationSettings: {
+            show: DataViewObjectPropertyIdentifier,
+            duration: DataViewObjectPropertyIdentifier
+        };
+        vfxSettings: {
+            show: DataViewObjectPropertyIdentifier,
+            bgColor: DataViewObjectPropertyIdentifier,
+            borderColor: DataViewObjectPropertyIdentifier
+        };
+        titleSettings: {
+            titleColor: DataViewObjectPropertyIdentifier,
+            fontSize: DataViewObjectPropertyIdentifier
+        };
+        labelSettings: {
+            labelColor: DataViewObjectPropertyIdentifier,
+            fontSize: DataViewObjectPropertyIdentifier,
+            displayUnits: DataViewObjectPropertyIdentifier,
+            textPrecision: DataViewObjectPropertyIdentifier
+        };
+    }
 
-    export let visualProperties = {
+    export let visualProperties : IdefaultvisualProperties = {
         animationSettings: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'flipVertically', propertyName: 'show' },
             duration: <DataViewObjectPropertyIdentifier>{ objectName: 'animationSettings', propertyName: 'duration' }
@@ -150,24 +170,34 @@ module powerbi.extensibility.visual {
 
     export class Visual implements IVisual {
         private target: d3.Selection<SVGElement>;
-        private dataViews;
+        private dataViews : DataView;
         private rotationId: number;
         private frameId: number;
         private measureUpdateCounter: number;
-        private elem;
+        private elem : HTMLElement;
         private rotationCount: number;
         private measureCount: number;
+        // tslint:disable-next-line:typedef as datatype is an array(object)
         private measureNameFormattedList;
-        private measureDataList;
+        // tslint:disable-next-line:typedef as datatype is an array(object)
+        private measureDataList ;
+        // tslint:disable-next-line:typedef as datatype is an array(object)
         private measureDataFormattedList;
+        // tslint:disable-next-line:typedef as datatype is an array(object)
         private measureNameList;
+        // tslint:disable-next-line:typedef
+        private labelValueList = [];
+        // tslint:disable-next-line:no-any
+        public measureValue : any;
 
-        constructor(options: VisualConstructorOptions) {
+    constructor(options: VisualConstructorOptions) {
             this.target = d3.select(options.element);
             this.measureUpdateCounter = 0;
         }
 
-        public update(options: VisualUpdateOptions) {
+        // tslint:disable-next-line:cyclomatic-complexity
+        public update(options: VisualUpdateOptions) : void  {
+
             // Clear the rotation effect
             clearInterval(this.frameId);
             clearInterval(this.rotationId);
@@ -178,28 +208,27 @@ module powerbi.extensibility.visual {
             const vfxSettings: IVfxSettings = this.getVfxSettings(this.dataViews);
             const titleSettings: ITitleSettings = this.getTitleSettings(this.dataViews);
             const labelSettings: ILabelSettings = this.getLabelSettings(this.dataViews);
-
             if (options && options.dataViews && options.dataViews[0] && options.dataViews[0].table && options.dataViews[0].table.rows) {
                 this.measureNameList = options.dataViews[0].table.columns;
                 this.measureDataList = options.dataViews[0].table.rows[0];
                 this.measureDataFormattedList = [];
                 this.measureNameFormattedList = [];
-                this.measureCount = this.measureNameList.length;
+                this.labelValueList = [];
+                this.measureCount = options.dataViews[0].table.columns.length;
                 this.target.selectAll('#baseContainer').remove();
                 // Create base divs
                 this.target
                     .append('div')
-                    .attr('id', 'baseContainer');
-
-                $('#baseContainer').css({
-                    width: `${options.viewport.width}px`,
-                    height: `${options.viewport.height}px`,
-                    perspective: '400px',
-                    position: 'relative'
-                });
-                let mainContainer;
+                    .attr('id', 'baseContainer').style({
+                        width: `${options.viewport.width}px`,
+                        height: `${options.viewport.height}px`,
+                        perspective: '400px',
+                        position: 'relative'
+                    });
+                let mainContainer : HTMLSpanElement;
                 mainContainer = document.createElement('div');
                 mainContainer.setAttribute('id', 'mainContainer');
+                $('#baseContainer').append(mainContainer);
 
                 // 3D effect on/off
                 if (vfxSettings.show) {
@@ -214,19 +243,49 @@ module powerbi.extensibility.visual {
                     mainContainer.style.height = `${options.viewport.height}px`;
                     mainContainer.style.width = `${options.viewport.width}px`;
                 }
-
-                $('#baseContainer').append(mainContainer);
                 let mainContainerWidth: number;
-                mainContainerWidth = parseFloat($('#mainContainer').css('width'));
+                const $mainCont : JQuery = $('#mainContainer') ;
+                mainContainerWidth = parseFloat($mainCont.css('width'));
+                this.measureValue = Math.round(this.measureDataList[0] * 100) / 100;
+                let formatter : IValueFormatter;
+
                 // Logic to format data label tiles (currency, percentage and ellipses)
+                    // tslint:disable-next-line:forin
                 for (const measure in this.measureNameList) {
                     if (this.measureNameList.hasOwnProperty(measure)) {
-                        let formatter;
-                        formatter = ValueFormatter.create({
-                            format: this.measureNameList[measure].format,
-                            value: labelSettings.displayUnits,
-                            precision: labelSettings.textPrecision
-                        });
+                        let displayVal: number;
+                        displayVal = 0;
+
+                        let tempMeasureData: number;
+                        tempMeasureData = Math.round(this.measureDataList[measure]);
+                        const valLen : number = String(tempMeasureData).length;
+                        if (labelSettings.displayUnits === 0) {if (valLen > 9) {
+                                    displayVal = 1e9;
+                                } else if (valLen <= 9 && valLen > 6) {
+                                    displayVal = 1e6;
+                                } else if (valLen <= 6 && valLen >= 4) {
+                                    displayVal = 1e3;
+                                } else {
+                                    displayVal = 10;
+                                }
+                            }
+
+                        if (( String(this.measureNameList[measure].format) === 'dd MMMM yyyy') ||
+                        ( String(this.measureNameList[measure].format) === 'undefined')) {
+                            formatter = ValueFormatter.create({
+                                format: this.measureNameList[measure]
+                            });
+                        } else {
+                            formatter = ValueFormatter.create({
+                                format: this.measureNameList[measure].format,
+                               value: labelSettings.displayUnits === 0 ? displayVal : labelSettings.displayUnits,
+                                precision: labelSettings.textPrecision
+
+                            });
+
+                        }
+                        this.labelValueList.push(formatter.format(this.measureDataList[measure]));
+
                         let measureDataProperties: TextProperties;
                         measureDataProperties = {
                             text: formatter.format(this.measureDataList[measure]),
@@ -245,33 +304,37 @@ module powerbi.extensibility.visual {
                         this.measureNameFormattedList
                             .push(textMeasurementService.getTailoredTextOrDefault(measureNameProperties, mainContainerWidth));
                     }
+
                 }
-
                 // Default values
-                const defaultMeasureName = this.measureNameFormattedList[this.measureUpdateCounter];
-                const defaultMeasureData = this.measureDataFormattedList[this.measureUpdateCounter];
-
-                // Set default values in containers
-                let dataDiv;
+                const defaultMeasureName: string = this.measureNameFormattedList[this.measureUpdateCounter];
+                const defaultMeasureData: string = this.measureDataFormattedList[this.measureUpdateCounter];
+               // Set default values in containers
+                let dataDiv : HTMLSpanElement;
                 dataDiv = document.createElement('div');
-                let measureSpan;
+                let measureSpan : HTMLSpanElement;
                 measureSpan = document.createElement('span');
                 measureSpan.id = 'measureData';
                 measureSpan.style.fontSize = `${labelSettings.fontSize * 2}px`;
                 measureSpan.style.color = labelSettings.labelColor;
                 measureSpan.textContent = defaultMeasureData;
+
+                formatter = ValueFormatter.create({
+                                                                        format: this.measureNameList[0].format
+                                                                    });
+                this.measureValue = formatter.format(this.measureDataList[0]);
+
+                measureSpan.title = (this.measureValue);
                 dataDiv.appendChild(measureSpan);
-
                 dataDiv.appendChild(document.createElement('br'));
-
-                let measureNameSpan;
+                let measureNameSpan : HTMLSpanElement;
                 measureNameSpan = document.createElement('span');
                 measureNameSpan.id = 'measureName';
                 measureNameSpan.style.fontSize = `${titleSettings.fontSize}px`;
                 measureNameSpan.style.color = titleSettings.titleColor;
                 measureNameSpan.textContent = defaultMeasureName;
+                measureNameSpan.title = this.measureNameList[0].displayName;
                 dataDiv.appendChild(measureNameSpan);
-
                 dataDiv.setAttribute('id', 'box');
                 dataDiv.style.fontFamily = 'Segoe UI Semibold,wf_segoe-ui_semibold,helvetica,arial,sans-serif';
                 dataDiv.style.color = '#000';
@@ -281,45 +344,49 @@ module powerbi.extensibility.visual {
                 dataDiv.style.position = 'absolute';
                 dataDiv.style.top = '50%';
                 dataDiv.style.transform = 'translateY(-50%)';
-                $('#mainContainer').append(dataDiv);
+                $mainCont.append(dataDiv);
                 this.elem = document.getElementById('mainContainer');
 
                 // Call rotation method
-                if (this.measureCount > 1) {
+                if (this.measureCount >= 1) {
                     clearInterval(this.rotationId);
+
                     this.rotationId = setInterval(() => this.rotation(), animationSettings.duration * 1000);
+
                 }
 
                 // Click functionality
-                $('#mainContainer').on('click', () => {
+                $mainCont.on('click', () => {
                     clearInterval(this.rotationId);
                     this.rotation();
                     this.rotationId = setInterval(() => this.rotation(), animationSettings.duration * 1000);
                 });
 
                 // Hide labels if labels height > box size
-                if (parseFloat($('#measureData').css('height')) + parseFloat($('#measureName').css('height'))
-                    > parseFloat($('#mainContainer').css('height'))) {
-                    $('#measureName').css('display', 'none');
-                    if (parseFloat($('#measureData').css('height')) > parseFloat($('#mainContainer').css('height'))) {
-                        $('#measureData').css('display', 'none');
+                const measureData : JQuery = $('#measureData');
+                const measureName : JQuery =  $('#measureName');
+                if (parseFloat(measureData.css('height')) + parseFloat(measureName.css('height'))
+                    > parseFloat($mainCont.css('height'))) {
+                    measureName.css('display', 'none');
+                    if (parseFloat(measureData.css('height')) > parseFloat($mainCont.css('height'))) {
+                        measureData.css('display', 'none');
                     } else {
-                        $('#measureData').css('display', 'inline');
+                        measureData.css('display', 'inline');
                     }
                 } else {
-                    $('#measureName').css('display', 'inline');
+                    measureName.css('display', 'inline');
                 }
             }
         }
 
         // Logic to rotate the tiles
-        public rotation() {
+        public rotation() : void {
             this.rotationCount = 1;
             clearInterval(this.frameId);
             this.frameId = setInterval(() => this.frame(), 5);
         }
 
-        public frame() {
+        public frame(): void {
             const animationSettings: IAnimationSettings = this.getAnimationSettings(this.dataViews);
 
             if (this.rotationCount === 90) {
@@ -327,15 +394,29 @@ module powerbi.extensibility.visual {
                 if (this.measureUpdateCounter >= this.measureCount) {
                     this.measureUpdateCounter = 0;
                 }
-                let measureName;
+                let measureName : HTMLSpanElement;
                 measureName = document.getElementById('measureName');
-                let measureData;
+                let measureData : HTMLSpanElement;
                 measureData = document.getElementById('measureData');
                 measureName.textContent = this.measureNameFormattedList[this.measureUpdateCounter].toString();
                 if (this.measureDataList[this.measureUpdateCounter] === null) {
-                    measureData.textContent = 'NA';
+                    measureData.textContent = '(Blank)';
                 } else {
                     measureData.textContent = this.measureDataFormattedList[this.measureUpdateCounter].toString();
+
+                    measureName.title = this.measureNameList[this.measureUpdateCounter].displayName;
+
+                    let formatter : IValueFormatter;
+                    formatter = ValueFormatter.create({
+                                                                            format: this
+                                                                            .measureNameList[this.measureUpdateCounter].format
+                                                                        });
+                    measureData.title = formatter
+                                                                    .format(isNaN(Math.ceil(this.measureDataList[this
+                                                                        .measureUpdateCounter] ))  ?  this.measureDataList[this
+                                                                            .measureUpdateCounter] : (Math.ceil(this.measureDataList[this
+                                                                                .measureUpdateCounter] )  ));
+
                 }
                 this.rotationCount = -90;
             } else if (this.rotationCount === 0) {
@@ -359,9 +440,8 @@ module powerbi.extensibility.visual {
                 return settings;
             }
             objects = dataView.metadata.objects;
-            const properties = visualProperties;
-            settings.show = DataViewObjects.getValue(objects, properties.animationSettings.show, settings.show);
-            settings.duration = DataViewObjects.getValue(objects, properties.animationSettings.duration, settings.duration);
+            settings.show = DataViewObjects.getValue(objects, visualProperties.animationSettings.show, settings.show);
+            settings.duration = DataViewObjects.getValue(objects, visualProperties.animationSettings.duration, settings.duration);
             settings.duration = settings.duration < 2 ? 2 : settings.duration > 10 ? 10 : settings.duration;
 
             return settings;
@@ -376,10 +456,9 @@ module powerbi.extensibility.visual {
                 return settings;
             }
             objects = dataView.metadata.objects;
-            const properties = visualProperties;
-            settings.show = DataViewObjects.getValue(objects, properties.vfxSettings.show, settings.show);
-            settings.bgColor = DataViewObjects.getFillColor(objects, properties.vfxSettings.bgColor, settings.bgColor);
-            settings.borderColor = DataViewObjects.getFillColor(objects, properties.vfxSettings.borderColor, settings.borderColor);
+            settings.show = DataViewObjects.getValue(objects, visualProperties.vfxSettings.show, settings.show);
+            settings.bgColor = DataViewObjects.getFillColor(objects, visualProperties.vfxSettings.bgColor, settings.bgColor);
+            settings.borderColor = DataViewObjects.getFillColor(objects, visualProperties.vfxSettings.borderColor, settings.borderColor);
 
             return settings;
         }
@@ -393,9 +472,8 @@ module powerbi.extensibility.visual {
                 return settings;
             }
             objects = dataView.metadata.objects;
-            const properties = visualProperties;
-            settings.titleColor = DataViewObjects.getFillColor(objects, properties.titleSettings.titleColor, settings.titleColor);
-            settings.fontSize = DataViewObjects.getValue(objects, properties.titleSettings.fontSize, settings.fontSize);
+            settings.titleColor = DataViewObjects.getFillColor(objects, visualProperties.titleSettings.titleColor, settings.titleColor);
+            settings.fontSize = DataViewObjects.getValue(objects, visualProperties.titleSettings.fontSize, settings.fontSize);
 
             return settings;
         }
@@ -409,11 +487,11 @@ module powerbi.extensibility.visual {
                 return settings;
             }
             objects = dataView.metadata.objects;
-            const properties = visualProperties;
-            settings.labelColor = DataViewObjects.getFillColor(objects, properties.labelSettings.labelColor, settings.labelColor);
-            settings.fontSize = DataViewObjects.getValue(objects, properties.labelSettings.fontSize, settings.fontSize);
-            settings.displayUnits = DataViewObjects.getValue(objects, properties.labelSettings.displayUnits, settings.displayUnits);
-            settings.textPrecision = DataViewObjects.getValue(objects, properties.labelSettings.textPrecision, settings.textPrecision);
+            settings.labelColor = DataViewObjects.getFillColor(objects, visualProperties.labelSettings.labelColor, settings.labelColor);
+            settings.fontSize = DataViewObjects.getValue(objects, visualProperties.labelSettings.fontSize, settings.fontSize);
+            settings.displayUnits = DataViewObjects.getValue(objects, visualProperties.labelSettings.displayUnits, settings.displayUnits);
+            settings.textPrecision = DataViewObjects.getValue(objects, visualProperties.labelSettings.textPrecision,
+                                                              settings.textPrecision);
 
             return settings;
         }
@@ -453,7 +531,7 @@ module powerbi.extensibility.visual {
             const vfxSettings: IVfxSettings = this.getVfxSettings(this.dataViews);
             const titleSettings: ITitleSettings = this.getTitleSettings(this.dataViews);
             const labelSettings: ILabelSettings = this.getLabelSettings(this.dataViews);
-            const objectName = options.objectName;
+            const objectName: string  = options.objectName;
             let objectEnumeration: VisualObjectInstance[];
             objectEnumeration = [];
 
