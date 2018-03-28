@@ -8,7 +8,12 @@
         {
             "displayName": "Measure Data",
             "name": "measure",
-            "kind": "Measure"
+            "kind": "Measure",
+            "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
         }
     ],
     "dataViewMappings": [
