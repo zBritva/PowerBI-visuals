@@ -3,42 +3,22 @@
 		{
 			"name": "Temperature",
 			"kind": "Measure",
-			"displayName": "Temperature",
-			"requiredTypes": [
-                {
-                    "numeric": true
-                }
-            ]
+			"displayName": "Temperature"
 		},
 		{
 			"name": "TargetValue",
 			"kind": "Measure",
-			"displayName": "Target Value",
-			"requiredTypes": [
-                {
-                    "numeric": true
-                }
-            ]
+			"displayName": "Target Value"
 		},
 		{
 			"name": "Min",
 			"kind": "Measure",
-			"displayName": "Min",
-			"requiredTypes": [
-                {
-                    "numeric": true
-                }
-            ]
+			"displayName": "Min"
 		},
 		{
 			"name": "Max",
 			"kind": "Measure",
-			"displayName": "Max",
-			"requiredTypes": [
-                {
-                    "numeric": true
-                }
-            ]
+			"displayName": "Max"
 		}
 	],
 	"dataViewMappings": [
