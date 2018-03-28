@@ -40,63 +40,63 @@
         {
             "conditions": [
                 {
-                    "kpiName":{
-                        "max":0
+                    "kpiName": {
+                        "max": 0
                     },
-                    "kpiCurrentValue":{
-                        "max":1
+                    "kpiCurrentValue": {
+                        "max": 1
                     },
-                    "kpiLastValue":{
-                        "max":0
+                    "kpiLastValue": {
+                        "max": 0
                     },
-                    "kpiStatus":{
-                        "max":0
+                    "kpiStatus": {
+                        "max": 0
                     }
                 },
                 {
-                    "kpiName":{
-                        "max":1
+                    "kpiName": {
+                        "max": 1
                     },
-                    "kpiCurrentValue":{
-                        "max":0
+                    "kpiCurrentValue": {
+                        "max": 0
                     },
-                    "kpiLastValue":{
-                        "max":0
+                    "kpiLastValue": {
+                        "max": 0
                     },
-                    "kpiStatus":{
-                        "max":0
+                    "kpiStatus": {
+                        "max": 0
                     }
                 },
                 {
-                    "kpiName":{
-                        "min":1,
-                        "max":1
+                    "kpiName": {
+                        "min": 1,
+                        "max": 1
                     },
-                    "kpiCurrentValue":{
-                        "min":1,
-                        "max":1
+                    "kpiCurrentValue": {
+                        "min": 1,
+                        "max": 1
                     },
-                    "kpiLastValue":{
-                        "max":0
+                    "kpiLastValue": {
+                        "max": 0
                     },
-                    "kpiStatus":{
-                        "max":0
+                    "kpiStatus": {
+                        "max": 0
                     }
                 },
                 {
-                    "kpiName":{
-                        "max":1
+                    "kpiName": {
+                        "max": 1
                     },
-                    "kpiCurrentValue":{
-                        "max":1
+                    "kpiCurrentValue": {
+                        "max": 1
                     },
-                    "kpiLastValue":{
-                        "max":1
+                    "kpiLastValue": {
+                        "max": 1
                     },
-                    "kpiStatus":{
-                        "max":1
+                    "kpiStatus": {
+                        "max": 1
                     }
-                }   
+                }
             ],
             "categorical": {
                 "categories": {
@@ -126,43 +126,399 @@
             }
         }
     ],
+    "sorting": {
+        "default": {}
+    },
     "objects": {
-        "configuration": {
-            "displayName": "Configuration",
-            "description": "Configurations for KPI Ticker",
+        "carousel": {
+            "displayName": "Carousel",
+            "description": "On/off to apply/remove carousel feature for more than 1 tile",
             "properties": {
-                "numberOfKPI": {
-                    "displayName": "KPI count",
-                    "description": "The number of KPIs to be shown at a time. Minimum number is 1 and maximum number is 4",
+                "show": {
+                    "type": {
+                        "bool": true
+                    }
+                }
+            }
+        },
+        "animation": {
+            "displayName": "Animation",
+            "description": "Change the animation style and duration",
+            "properties": {
+                "duration": {
+                    "displayName": "Duration (seconds)",
+                    "description": "Set the duration of current slide between 2 to 10 seconds",
                     "type": {
                         "numeric": true
                     }
                 },
-                "enableDelta":{
-                    "displayName": "Enable delta",
-                    "description": "Select if percentage change is to be displayed or not",
-                    "type":{
+                "horizontalScroll": {
+                    "displayName": "Horizontal scroll",
+                    "description": "Enable/disable horizontal scroll effect",
+                    "type": {
                         "bool": true
                     }
                 },
+                "verticalStack": {
+                    "displayName": "Vertical stack",
+                    "description": "Enable/disable vertical stacking",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "animationStyle": {
+                    "displayName": "Style",
+                    "description": "Change the style of animation",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "fade",
+                                "displayName": "Fade"
+                            },
+                            {
+                                "value": "slideAndWait",
+                                "displayName": "Slide and Wait"
+                            },
+                            {
+                                "value": "noAnimation",
+                                "displayName": "No Animation"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "responsive": {
+            "displayName": "Dimensions",
+            "description": "Change the height and width of tiles / or make the visual responsive",
+            "properties": {
+                "makeResponsive": {
+                    "displayName": "Responsive",
+                    "description": "If enabled makes the visual responsive as per viewport. For static dimensions, turn this feature off",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "widthOfTiles": {
+                    "displayName": "Width of tiles",
+                    "description": "In horizontal stacking, maximum/minimum width is 300/260 and in vertical stacking, maximum/minimum width is 400/260.",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "heightOfTiles": {
+                    "displayName": "Height of tiles",
+                    "description": "In horizontal stacking, maximum/minimum height is 200/80 and in vertical stacking maximum/minimum height is 120/80.",
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
+        "name": {
+            "displayName": "Name",
+            "description": "Formatting options for name",
+            "properties": {
                 "fontSize": {
                     "displayName": "Size",
-                    "description": "The text size of data",
+                    "description": "Font size from 8 to 14 can be selected",
                     "type": {
                         "formatting": {
                             "fontSize": true
                         }
                     }
                 },
-                "fontColor": {
+                "nameFontColor": {
                     "displayName": "Font color",
-                    "description": "The font color of KPI names and KPI values",
+                    "description": "Specify font color for KPI names",
                     "type": {
                         "fill": {
                             "solid": {
                                 "color": true
                             }
                         }
+                    }
+                },
+                "fontFamily": {
+                    "displayName": "Font family",
+                    "description": "Specify font family",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Arial",
+                                "displayName": "Arial"
+                            },
+                            {
+                                "value": "Arial Black",
+                                "displayName": "Arial Black"
+                            },
+                            {
+                                "value": "Arial Unicode MS",
+                                "displayName": "Arial Unicode MS"
+                            },
+                            {
+                                "value": "Calibri",
+                                "displayName": "Calibri"
+                            },
+                            {
+                                "value": "Cambria",
+                                "displayName": "Cambria"
+                            },
+                            {
+                                "value": "Cambria Math",
+                                "displayName": "Cambria Math"
+                            },
+                            {
+                                "value": "Candara",
+                                "displayName": "Candara"
+                            },
+                            {
+                                "value": "Comic Sans MS",
+                                "displayName": "Comic Sans MS"
+                            },
+                            {
+                                "value": "Consolas",
+                                "displayName": "Consolas"
+                            },
+                            {
+                                "value": "Constantia",
+                                "displayName": "Constantia"
+                            },
+                            {
+                                "value": "Corbel",
+                                "displayName": "Corbel"
+                            },
+                            {
+                                "value": "Courier New",
+                                "displayName": "Courier New"
+                            },
+                            {
+                                "value": "Georgia",
+                                "displayName": "Georgia"
+                            },
+                            {
+                                "value": "Lucida Sans Unicode",
+                                "displayName": "Lucida Sans Unicode"
+                            },
+                            {
+                                "value": "Segoe (Bold)",
+                                "displayName": "Segoe (Bold)"
+                            },
+                            {
+                                "value": "Segoe UI",
+                                "displayName": "Segoe UI"
+                            },
+                            {
+                                "value": "Segoe UI Light",
+                                "displayName": "Segoe UI Light"
+                            },
+                            {
+                                "value": "Symbol",
+                                "displayName": "Symbol"
+                            },
+                            {
+                                "value": "Tahoma",
+                                "displayName": "Tahoma"
+                            },
+                            {
+                                "value": "Times New Roman",
+                                "displayName": "Times New Roman"
+                            },
+                            {
+                                "value": "Trebuchet MS",
+                                "displayName": "Trebuchet MS"
+                            },
+                            {
+                                "value": "Verdana",
+                                "displayName": "Verdana"
+                            },
+                            {
+                                "value": "Wingdings",
+                                "displayName": "Wingdings"
+                            }
+                        ]
+                    }
+                },
+                "alignName": {
+                    "displayName": "Align text",
+                    "description": "Change the alignment of name",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "left",
+                                "displayName": "Left"
+                            },
+                            {
+                                "value": "Center",
+                                "displayName": "Center"
+                            },
+                            {
+                                "value": "right",
+                                "displayName": "Right"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "value": {
+            "displayName": "Value",
+            "description": "Formatting options for Value",
+            "properties": {
+                "fontSize": {
+                    "displayName": "Size",
+                    "description": "Font size from 8 to 14 can be selected",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "valueFontColor": {
+                    "displayName": "Font color",
+                    "description": "Specify font color for KPI values",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "fontFamily": {
+                    "displayName": "Font family",
+                    "description": "Specify font family",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Arial",
+                                "displayName": "Arial"
+                            },
+                            {
+                                "value": "Arial Black",
+                                "displayName": "Arial Black"
+                            },
+                            {
+                                "value": "Arial Unicode MS",
+                                "displayName": "Arial Unicode MS"
+                            },
+                            {
+                                "value": "Calibri",
+                                "displayName": "Calibri"
+                            },
+                            {
+                                "value": "Cambria",
+                                "displayName": "Cambria"
+                            },
+                            {
+                                "value": "Cambria Math",
+                                "displayName": "Cambria Math"
+                            },
+                            {
+                                "value": "Candara",
+                                "displayName": "Candara"
+                            },
+                            {
+                                "value": "Comic Sans MS",
+                                "displayName": "Comic Sans MS"
+                            },
+                            {
+                                "value": "Consolas",
+                                "displayName": "Consolas"
+                            },
+                            {
+                                "value": "Constantia",
+                                "displayName": "Constantia"
+                            },
+                            {
+                                "value": "Corbel",
+                                "displayName": "Corbel"
+                            },
+                            {
+                                "value": "Courier New",
+                                "displayName": "Courier New"
+                            },
+                            {
+                                "value": "Georgia",
+                                "displayName": "Georgia"
+                            },
+                            {
+                                "value": "Lucida Sans Unicode",
+                                "displayName": "Lucida Sans Unicode"
+                            },
+                            {
+                                "value": "Segoe (Bold)",
+                                "displayName": "Segoe (Bold)"
+                            },
+                            {
+                                "value": "Segoe UI",
+                                "displayName": "Segoe UI"
+                            },
+                            {
+                                "value": "Segoe UI Light",
+                                "displayName": "Segoe UI Light"
+                            },
+                            {
+                                "value": "Symbol",
+                                "displayName": "Symbol"
+                            },
+                            {
+                                "value": "Tahoma",
+                                "displayName": "Tahoma"
+                            },
+                            {
+                                "value": "Times New Roman",
+                                "displayName": "Times New Roman"
+                            },
+                            {
+                                "value": "Trebuchet MS",
+                                "displayName": "Trebuchet MS"
+                            },
+                            {
+                                "value": "Verdana",
+                                "displayName": "Verdana"
+                            },
+                            {
+                                "value": "Wingdings",
+                                "displayName": "Wingdings"
+                            }
+                        ]
+                    }
+                },
+                "displayUnits": {
+                    "displayName": "Display units",
+                    "description": "Select the units (millions, billions, etc.)",
+                    "type": {
+                        "formatting": {
+                            "labelDisplayUnits": true
+                        }
+                    }
+                },
+                "decimalPlaces": {
+                    "displayName": "Decimal places",
+                    "description": "Select the number of decimal places to display for the values",
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
+        "configuration": {
+            "displayName": "Formatting",
+            "description": "Configurations for KPI Ticker",
+            "properties": {
+                "numberOfKPI": {
+                    "displayName": "KPI count",
+                    "description": "The number of KPIs to be shown at a time. Minimum number is 1 and maximum number is 4. KPI count should not be in decimal.",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "enableDelta": {
+                    "displayName": "Enable delta",
+                    "description": "Select if percentage change is to be displayed or not",
+                    "type": {
+                        "bool": true
                     }
                 },
                 "backgroundColor": {
