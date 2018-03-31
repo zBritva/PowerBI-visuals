@@ -141,6 +141,6 @@ That's it you are good to go. You can see that the visual is running.
 
 ### Copyrights
 
-Copyright (c) 2017 Microsoft and MAQ Software
+Copyright (c) 2018 Microsoft and MAQ Software
 
 See the [LICENSE](/LICENSE) file for license rights and limitations (MIT).
