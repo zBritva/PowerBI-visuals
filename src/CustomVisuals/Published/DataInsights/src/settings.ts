@@ -34,6 +34,9 @@ module powerbi.extensibility.visual {
         public orient: OrientSettings = new OrientSettings();
         public value: ValueSettings = new ValueSettings();
         public fontSettings: FontSettings = new FontSettings();
+        public ratio: RatioSettings = new RatioSettings();
+        public xaxis: XAxisSetting = new XAxisSetting();
+        public legendLabel : LegendSettings = new LegendSettings();
     }
     export class AnalyticSettings {
         public maxLine: boolean = false;
@@ -52,9 +55,9 @@ module powerbi.extensibility.visual {
         public avgLineOpacity: number = 100;
         public avgLineDataLabel: boolean = false;
         public constantLine: boolean = false;
-        public constantLineValue: string = '0';
+        public constantLineValue: number = 0;
         public constantLineStyle: string = 'solid';
-        public constantLineFill: string = '#fff';
+        public constantLineFill: string = '#000';
         public constantLineOpacity: number = 100;
         public constantLineDataLabel: boolean = false;
     }
@@ -70,21 +73,33 @@ module powerbi.extensibility.visual {
         public icolortext: number = 0;
         public jcolortext: number = 12;
         public columns: string = '0';
+        public colorBy: number = 0;
     }
 
     // tslint:disable-next-line:max-classes-per-file
     export class PresentationSettings {
         public show: boolean = false;
     }
-
+    // tslint:disable-next-line:max-classes-per-file
+    export class LegendSettings {
+        public show: boolean = false;
+    }
+    // tslint:disable-next-line:max-classes-per-file
+    export class XAxisSetting {
+    public show: boolean = false;
+}
     // tslint:disable-next-line:max-classes-per-file
     export class ValueSettings {
         public displayValue: string = 'outside';
+    }
+    // tslint:disable-next-line:max-classes-per-file
+    export class RatioSettings {
+        public percent: number = 20;
     }
 
     // tslint:disable-next-line:max-classes-per-file
     export class FontSettings {
         public fontSize: number = 12;
-        public fontFamily: string = 'Times New Roman';
+        public fontFamily: string = 'Segoe UI';
     }
 }
