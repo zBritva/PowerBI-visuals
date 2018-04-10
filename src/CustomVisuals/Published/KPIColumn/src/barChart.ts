@@ -2,6 +2,7 @@
 module powerbi.extensibility.visual {
 
     import valueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
+    import tooltipUtils = powerbi.extensibility.utils.tooltip;
 
     let fytargetChecker: boolean = false;
     let xAxisName: string = 'X-Axis';
@@ -565,7 +566,7 @@ module powerbi.extensibility.visual {
         private yAxis: d3.Selection<SVGElement>;
         private barDataPoints: IBarChartDataPoint[];
         private barChartSettings: IBarChartSettings;
-        private tooltipServiceWrapper: ITooltipServiceWrapper;
+        private tooltipServiceWrapper: tooltipUtils.ITooltipServiceWrapper;
         private locale: string;
         private dataViews: DataView;
         private xAxisFormatter: IValueFormatter;
@@ -614,7 +615,7 @@ module powerbi.extensibility.visual {
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
-            this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
+            this.tooltipServiceWrapper = tooltipUtils.createTooltipServiceWrapper(this.host.tooltipService, options.element);
 
             this.rootDiv = d3.select(options.element)
                 .append('div')
@@ -1787,12 +1788,12 @@ module powerbi.extensibility.visual {
 
                         this.tooltipServiceWrapper.addTooltip(
                             this.barContainer.selectAll('.bar,.barforecasted'),
-                            (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                            (tooltipEvent: TooltipEventArgs<number>) => null);
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
                         this.tooltipServiceWrapper.addTooltip(this.targetLines.selectAll('.circle'),
-                                                              (tooltipEvent: TooltipEventArgs<number>) =>
+                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) =>
                                 this.getTooltipIndividualTargetData(tooltipEvent.data),
-                                                              (tooltipEvent: TooltipEventArgs<number>) => null);
+                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
 
                         let selectionManager: ISelectionManager;
                         selectionManager = this.selectionManager;
@@ -2397,12 +2398,12 @@ module powerbi.extensibility.visual {
                         }
                         this.tooltipServiceWrapper.addTooltip(
                             this.barContainer.selectAll('.bar,.barforecasted'),
-                            (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                            (tooltipEvent: TooltipEventArgs<number>) => null);
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
                         this.tooltipServiceWrapper.addTooltip(
                             this.targetLines.selectAll('.circle'),
-                            (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipIndividualTargetData(tooltipEvent.data),
-                            (tooltipEvent: TooltipEventArgs<number>) => null);
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipIndividualTargetData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
 
                         let selectionManager: ISelectionManager;
                         selectionManager = this.selectionManager;
