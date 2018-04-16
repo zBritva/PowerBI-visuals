@@ -34,6 +34,26 @@
                     "numeric": true
                 }
             ]
+        },
+        {
+            "displayName": "KPI positive threshold",
+            "name": "kpiPositiveThresholdValue",
+            "kind": "Measure",
+            "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
+        },
+        {
+            "displayName": "KPI negative threshold",
+            "name": "kpiNegativeThresholdValue",
+            "kind": "Measure",
+            "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
         }
     ],
     "dataViewMappings": [
@@ -96,6 +116,26 @@
                     "kpiStatus": {
                         "max": 1
                     }
+                },
+                {
+                    "kpiName": {
+                        "max": 1
+                    },
+                    "kpiCurrentValue": {
+                        "max": 1
+                    },
+                    "kpiLastValue": {
+                        "max": 1
+                    },
+                    "kpiStatus": {
+                        "max": 1
+                    },
+                    "kpiPositiveThresholdValue": {
+                        "max": 1
+                    },
+                    "kpiNegativeThresholdValue": {
+                        "max": 1
+                    }
                 }
             ],
             "categorical": {
@@ -119,6 +159,16 @@
                         {
                             "bind": {
                                 "to": "kpiStatus"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "kpiPositiveThresholdValue"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "kpiNegativeThresholdValue"
                             }
                         }
                     ]
@@ -562,6 +612,59 @@
                 },
                 "neutralIndicatorColor": {
                     "displayName": "Neutral indicator color",
+                    "description": "Color of neutral indicator",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "threshold": {
+            "displayName": "Threshold",
+            "description": "Threshold for driving the positive, negative, and neutral indicators.",
+            "properties": {
+                "positiveThresholdIndicatorColor": {
+                    "displayName": "Positive indicator color",
+                    "description": "Color of positive indicator",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "PThresholdPercentage": {
+                    "displayName": "Positive threshold (%)",
+                    "description": "Positive threshold in percentage",
+                    "type": {
+                            "numeric": true
+                    }
+                },
+                "negativeThresholdIndicatorColor": {
+                    "displayName": "Negative indicator",
+                    "description": "Color of negative indicator",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "NThresholdPercentage": {
+                    "displayName": "Negative threshold (%)",
+                    "description": "Negative threshold in percentage",
+                    "type": {
+                            "numeric": true
+                    }
+                },
+                "neutralThresholdIndicatorColor": {
+                    "displayName": "Neutral indicator",
                     "description": "Color of neutral indicator",
                     "type": {
                         "fill": {

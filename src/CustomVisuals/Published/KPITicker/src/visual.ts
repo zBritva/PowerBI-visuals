@@ -73,6 +73,16 @@ module powerbi.extensibility.visual {
         private static iNegativeIndicatorColor: string;
         // stores the color for neutral indicator
         private static iNeutralIndicatorColor: string;
+        //Give Threshold in terms of percentage
+        private static iPositiveThresholdPercentage: number;
+        private static iNegativeThresholdPercentage: number;
+        //Get Color for  Depending on threshold
+        private static iPositiveThresholdIndicatorColor: string;
+        private static iNegativeThresholdIndicatorColor: string;
+        private static iNeutralThresholdIndicatorColor: string;
+        //Incase of Postive or Negative Data Bag
+        private static iPositiveThresholdValue: number;
+        private static iNegativeThresholdValue: number;
         // stores the flag variable to check if index is exceeding the length of data
         private static bFlag: boolean;
         // stores the index to check if index is exceeding data length
@@ -162,6 +172,8 @@ module powerbi.extensibility.visual {
             const kpiCurrentValue: string = 'kpiCurrentValue';
             const kpiLastValue: string = 'kpiLastValue';
             const kpiStatus: string = 'kpiStatus';
+            const kpiPositiveThresholdValue: string = 'kpiPositiveThresholdValue';
+            const kpiNegativeThresholdValue: string = 'kpiNegativeThresholdValue';
             KPITicker.dynamicWidth = options.viewport.width;
             KPITicker.dynamicHeight = options.viewport.height;
             if (KPITicker.dynamicWidth < KPITicker.iMinDynamicWidthHorizontal) {
@@ -188,10 +200,8 @@ module powerbi.extensibility.visual {
 
                 return;
             }
-
             // initializing KPITicker.iCurrentPosition to zero
             KPITicker.iCurrentPosition = 0;
-
             // to pass dataView as a parameter when formatting options are choosen
             KPITicker.oDataView = options.dataViews[0];
             let oDataCategorical: DataViewCategorical;
@@ -209,6 +219,8 @@ module powerbi.extensibility.visual {
             KPITicker.iIndexOfStatus = -1;
             KPITicker.iIndexOfLastValue = -1;
             KPITicker.iIndexOfCurrentValue = -1;
+            KPITicker.iPositiveThresholdValue = -1;
+            KPITicker.iNegativeThresholdValue = -1;
 
             // assigning proper index for category KPI Name
             for (iIndex = 0; iIndex < iNumberOfCategories; iIndex++) {
@@ -226,16 +238,26 @@ module powerbi.extensibility.visual {
                     KPITicker.iIndexOfLastValue = iIndex;
                 } else if (oDataCategorical.values[iIndex].source.roles[kpiStatus]) { // assigning index for measure KPI Status
                     KPITicker.iIndexOfStatus = iIndex;
+                // tslint:disable-next-line:max-line-length
+                } else if (oDataCategorical.values[iIndex].source.roles[kpiPositiveThresholdValue]) { // assigning index for measure KPI Positive Threshold
+                    KPITicker.iPositiveThresholdValue = iIndex;
+                // tslint:disable-next-line:max-line-length
+                } else if (oDataCategorical.values[iIndex].source.roles[kpiNegativeThresholdValue]) { // assigning index for measure KPI Negative Threshold
+                    KPITicker.iNegativeThresholdValue = iIndex;
                 }
             }
-
             // if KPI current value or KPI name is not selected
             if (KPITicker.iIndexOfCurrentValue === -1 || KPITicker.iIndexOfName === -1) {
                 KPITicker.displayBasicRequirement(1);
 
                 return;
             }
+            //if status, Positive Threshold Data bag and Negative Threshold Data Bag were selected
+            if (KPITicker.iIndexOfStatus !== -1 && (KPITicker.iPositiveThresholdValue !== -1 || KPITicker.iNegativeThresholdValue !== -1)) {
+                KPITicker.displayBasicRequirement(3);
 
+                return;
+            }
             // if status column has values other than -1,0 and 1
             if (KPITicker.iIndexOfStatus !== -1) {
                 let oStatusData: PrimitiveValue[];
@@ -251,7 +273,6 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
-
             // storing all the data in one variable
             KPITicker.oData = KPITicker.oDataView.table.rows;
             // empty the main div when update is called
@@ -325,28 +346,6 @@ module powerbi.extensibility.visual {
             } else if (KPITicker.iDecimalPlaces < 0) {
                 KPITicker.iDecimalPlaces = 0;
             }
-            // if display unit for current value is selected as Auto
-            if (KPITicker.iDisplayUnits === 0) {
-                for (let iMeasure: number = 0; iMeasure < oDataCategorical.values[0].values.length; iMeasure++) {
-                    KPITicker.displayVal = 0;
-                    // tslint:disable-next-line:no-any
-                    let tempdata: any = oDataCategorical.values[0].values[iMeasure];
-                    tempdata = Math.round(tempdata);
-                    tempdata = Math.abs(tempdata);
-                    const valLen: number = String(tempdata).length;
-                    if (KPITicker.iDisplayUnits === 0) {
-                        if (valLen > 9) {
-                            KPITicker.displayVal = 1e9;
-                        } else if (valLen <= 9 && valLen > 6) {
-                            KPITicker.displayVal = 1e6;
-                        } else if (valLen <= 6 && valLen >= 4) {
-                            KPITicker.displayVal = 1e3;
-                        } else {
-                            KPITicker.displayVal = 10;
-                        }
-                    }
-                }
-            }
             // The font color of Name and Value
             KPITicker.iValueFontColor = KPITicker.getFill(KPITicker.oDataView, 'valueFontColor');
             KPITicker.iNameFontColor = KPITicker.getFill(KPITicker.oDataView, 'nameFontColor');
@@ -360,13 +359,54 @@ module powerbi.extensibility.visual {
 
             // The background color of containers
             KPITicker.iBackgroundColor = KPITicker.getFill(KPITicker.oDataView, 'backgroundColor');
+
+            //Get Threshold Percentage Value
+            KPITicker.iPositiveThresholdPercentage = KPITicker.getValue(KPITicker.oDataView, 'threshold', 'PThresholdPercentage', null);
+            KPITicker.iNegativeThresholdPercentage = KPITicker.getValue(KPITicker.oDataView, 'threshold', 'NThresholdPercentage', null);
+            //Getting Length of Input Threshold Percentage and splitting Dot Seperated string into different index of array
+            const pPercentage: string =  String(KPITicker.iPositiveThresholdPercentage);
+            const pLPercentage: number = pPercentage.length;
+            //getting Dot "." Position for the string
+            const dotIndex: number = pPercentage.indexOf('.');
+            //if value with decimal places were not assigned and if the entered percentage length is greater than 4
+            if (dotIndex === -1 && pLPercentage > 4) {
+                KPITicker.iPositiveThresholdPercentage = 9999.99;
+            } else if (dotIndex !== -1) {
+            //if value with decimal places is assigned whatever might be the value entered after dot it trims into 2 Decimal places
+            KPITicker.iPositiveThresholdPercentage = KPITicker.iPositiveThresholdPercentage * 100;
+            KPITicker.iPositiveThresholdPercentage = KPITicker.iPositiveThresholdPercentage - KPITicker.iPositiveThresholdPercentage % 1;
+            KPITicker.iPositiveThresholdPercentage = KPITicker.iPositiveThresholdPercentage / 100;
+            } else if (KPITicker.iPositiveThresholdPercentage < 0) {
+                KPITicker.iPositiveThresholdPercentage = 0;
+            }
+            //if value with decimal places were not assigned and if the entered percentage length is greater than 4
+            const nPercentage: string =  String(KPITicker.iNegativeThresholdPercentage);
+            const nLPercentage: number = nPercentage.length;
+            //getting Dot "." Position for the string
+            const ndotIndex: number = nPercentage.indexOf('.');
+            //if value with decimal places were not assigned and if the entered percentage length is greater than 4
+            if (ndotIndex === -1 && nLPercentage > 4) {
+                KPITicker.iNegativeThresholdPercentage = 9999.99;
+            } else if (ndotIndex !== -1) {
+            //if value with decimal places is assigned whatever might be the value entered after dot it trims into 2 Decimal places
+            KPITicker.iNegativeThresholdPercentage = KPITicker.iNegativeThresholdPercentage * 100;
+            KPITicker.iNegativeThresholdPercentage = KPITicker.iNegativeThresholdPercentage - KPITicker.iNegativeThresholdPercentage % 1;
+            KPITicker.iNegativeThresholdPercentage = KPITicker.iNegativeThresholdPercentage / 100;
+            } else if (KPITicker.iNegativeThresholdPercentage < 0) {
+                KPITicker.iNegativeThresholdPercentage = 0;
+            }
             // The color of positive indicator
             KPITicker.iPositiveIndicatorColor = KPITicker.getFill(KPITicker.oDataView, 'positiveIndicatorColor');
             // The color of negative indicator
             KPITicker.iNegativeIndicatorColor = KPITicker.getFill(KPITicker.oDataView, 'negativeIndicatorColor');
             // The color of neutral indicator
             KPITicker.iNeutralIndicatorColor = KPITicker.getFill(KPITicker.oDataView, 'neutralIndicatorColor');
-
+            // The color of positive threshold indicator
+            KPITicker.iPositiveThresholdIndicatorColor = KPITicker.getFill(KPITicker.oDataView, 'positiveThresholdIndicatorColor');
+            // The color of negative threshold indicator
+            KPITicker.iNegativeThresholdIndicatorColor = KPITicker.getFill(KPITicker.oDataView, 'negativeThresholdIndicatorColor');
+            // The color of neutral threshold indicator
+            KPITicker.iNeutralThresholdIndicatorColor = KPITicker.getFill(KPITicker.oDataView, 'neutralThresholdIndicatorColor');
             // Style of Animation
             KPITicker.iAnimationStyle = KPITicker.getValue(KPITicker.oDataView, 'animation', 'animationStyle', 'slideAndWait');
 
@@ -563,6 +603,9 @@ module powerbi.extensibility.visual {
                 document.getElementById('textToDisplay').textContent = `Please select 'KPI name' and 'KPI current value' `;
             } else if (iStatus === 2) { // if appropriate column for status is not selected
                 document.getElementById('textToDisplay').textContent = `Please select a column with values -1, 0 or 1 for 'KPI status' `;
+            } else if (iStatus === 3) { // if status column and any of the positive or negative threshold data bag were selected
+                // tslint:disable-next-line:max-line-length
+                document.getElementById('textToDisplay').textContent = `Select either status column or any of the Positive or Negative threshold data bag' `;
             } else { // after filters are selected there is no data to display
                 document.getElementById('textToDisplay').textContent = `No Data to display `;
             }
@@ -571,6 +614,7 @@ module powerbi.extensibility.visual {
         * method to enumerate through the objects defined in the capabilities and adds the properties to the format pane
         * @param {EnumerateVisualObjectInstancesOptions} options - Map of defined objects
         */
+        // tslint:disable-next-line:cyclomatic-complexity
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
             let oObjectName: string;
             oObjectName = options.objectName;
@@ -709,6 +753,77 @@ module powerbi.extensibility.visual {
                         oObjectEnumeration.push(oIndicators);
                     }
                     break;
+                // enumerate threshold object from capabilities.json
+                case 'threshold':
+                // enumerate threshold positive and negative input fields, if positive and negative threshold data bag were not selected
+                // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfLastValue !== -1 && KPITicker.iIndexOfStatus === -1 && KPITicker.iPositiveThresholdValue === -1 && KPITicker.iNegativeThresholdValue === -1) {
+                    let oThreshold: VisualObjectInstance;
+                    oThreshold = {
+                        objectName: 'threshold',
+                        displayName: 'Threshold',
+                        selector: null,
+                        properties: {
+                            positiveThresholdIndicatorColor: KPITicker.iPositiveThresholdIndicatorColor,
+                            PThresholdPercentage: KPITicker.iPositiveThresholdPercentage,
+                            negativeThresholdIndicatorColor: KPITicker.iNegativeThresholdIndicatorColor,
+                            NThresholdPercentage: KPITicker.iNegativeThresholdPercentage,
+                            neutralThresholdIndicatorColor: KPITicker.iNeutralThresholdIndicatorColor
+                        }
+                    };
+                    oObjectEnumeration.push(oThreshold);
+                    }
+                // enumerate threshold with negative input field, if only positive threshold data bag is selected
+                // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfStatus === -1 && KPITicker.iPositiveThresholdValue !== -1 && KPITicker.iNegativeThresholdValue === -1) {
+                        let oThreshold: VisualObjectInstance;
+                        oThreshold = {
+                            objectName: 'threshold',
+                            displayName: 'Threshold',
+                            selector: null,
+                            properties: {
+                                positiveThresholdIndicatorColor: KPITicker.iPositiveThresholdIndicatorColor,
+                                negativeThresholdIndicatorColor: KPITicker.iNegativeThresholdIndicatorColor,
+                                NThresholdPercentage: KPITicker.iNegativeThresholdPercentage,
+                                neutralThresholdIndicatorColor: KPITicker.iNeutralThresholdIndicatorColor
+                            }
+                        };
+                        oObjectEnumeration.push(oThreshold);
+                    }
+                // enumerate threshold with positive input field, if only negative threshold data bag is selected
+                // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfStatus === -1 && KPITicker.iNegativeThresholdValue !== -1 && KPITicker.iPositiveThresholdValue === -1) {
+                            let oThreshold: VisualObjectInstance;
+                            oThreshold = {
+                                objectName: 'threshold',
+                                displayName: 'Threshold',
+                                selector: null,
+                                properties: {
+                                    positiveThresholdIndicatorColor: KPITicker.iPositiveThresholdIndicatorColor,
+                                    PThresholdPercentage: KPITicker.iPositiveThresholdPercentage,
+                                    negativeThresholdIndicatorColor: KPITicker.iNegativeThresholdIndicatorColor,
+                                    neutralThresholdIndicatorColor: KPITicker.iNeutralThresholdIndicatorColor
+                                }
+                            };
+                            oObjectEnumeration.push(oThreshold);
+                    }
+                // enumerate threshold with color field, if both positive and negative threshold data bag were selected
+                    // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfStatus === -1 && KPITicker.iPositiveThresholdValue !== -1 && KPITicker.iNegativeThresholdValue !== -1) {
+                        let oThreshold: VisualObjectInstance;
+                        oThreshold = {
+                            objectName: 'threshold',
+                            displayName: 'Threshold',
+                            selector: null,
+                            properties: {
+                                positiveThresholdIndicatorColor: KPITicker.iPositiveThresholdIndicatorColor,
+                                negativeThresholdIndicatorColor: KPITicker.iNegativeThresholdIndicatorColor,
+                                neutralThresholdIndicatorColor: KPITicker.iNeutralThresholdIndicatorColor
+                            }
+                        };
+                        oObjectEnumeration.push(oThreshold);
+                        }
+                break;
                 default:
                     break;
             }
@@ -722,11 +837,13 @@ module powerbi.extensibility.visual {
         * @param {string} sKey - name of property whose value is needed
         */
         // tslint:disable-next-line:no-any
+        // tslint:disable-next-line:cyclomatic-complexity
         private static getFill(oDataView: DataView, sKey: string): string {
             const configuration: string = 'configuration';
             const indicators: string = 'indicators';
             const name: string = 'name';
             const value: string = 'value';
+            const threshold: string = 'threshold';
             if (oDataView) {
                 const oObjects: DataViewObjects = oDataView.metadata.objects;
                 if (oObjects) {
@@ -760,6 +877,13 @@ module powerbi.extensibility.visual {
                             return oFill.solid.color;
                         }
                     }
+                    const oThreshold: DataViewObject = oObjects[threshold];
+                    if (oThreshold) {
+                        const oFill: Fill = <Fill>oThreshold[sKey];
+                        if (oFill) {
+                            return oFill.solid.color;
+                        }
+                    }
                 }
             }
             if ('nameFontColor' === sKey) {
@@ -773,6 +897,12 @@ module powerbi.extensibility.visual {
             } else if ('negativeIndicatorColor' === sKey) {
                 return '#ff0000';
             } else if ('neutralIndicatorColor' === sKey) {
+                return '#0000ff';
+            } else if ('positiveThresholdIndicatorColor' === sKey) {  //Assigning default color for positive threshold
+                return '#009900';
+            } else if ('negativeThresholdIndicatorColor' === sKey) {  //Assigning default color for negative threshold
+                return '#ff0000';
+            } else if ('neutralThresholdIndicatorColor' === sKey) {  //Assigning default color for neutral threshold
                 return '#0000ff';
             }
         }
@@ -804,13 +934,262 @@ module powerbi.extensibility.visual {
         * @param {number} iIndex - index of the data row whose value is to be populated
         */
         // tslint:disable-next-line:no-any
-        private static appendData(oDataView: DataView, sClassNames: string, iIndicator: number, iIndex: number, sDivIdName: any): void {
+        // tslint:disable-next-line:cyclomatic-complexity
+        private static appendData(oDataView: DataView, sClassNames: string, iIndicator: number, iIndex: number, sDivIdName: string): void {
             // tslint:disable-next-line:no-any
             let sValueDisplayed: any;
             let iCurrentValue: number;
             let iLastValue: number;
+            let tStatus: number;
+            // this variable stores the percenatge from positive, negative threshold data bag
+            let iPThresholdValue: number = 0;
+            let iNThresholdValue: number = 0;
             // if iIndicator is 0, the value to be displayed is KPI Change Percentage
             if (iIndicator === 0) {
+                // when both current, last data bag were selected and when status, positive, negative threshold data bag were not selected
+                // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfCurrentValue !== -1 && KPITicker.iIndexOfLastValue !== -1 && KPITicker.iIndexOfStatus === -1 && (this.iPositiveThresholdPercentage !== null || this.iNegativeThresholdPercentage !== null) && KPITicker.iPositiveThresholdValue === -1 && KPITicker.iNegativeThresholdValue === -1) {
+                    iCurrentValue = <number>oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].values[iIndex];
+                    iLastValue = <number>oDataView.categorical.values[KPITicker.iIndexOfLastValue].values[iIndex];
+                    // if the last KPI value is 0, then the percentage change should be calculated with denominator as 1
+                    const title: string = 'KPI Change Value: '; // difference value of kpi current value and kpi last value
+                    // when Negative threshold Input is not given
+                    if (this.iNegativeThresholdPercentage === null) {
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') { // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed >= this.iPositiveThresholdPercentage && this.iPositiveThresholdPercentage !== 0) {
+                            tStatus = 1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed > 0 && sValueDisplayed <= this.iPositiveThresholdPercentage) {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                } else if (this.iPositiveThresholdPercentage === null) { // when Positive Threshold input field is null
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') { // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed <= (-this.iNegativeThresholdPercentage) && this.iNegativeThresholdPercentage !== 0) {
+                            tStatus = -1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed < 0 && sValueDisplayed >= (-this.iNegativeThresholdPercentage)) {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                } else { // when both the input fields either null or not null
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') { // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed >= this.iPositiveThresholdPercentage && this.iPositiveThresholdPercentage !== 0) {
+                            tStatus = 1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed <= (-this.iNegativeThresholdPercentage) && this.iNegativeThresholdPercentage !== 0) {
+                            tStatus = -1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                }
+                }
+                // when both current, last, positive data bag were selected and when status, negative threshold data bag were not selected
+                // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfCurrentValue !== -1 && KPITicker.iIndexOfLastValue !== -1 && KPITicker.iIndexOfStatus === -1 && KPITicker.iPositiveThresholdValue !== -1 && KPITicker.iNegativeThresholdValue === -1) {
+                    iCurrentValue = <number>oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].values[iIndex];
+                    iLastValue = <number>oDataView.categorical.values[KPITicker.iIndexOfLastValue].values[iIndex];
+                    iPThresholdValue = <number>oDataView.categorical.values[KPITicker.iPositiveThresholdValue].values[iIndex];
+                    const title: string = 'KPI Change Value: '; // difference value of kpi current value and kpi last value
+                    if (this.iNegativeThresholdPercentage !== null) { // Negative threshold value
+                    // if the last KPI value is 0, then the percentage change should be calculated with denominator as 1
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') { // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed >= iPThresholdValue && iPThresholdValue !== 0) {
+                            tStatus = 1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed <= (-this.iNegativeThresholdPercentage) && this.iNegativeThresholdPercentage !== 0) {
+                            tStatus = -1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                } else {
+                    // if the last KPI value is 0, then the percentage change should be calculated with denominator as 1
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') { // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed >= iPThresholdValue && iPThresholdValue !== 0) {
+                            tStatus = 1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed > 0 && sValueDisplayed <= iPThresholdValue) {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                }
+                }
+                // when both current, last, negative data bag were selected and when status, positive threshold data bag were not selected
+                // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfCurrentValue !== -1 && KPITicker.iIndexOfLastValue !== -1 && KPITicker.iIndexOfStatus === -1 && KPITicker.iPositiveThresholdValue === -1 && KPITicker.iNegativeThresholdValue !== -1) {
+                    iCurrentValue = <number>oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].values[iIndex];
+                    iLastValue = <number>oDataView.categorical.values[KPITicker.iIndexOfLastValue].values[iIndex];
+                    iNThresholdValue = <number>oDataView.categorical.values[KPITicker.iNegativeThresholdValue].values[iIndex];
+                    // if the last KPI value is 0, then the percentage change should be calculated with denominator as 1
+                    const title: string = 'KPI Change Value: '; // difference value of kpi current value and kpi last value
+                    if (this.iPositiveThresholdPercentage !== null) {
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') {   // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed >= this.iPositiveThresholdPercentage && this.iPositiveThresholdPercentage !== 0) {
+                            tStatus = 1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed <= (-iNThresholdValue) && iNThresholdValue !== 0) {
+                            tStatus = -1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                } else {
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') {   // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed <= (-iNThresholdValue) && iNThresholdValue !== 0) {
+                            tStatus = -1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed < 0 && sValueDisplayed > (-this.iNegativeThresholdPercentage)) {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                }
+                }
+                //when both current, last, positive, negative threshold data bag were selected and when status data bag were not selected
+                // tslint:disable-next-line:max-line-length
+                if (KPITicker.iIndexOfCurrentValue !== -1 && KPITicker.iIndexOfLastValue !== -1 && KPITicker.iIndexOfStatus === -1 && KPITicker.iPositiveThresholdValue !== -1 && KPITicker.iNegativeThresholdValue !== -1) {
+                    iCurrentValue = <number>oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].values[iIndex];
+                    iLastValue = <number>oDataView.categorical.values[KPITicker.iIndexOfLastValue].values[iIndex];
+                    iPThresholdValue = <number>oDataView.categorical.values[KPITicker.iPositiveThresholdValue].values[iIndex];
+                    iNThresholdValue = <number>oDataView.categorical.values[KPITicker.iNegativeThresholdValue].values[iIndex];
+                    // if the last KPI value is 0, then the percentage change should be calculated with denominator as 1
+                    const title: string = 'KPI Change Value: '; // difference value of kpi current value and kpi last value
+                    if (iLastValue == null || iCurrentValue == null) {
+                        sValueDisplayed = '-';
+                        d3.select(sDivIdName).append('div')
+                            .classed(sClassNames, true)
+                            .attr('title', title + sValueDisplayed)
+                            .text(sValueDisplayed);
+                    } else {
+                        if (iLastValue === 0) {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / 1) * 100).toFixed(2);
+                        } else {
+                            sValueDisplayed = (((iCurrentValue - iLastValue) / iLastValue ) * 100).toFixed(2);
+                        }
+                        if (sValueDisplayed === '0.00') { // when svaluedisplayed is equal to zero then neutral sign will applied
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed >= iPThresholdValue && iPThresholdValue !== 0) {
+                            tStatus = 1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else if (sValueDisplayed <= (-iNThresholdValue) && iNThresholdValue !== 0) {
+                            tStatus = -1;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        } else {
+                            tStatus = 0;
+                            KPITicker.ThresholdtliChangeImage(KPITicker.oDataView, tStatus, iIndex, sDivIdName);
+                        }
+                    }
+                }
                 // tslint:disable-next-line:triple-equals
                 if (KPITicker.iIndexOfCurrentValue != -1 && KPITicker.iIndexOfLastValue != -1 && KPITicker.iEnableDelta == 1) {
                     iCurrentValue = <number>oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].values[iIndex];
@@ -843,7 +1222,7 @@ module powerbi.extensibility.visual {
             } else if (iIndicator == 1) {  // if iIndicator is 1, the value to be displayed is KPI Change Value
                 // tslint:disable-next-line:triple-equals
                 if (KPITicker.iIndexOfLastValue != -1 && KPITicker.iIndexOfCurrentValue != -1) {
-                    const title: string = 'KPI Change Percentage: ';
+                    const title: string = 'KPI Change Value: ';
                     iCurrentValue = <number>oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].values[iIndex];
                     iLastValue = <number>oDataView.categorical.values[KPITicker.iIndexOfLastValue].values[iIndex];
                     if (iCurrentValue == null) {
@@ -898,6 +1277,24 @@ module powerbi.extensibility.visual {
             // if KPI Value column is selected populate it
             if (KPITicker.iIndexOfCurrentValue !== -1) {
                 sKPICurrentValue = <string>oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].values[iIndex];
+                // if display unit for current value is selected as Auto
+                if (KPITicker.iDisplayUnits === 0) {
+                    KPITicker.displayVal = 0;
+                    // tslint:disable-next-line:no-any
+                    let tempdata: any = sKPICurrentValue;
+                    tempdata = Math.round(tempdata);
+                    tempdata = Math.abs(tempdata);
+                    const valLen: number = String(tempdata).length;
+                    if (valLen > 9) {
+                            KPITicker.displayVal = 1e9;
+                        } else if (valLen <= 9 && valLen > 6) {
+                            KPITicker.displayVal = 1e6;
+                        } else if (valLen <= 6 && valLen >= 4) {
+                            KPITicker.displayVal = 1e3;
+                        } else {
+                            KPITicker.displayVal = 10;
+                        }
+                }
                 // Apply formatting according to the display unit and decimal places
                 const formatter: IValueFormatter = ValueFormatter.create({
                     format: KPITicker.oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].source.format,
@@ -952,8 +1349,37 @@ module powerbi.extensibility.visual {
                         break;
                 }
             } else { // if KPITIcker.iIndexOfStatus is -1
-                KPITicker.appendData(oDataView, `tliChangePrice`, 1, iIndex, sDivIdName);
+                // to append indicators before kpi change value
                 KPITicker.appendData(oDataView, `tliChange`, 0, iIndex, sDivIdName);
+                KPITicker.appendData(oDataView, `tliChangePrice`, 1, iIndex, sDivIdName);
+            }
+        }
+        // when status column is not selected depending on the user given threshold percentage this function will be called
+        private static ThresholdtliChangeImage(oDataView: DataView, tStatus: number, iIndex: number, sDivIdName: string): void {
+            switch (tStatus) {
+                // when nTliStatus is 0 that is no change therefore neutral value
+                case 0:
+                    if (KPITicker.iIndexOfCurrentValue !== -1) {
+                        d3.select(sDivIdName).append('div').classed('neutral', true).classed('indicator', true)
+                            .attr('title', 'Neutral indicator');
+                    }
+                    break;
+                // when nTliStatus is 1 that is positive change therefore positive value
+                case 1:
+                    if (KPITicker.iIndexOfCurrentValue !== -1) {
+                        d3.select(sDivIdName).append('div').classed('arrowUp', true).classed('arrow', true)
+                            .attr('title', 'Positive indicator');
+                    }
+                    break;
+                // when nTliStatus is -1 that is negative change therefore negative value
+                case -1:
+                    if (KPITicker.iIndexOfCurrentValue !== -1) {
+                        d3.select(sDivIdName).append('div').classed('arrowDown', true).classed('arrow', true)
+                            .attr('title', 'Negative indicator');
+                    }
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -1249,6 +1675,19 @@ module powerbi.extensibility.visual {
                 $('.tliChange').css('color', <string>KPITicker.iValueFontColor);
                 $('.tliChangePrice').css('color', <string>KPITicker.iValueFontColor);
             }
+            // change the color of threshold indicator as per the selection in format pane if the Status column is not selected
+            if (KPITicker.iIndexOfStatus === -1 && KPITicker.iIndexOfCurrentValue !== -1 && KPITicker.iIndexOfLastValue !== -1) {
+                $('.arrowDown').css('border-top-color', <string>KPITicker.iNegativeThresholdIndicatorColor);
+                $('.tliChangeNegative').css('color', <string>KPITicker.iNegativeThresholdIndicatorColor);
+                $('.tliChangePriceNegative').css('color', <string>KPITicker.iNegativeThresholdIndicatorColor);
+                $('.neutral').css('background', <string>KPITicker.iNeutralThresholdIndicatorColor);
+                $('.tliChangeNeutral').css('color', <string>KPITicker.iNeutralThresholdIndicatorColor);
+                $('.tliChangePriceNeutral').css('color', <string>KPITicker.iNeutralThresholdIndicatorColor);
+                $('.arrowUp').css('border-bottom-color', <string>KPITicker.iPositiveThresholdIndicatorColor);
+                $('.tliChangePositive').css('color', <string>KPITicker.iPositiveThresholdIndicatorColor);
+                $('.tliChangePricePositive').css('color', <string>KPITicker.iPositiveThresholdIndicatorColor);
+            }
+
             // if KPI Value is not selected only show other data with appropriate margin
             if (KPITicker.iIndexOfCurrentValue === -1) {
                 $('.tliChangePrice').css('margin-left', sPriceMarginLeft);
