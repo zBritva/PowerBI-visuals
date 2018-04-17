@@ -605,7 +605,7 @@ module powerbi.extensibility.visual {
                 document.getElementById('textToDisplay').textContent = `Please select a column with values -1, 0 or 1 for 'KPI status' `;
             } else if (iStatus === 3) { // if status column and any of the positive or negative threshold data bag were selected
                 // tslint:disable-next-line:max-line-length
-                document.getElementById('textToDisplay').textContent = `Select either status column or any of the Positive or Negative threshold data bag' `;
+                document.getElementById('textToDisplay').textContent = `Select either 'KPI status' or any of the 'KPI positive' or 'KPI negative' threshold data bag `;
             } else { // after filters are selected there is no data to display
                 document.getElementById('textToDisplay').textContent = `No Data to display `;
             }
