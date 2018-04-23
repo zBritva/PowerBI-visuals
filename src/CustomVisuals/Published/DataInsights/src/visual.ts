@@ -91,6 +91,7 @@ module powerbi.extensibility.visual {
         private selectionManager: ISelectionManager;
         private host: IVisualHost;
         private viewModel: IViewModel;
+        private selectionIdBuilder: ISelectionIdBuilder;
         // tslint:disable-next-line:no-any
         private topCont: any;
         // tslint:disable-next-line:no-any
@@ -1475,6 +1476,7 @@ module powerbi.extensibility.visual {
                 .transition()
                 .duration(1000)
                 .style('transform', 'scale(1)');
+            // thisObj.createSelectionBox(thisObj.mainCont, '.mainCont', '.brickChart > div');
         }
         // tslint:disable-next-line:no-any
         private renderBinBarChart(data: any, index: number,
@@ -1637,6 +1639,36 @@ module powerbi.extensibility.visual {
                                     .style('width', d[`values`][`value`] <= 0 ? `0` :
                                         // tslint:disable-next-line:max-line-length
                                         `${p * ((sum / thisObj.maxValue) * (thisObj.binColumn === -1 ? 0.85 : 0.60) * (1 - ratio) * rowWidth)}px`)
+                                        // tslint:disable-next-line:no-any
+                                        .on('click', function (dat: any): void {
+                                            const selectionlen: number = dat.values[0].length;
+                                            let level: number = 0;
+                                            for (i = 0; i < selectionlen; i++) {
+                                                if ( dat.values[0][i].key === d.key) {
+                                                    level = i;
+                                                    break;
+                                                }
+                                            }
+                                            // tslint:disable-next-line:no-any
+                                            const selectionIds: any[] = dat.values[0][level].values.selectionId;
+                                            thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
+                                                if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).classed('selected', false);
+                                                    thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    }));
+                                                } else {
+                                                d3.select(this).classed('selected', true);
+                                                d3.selectAll('.inDiv').style({
+                                                    opacity: 0.3
+                                                });
+                                                d3.select(this).style({
+                                                    opacity: 1
+                                                });
+                                            }
+                                            });
+                                            (<Event>d3.event).stopPropagation();
+                                        })
                                     // tslint:disable-next-line:no-any
                                     .each(function (tdatum: any): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
@@ -1651,9 +1683,14 @@ module powerbi.extensibility.visual {
                                     .style('background-color', thisObj.barcolor.filter(function (v: any): any {
                                         return v.key.toString() === d[`key`].toString();
                                     })[0].value);
+                                // tslint:disable-next-line:typedef
+                                subDiv.on('click', function() {
+                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                            opacity: 1
+                                        }));
+                                    });
                                 increment++;
                             } else {
-
                                 d3.select(THIS)
                                     .append('div').classed('inDiv', true)
                                     .style('float', 'left')
@@ -1661,6 +1698,36 @@ module powerbi.extensibility.visual {
                                     .style('width', d[`values`][`value`] <= 0 ? `0` :
                                         // tslint:disable-next-line:max-line-length
                                         `${p * ((sum / thisObj.maxValue) * (thisObj.binColumn === -1 ? 0.85 : 0.60) * (1 - ratio) * rowWidth)}px`)
+                                        // tslint:disable-next-line:no-any
+                                        .on('click', function (dat: any): void {
+                                            const selectionlen: number = datum.values[0].length;
+                                            let level: number = 0;
+                                            for (i = 0; i < selectionlen; i++) {
+                                                if ( datum.values[0][i].key === d.key) {
+                                                    level = i;
+                                                    break;
+                                                }
+                                            }
+                                            // tslint:disable-next-line:no-any
+                                            const selectionIds: any[] = datum.values[0][level].values.selectionId;
+                                            thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
+                                                if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).classed('selected', false);
+                                                    thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    }));
+                                                } else {
+                                                d3.select(this).classed('selected', true);
+                                                d3.selectAll('.inDiv').style({
+                                                    opacity: 0.3
+                                                });
+                                                d3.select(this).style({
+                                                    opacity: 1
+                                                });
+                                            }
+                                            });
+                                            (<Event>d3.event).stopPropagation();
+                                        })
                                     // tslint:disable-next-line:no-any
                                     .each(function (tdatum: any): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
@@ -1682,12 +1749,16 @@ module powerbi.extensibility.visual {
 
                                         }
                                     });
-
+                                // tslint:disable-next-line:typedef
+                                subDiv.on('click', function() {
+                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                            opacity: 1
+                                        }));
+                                    });
                                 increment++;
                             }
                         });
                     } else {
-
                         // tslint:disable-next-line:no-any
                         const value: any = datum[`values`][`value`];
                         if (value > 0) {
@@ -1697,12 +1768,40 @@ module powerbi.extensibility.visual {
                             .style('width', datum[`values`][`value`] <= 0 ? `0` :
                                 `${(parseInt(datum[`values`][`value`], 10) / thisObj.maxValue * (
                                     (thisObj.binColumn === -1 ? 0.85 : 0.60) * (1 - ratio) * rowWidth))}px`)
-                            .style('background-color', thisObj.colors[thisObj.iColumn][thisObj.jColumn]);
+                            .style('background-color', thisObj.colors[thisObj.iColumn][thisObj.jColumn])
+                            // tslint:disable-next-line:no-any
+                            .on('click', function (d: any): void {
+                                // tslint:disable-next-line:no-any
+                                const selectionIds: any[] = datum[`values`][`selectionId`];
+                                thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
+                                    if (d3.select(this).classed('selected')) {
+                                        d3.select(this).classed('selected', false);
+                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
+                                            opacity: 1
+                                        }));
+                                    } else {
+                                    d3.select(this).classed('selected', true);
+                                    d3.selectAll('.thebar').style({
+                                        opacity: 0.3
+                                    });
+                                    d3.select(this).style({
+                                        opacity: 1
+                                    });
+                                }
+                                });
+                                (<Event>d3.event).stopPropagation();
+                            });
 
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
                                 thisObj.getTooltipData(tooltipEvent.data, datum, 'bin', '', 0, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
+                        // tslint:disable-next-line:typedef
+                        subDiv.on('click', function() {
+                        thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
+                            opacity: 1
+                        }));
+                        });
                     }
                 }).style('margin-left', `${ratio * rowWidth}px`);
 
@@ -1841,6 +1940,7 @@ module powerbi.extensibility.visual {
                 });
 
             thisObj.renderLines('bar', subDiv, index, data, chartWidth, thisObj.maxValue, thisObj.minValue, thisObj.averageValue);
+
             //On Load Animation
             d3.selectAll('.chart .row')
                 .style('transform-origin', '0% 0%')
@@ -1848,7 +1948,6 @@ module powerbi.extensibility.visual {
                 .transition()
                 .duration(2000)
                 .style('transform', 'scale(1)');
-
             chart.style('transform', 'scale(0)')
                 .transition()
                 .duration(1)
@@ -1886,8 +1985,6 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:no-any
         private getMaxValue(data: any): void {
-
-            // let thisObj = this;
             const thisObj: this = this;
             let maxValue: number;
             let sum: number = 0;
@@ -2110,6 +2207,7 @@ module powerbi.extensibility.visual {
                                                                      (tooltipEvent: TooltipEventArgs<number>) => null);
                             const p: number = d[`values`][`value`] / sum;
                             tooltipData.push({ key: d[`key`], value: d[`values`][`value`] });
+                            // thisObj.selectionManager.clear();
                             if (thisObj.colorByColumn !== thisObj.binColumn) {
                                 d3.select(THIS)
                                     .append('div').classed('inDiv', true)
@@ -2118,6 +2216,36 @@ module powerbi.extensibility.visual {
                                     .style('width', d[`values`][`value`] <= 0 ? `0` :
                                         // tslint:disable-next-line:max-line-length
                                         `${p * ((sum / thisObj.maxValue) * (thisObj.binColumn === -1 ? 0.85 : 0.60) * (1 - ratio) * rowWidth)}px`)
+                                        // tslint:disable-next-line:no-any
+                                        .on('click', function (dat: any): void {
+                                            const selectionlen: number = dat.values[0].length;
+                                            let level: number = 0;
+                                            for (i = 0; i < selectionlen; i++) {
+                                                if ( dat.values[0][i].key === d.key) {
+                                                    level = i;
+                                                    break;
+                                                }
+                                            }
+                                            // tslint:disable-next-line:no-any
+                                            const selectionIds: any[] = dat.values[0][level].values.selectionId;
+                                            thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
+                                                if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).classed('selected', false);
+                                                    thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    }));
+                                                } else {
+                                                d3.select(this).classed('selected', true);
+                                                d3.selectAll('.inDiv').style({
+                                                    opacity: 0.3
+                                                });
+                                                d3.select(this).style({
+                                                    opacity: 1
+                                                });
+                                            }
+                                            });
+                                            (<Event>d3.event).stopPropagation();
+                                        })
                                     .each(function (): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
@@ -2125,15 +2253,20 @@ module powerbi.extensibility.visual {
                                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                                     })
                                     // tslint:disable-next-line:no-any
-                                    .attr('data-selection', function (dat: any, iterator: number): number { return increment; })
+                                    .attr('data-selection', function (datumm: any, iterator: number): number { return increment; })
                                     // tslint:disable-next-line:no-any
                                     .style('background-color', function (): any {
                                         // tslint:disable-next-line:no-any
                                         return thisObj.barcolor.filter(function (v: any): any {
                                             return v.key.toString() === d[`key`].toString();
                                         })[0].value;
-                                    }
-                                    );
+                                    });
+                                // tslint:disable-next-line:typedef
+                                subDiv.on('click', function() {
+                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                            opacity: 1
+                                        }));
+                                    });
                                 increment++;
                             } else {
                                 d3.select(THIS)
@@ -2143,6 +2276,36 @@ module powerbi.extensibility.visual {
                                     .style('width', d[`values`][`value`] <= 0 ? `0` :
                                         // tslint:disable-next-line:max-line-length
                                         `${p * ((sum / thisObj.maxValue) * (thisObj.binColumn === -1 ? 0.85 : 0.60) * (1 - ratio) * rowWidth)}px`)
+                                        // tslint:disable-next-line:no-any
+                                        .on('click', function (dat: any): void {
+                                            const selectionlen: number = dat.values[0].length;
+                                            let level: number = 0;
+                                            for (i = 0; i < selectionlen; i++) {
+                                                if ( dat.values[0][i].key === d.key) {
+                                                    level = i;
+                                                    break;
+                                                }
+                                            }
+                                            // tslint:disable-next-line:no-any
+                                            const selectionIds: any[] = dat.values[0][level].values.selectionId;
+                                            thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
+                                                if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).classed('selected', false);
+                                                    thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    }));
+                                                } else {
+                                                d3.select(this).classed('selected', true);
+                                                d3.selectAll('.inDiv').style({
+                                                    opacity: 0.3
+                                                });
+                                                d3.select(this).style({
+                                                    opacity: 1
+                                                });
+                                            }
+                                            });
+                                            (<Event>d3.event).stopPropagation();
+                                        })
                                     .each(function (): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
@@ -2150,33 +2313,66 @@ module powerbi.extensibility.visual {
                                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                                     })
                                     // tslint:disable-next-line:no-any
-                                    .attr('data-selection', function (dat: any, iterator: number): number { return increment; })
+                                    .attr('data-selection', function (datumm: any, iterator: number): number { return increment; })
                                     // tslint:disable-next-line:no-any
                                     .style('background-color', thisObj.barcolor.filter(function (v: any): any {
                                         return v.key.toString() === d[`key`].toString();
                                     })[0].value);
+                                // tslint:disable-next-line:typedef
+                                subDiv.on('click', function() {
+                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                            opacity: 1
+                                        }));
+                                    });
                                 increment++;
                             }
                         });
 
                     } else {
-
                         // tslint:disable-next-line:no-any
                         const value: any = datum[`values`][`value`];
                         if (value > 0) {
                             thisObj.isCategory = false;
                         }
-
                         d3.select(this)
                             .style('width', datum[`values`][`value`] <= 0 ? `0` :
                                 `${(parseInt(datum[`values`][`value`], 10) / thisObj.maxValue * (
                                     (thisObj.binColumn === -1 ? 0.85 : 0.60) * (1 - ratio) * rowWidth))}px`)
-                            .style('background-color', thisObj.colors[thisObj.iColumn][thisObj.jColumn]);
-
+                            .style('background-color', thisObj.colors[thisObj.iColumn][thisObj.jColumn])
+                            // tslint:disable-next-line:no-any
+                            .on('click', function (d: any): void {
+                                // tslint:disable-next-line:no-any
+                                const selectionIds: any[] = datum[`values`][`selectionId`];
+                                thisObj.selectionManager.select(selectionIds)
+                                                .then((ids: ISelectionId[]) => {
+                                                    if (d3.select(this).classed('selected')) {
+                                                        d3.select(this).classed('selected', false);
+                                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
+                                                            opacity: 1
+                                                        }));
+                                                    } else {
+                                                    d3.select(this).classed('selected', true);
+                                                    d3.selectAll('.thebar').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    d3.select(this).style({
+                                                        opacity: 1
+                                                    });
+                                                }
+                                            });
+                                (<Event>d3.event).stopPropagation();
+                            });
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
                                 thisObj.getTooltipData(tooltipEvent.data, datum, 'bin', '', 0, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
+                        // tslint:disable-next-line:typedef
+                        subDiv.on('click', function() {
+                            thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                opacity: 1
+                            }));
+                            (<Event>d3.event).stopPropagation();
+                        });
                     }
                 })
                 .style('margin-left', `${ratio * rowWidth}px`);
@@ -2726,8 +2922,8 @@ module powerbi.extensibility.visual {
                     .each(function (): void {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Constant',
-                                                                    thisObj.constantLineValue, thisObj),
+                                // tslint:disable-next-line:max-line-length
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Constant', thisObj.constantLineValue, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                     });
                 if (thisObj.constantLineDataLabel) {
@@ -3014,6 +3210,11 @@ module powerbi.extensibility.visual {
                                                                              (tooltipEvent: TooltipEventArgs<number>) => null);
                                 })
                                 .style('height', function (): string {
+                                    thisObj.globalSelections.push({
+                                        data: datum,
+                                        binIndex: index,
+                                        category: categories[index]
+                                    });
                                     // tslint:disable-next-line:no-string-literal
                                     const styleSum: number = d['values']['value'];
 
@@ -4612,6 +4813,7 @@ module powerbi.extensibility.visual {
             if (thisObj.chartType !== thisObj.prevChartType || thisObj.updateCalled) {
                 thisObj.globalSelections = [];
                 let iCounter: number = 0;
+                //;
                 for (iCounter = 0; iCounter < thisObj.prevGlobalSelections.length; iCounter++) {
                     thisObj.globalSelections[iCounter] = thisObj.prevGlobalSelections[iCounter];
                 }
@@ -4693,7 +4895,6 @@ module powerbi.extensibility.visual {
             const colorByValues: any = [];
             // Facets
             if (thisObj.selectionIndexes.length === 0) {
-
                 // tslint:disable-next-line:no-any
                 binData.forEach(function (data: any): any {
                     finalData.push(d3.nest()
@@ -5630,11 +5831,10 @@ module powerbi.extensibility.visual {
                 });
 
                 return lineToolTipValue;
+            }
         }
-    }
         // tslint:disable-next-line:no-any
-        private getTooltipData(val: any, data: any, type: string, display: string, text: number, thisObj: this)
-        : VisualTooltipDataItem[] {
+        private getTooltipData(val: any, data: any, type: string, display: string, text: number, thisObj: this): VisualTooltipDataItem[] {
             let displayName: string;
             const lineToolTipValue: VisualTooltipDataItem[] = [];
             let value: string;
@@ -5652,22 +5852,22 @@ module powerbi.extensibility.visual {
                 // tslint:disable-next-line:typedef
                 const arrColorBar = this.barcolor;
                 // tslint:disable-next-line:no-any
-                let inDivColor: any = '#C15E31';
+                let inDivColor: any;
                 // tslint:disable-next-line:typedef
-                for ( let i = 0; i < val.values[0].length; i++) {
+                for ( let valueIndex = 0; valueIndex < val.values[0].length; valueIndex++) {
                     // tslint:disable-next-line:typedef
-                    for ( let j = 0; j < arrColorBar.length ; j++) {
+                    for ( let colorSelection = 0; colorSelection < arrColorBar.length ; colorSelection++) {
                         // tslint:disable-next-line:max-line-length
-                        if (arrColorBar[j][`key`].toString() === val.values[0][i][`key`].toString() && arrColorBar[j][`key`].toString() !== null) {
+                        if (arrColorBar[colorSelection][`key`].toString() === val.values[0][valueIndex][`key`].toString() && arrColorBar[colorSelection][`key`].toString() !== null) {
                             // tslint:disable-next-line:no-unused-expression
-                            inDivColor = arrColorBar[j][`value`].toString();
+                            inDivColor = arrColorBar[colorSelection][`value`].toString();
                             break;
                         }
                     }
                     lineToolTipValue.push({
-                        displayName: val.values[0][i][`values`][`value`].toString(),
+                        displayName: val.values[0][valueIndex][`values`][`value`].toString(),
                         // tslint:disable-next-line:max-line-length  val.values[0][i][`key`]
-                        value : undefined ===  val.values[0][i][`key`].toString() ? '' : thisObj.targetColumnformatter.format(val.values[0][i][`key`]).toString(),
+                        value : undefined ===  val.values[0][valueIndex][`key`].toString() ? '' : thisObj.targetColumnformatter.format(val.values[0][valueIndex][`key`]).toString(),
                         color: inDivColor
                     });
                 }
