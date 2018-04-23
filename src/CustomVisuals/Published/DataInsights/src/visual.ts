@@ -1,4 +1,4 @@
-//import { text } from "d3";
+﻿//import { text } from "d3";
 
 /*
  *  Power BI Visual CLI
@@ -989,8 +989,8 @@ module powerbi.extensibility.visual {
                     }
 
                 })
-                //width of chart is reduced by 20px to reduce extra width which was causing the x-axis scroll problem
-                .style('width', $('.brickChart1').width() - 20 + thisObj.px );
+                //width of chart is reduced by 10px to reduce extra width which was causing the x-axis scroll problem
+                .style('width', $('.brickChart1').width() - 10 + thisObj.px );
             let percentSign: string;
             percentSign = '%';
             let brickWidth: number;
@@ -1058,7 +1058,7 @@ module powerbi.extensibility.visual {
                                     .each(function (): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                                thisObj.getTooltipData(tooltipEvent.data, d, 'bar', '', 0, thisObj),
+                                                thisObj.getTooltipData(tooltipEvent.data, d, 'brick', '', 0, thisObj),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                                     })
                                     // tslint:disable-next-line:no-any
@@ -1088,7 +1088,7 @@ module powerbi.extensibility.visual {
                                     .each(function (): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                                thisObj.getTooltipData(tooltipEvent.data, d, 'bar', '', 0, thisObj),
+                                                thisObj.getTooltipData(tooltipEvent.data, d, 'brick', '', 0, thisObj),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                                     })
                                     // tslint:disable-next-line:no-any
@@ -1167,7 +1167,8 @@ module powerbi.extensibility.visual {
                 .style('text-align', 'right')
                 .style('top', `${thisObj.textSize}px`)
                 .style('font-size', '10px')
-                .style('width', '55px')
+                .style('width', '35px')
+                .style('margin-left' , '20px')
                 .classed('brickVal', true)
                 .style({
                     'font-size': `${this.settings.fontSettings.fontSize}px`,
@@ -1254,8 +1255,8 @@ module powerbi.extensibility.visual {
                     }
 
                 })
-                 //width of chart is reduced by 20px to reduce extra width which was causing the x-axis scroll problem
-                .style('width', $('.brickChart1').width() -20 + thisObj.px );
+                 //width of chart is reduced by 10px to reduce extra width which was causing the x-axis scroll problem
+                .style('width', $('.brickChart1').width() - 10 + thisObj.px );
             let percentSign: string;
             percentSign = '%';
             const $brickChart: JQuery = $('.brickChart');
@@ -1303,10 +1304,9 @@ module powerbi.extensibility.visual {
                             if (value > 0) {
                                 thisObj.isCategory = false;
                             }
-
                             thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                      (tooltipEvent: TooltipEventArgs<number>) =>
-                                    thisObj.getTooltipData(tooltipEvent.data, d, 'bar', '', 0, thisObj),
+                                    thisObj.getTooltipData(tooltipEvent.data, d, 'brick', '', 0, thisObj),
                                                                      (tooltipEvent: TooltipEventArgs<number>) => null);
                             let percent: number;
                             percent = d[`values`][`value`] / sum;
@@ -1323,7 +1323,7 @@ module powerbi.extensibility.visual {
                                     .each(function (): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                                thisObj.getTooltipData(tooltipEvent.data, d, 'bar', '', 0, thisObj),
+                                                thisObj.getTooltipData(tooltipEvent.data, d, 'brick', '', 0, thisObj),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                                     })
                                     // tslint:disable-next-line:no-any
@@ -1354,7 +1354,7 @@ module powerbi.extensibility.visual {
                                     .each(function (): void {
                                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                                thisObj.getTooltipData(tooltipEvent.data, d, 'bar', '', 0, thisObj),
+                                                thisObj.getTooltipData(tooltipEvent.data, d, 'brick', '', 0, thisObj),
                                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                                     })
                                     // tslint:disable-next-line:no-any
@@ -1436,7 +1436,8 @@ module powerbi.extensibility.visual {
                 .style('text-align', 'right')
                 .style('top', '12px')
                 .style('font-size', '10px')
-                .style('width', '55px')
+                .style('width', '35px')
+                .style('margin-left' , '20px')
                 .classed('brickVal', true)
                 .style({
                     'font-size': `${this.settings.fontSettings.fontSize}px`,
@@ -1692,7 +1693,6 @@ module powerbi.extensibility.visual {
                         if (value > 0) {
                             thisObj.isCategory = false;
                         }
-
                         d3.select(this)
                             .style('width', datum[`values`][`value`] <= 0 ? `0` :
                                 `${(parseInt(datum[`values`][`value`], 10) / thisObj.maxValue * (
@@ -2507,7 +2507,7 @@ module powerbi.extensibility.visual {
                     .style('top', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Max', maxValue, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Max', maxValue, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return top;
@@ -2579,7 +2579,7 @@ module powerbi.extensibility.visual {
                     .style('top', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Min', minValue, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Min', minValue, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return top;
@@ -2652,7 +2652,8 @@ module powerbi.extensibility.visual {
                     .style('top', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Average', thisObj.averageValue, thisObj),
+                                // tslint:disable-next-line:max-line-length
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Average', thisObj.averageValue, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return top;
@@ -2725,8 +2726,8 @@ module powerbi.extensibility.visual {
                     .each(function (): void {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Constant',
-                                                       thisObj.constantLineValue, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Constant',
+                                                                    thisObj.constantLineValue, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                     });
                 if (thisObj.constantLineDataLabel) {
@@ -3142,7 +3143,7 @@ module powerbi.extensibility.visual {
                     .style('width', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Max', max, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Max', max, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return (((thisObj.noOfColumns * 53) + thisObj.noOfColumns + 7) + thisObj.px);
@@ -3194,7 +3195,7 @@ module powerbi.extensibility.visual {
                     .style('width', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Min', min, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Min', min, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return (((thisObj.noOfColumns * 53) + thisObj.noOfColumns + 7) + thisObj.px);
@@ -3246,7 +3247,7 @@ module powerbi.extensibility.visual {
                     .style('width', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Average', average, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Average', average, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return (((thisObj.noOfColumns * 53) + thisObj.noOfColumns + 7) + thisObj.px);
@@ -3301,7 +3302,7 @@ module powerbi.extensibility.visual {
                     .each(function (): void {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Max', thisObj.maxValue, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Max', thisObj.maxValue, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                     });
                 thisObj.renderStyles(constantLine + index, divConstantLine, pConstantLine, thisObj.constantLineStyle,
@@ -3709,7 +3710,7 @@ module powerbi.extensibility.visual {
                     .style('width', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Max', max, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Max', max, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return (((thisObj.noOfColumns * 53) + thisObj.noOfColumns + 7) + thisObj.px);
@@ -3771,7 +3772,7 @@ module powerbi.extensibility.visual {
                     .style('width', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Min', min, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Min', min, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return (((thisObj.noOfColumns * 53) + thisObj.noOfColumns + 7) + thisObj.px);
@@ -3824,7 +3825,7 @@ module powerbi.extensibility.visual {
                     .style('width', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'Average', average, thisObj),
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'Average', average, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
                         return (((thisObj.noOfColumns * 53) + thisObj.noOfColumns + 7) + thisObj.px);
@@ -3893,7 +3894,8 @@ module powerbi.extensibility.visual {
                     .each(function (): void {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
-                                thisObj.getTooltipData(tooltipEvent.data, '', 'line', 'constant', thisObj.constantLineValue, thisObj),
+                                // tslint:disable-next-line:max-line-length
+                                thisObj.getTooltipDataAnalyticsLine(tooltipEvent.data, '', 'line', 'constant', thisObj.constantLineValue, thisObj),
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                     });
                 thisObj.renderStyles(constantLine + index, divConstantLine, pConstantLine, thisObj.constantLineStyle,
@@ -5596,11 +5598,13 @@ module powerbi.extensibility.visual {
                 menu === thisObj.$columnSelector ? thisObj.$columnSelector.slideToggle() : thisObj.$columnSelector.hide();
             }
         }
-
         // tslint:disable-next-line:no-any
-        private getTooltipData(val: any, data: any, type: string, display: string, text: number, thisObj: this): VisualTooltipDataItem[] {
+        private getTooltipDataAnalyticsLine(val: any, data: any, type: string, display: string, text: number, thisObj: this)
+        : VisualTooltipDataItem[] {
+            // tslint:disable-next-line:prefer-const
             let displayName: string;
             const lineToolTipValue: VisualTooltipDataItem[] = [];
+            // tslint:disable-next-line:prefer-const
             let value: string;
             if (type === 'line') {
 
@@ -5626,7 +5630,15 @@ module powerbi.extensibility.visual {
                 });
 
                 return lineToolTipValue;
-            } else if (type === 'inDiv') {
+        }
+    }
+        // tslint:disable-next-line:no-any
+        private getTooltipData(val: any, data: any, type: string, display: string, text: number, thisObj: this)
+        : VisualTooltipDataItem[] {
+            let displayName: string;
+            const lineToolTipValue: VisualTooltipDataItem[] = [];
+            let value: string;
+            if (type === 'inDiv') {
                 if (data !== undefined && data[`key`] !== undefined) {
                     displayName = data[`key`].toString();
                     value = undefined === data[`value`] ? '' : thisObj.targetColumnformatter.format(data[`value`]).toString();
@@ -5636,6 +5648,31 @@ module powerbi.extensibility.visual {
                     displayName = data[`key`].toString();
                     value = undefined === data[`value`] ? '' : thisObj.targetColumnformatter.format(data[`value`]).toString();
                 }
+            } else if (type === 'brick') {
+                // tslint:disable-next-line:typedef
+                const arrColorBar = this.barcolor;
+                // tslint:disable-next-line:no-any
+                let inDivColor: any = '#C15E31';
+                // tslint:disable-next-line:typedef
+                for ( let i = 0; i < val.values[0].length; i++) {
+                    // tslint:disable-next-line:typedef
+                    for ( let j = 0; j < arrColorBar.length ; j++) {
+                        // tslint:disable-next-line:max-line-length
+                        if (arrColorBar[j][`key`].toString() === val.values[0][i][`key`].toString() && arrColorBar[j][`key`].toString() !== null) {
+                            // tslint:disable-next-line:no-unused-expression
+                            inDivColor = arrColorBar[j][`value`].toString();
+                            break;
+                        }
+                    }
+                    lineToolTipValue.push({
+                        displayName: val.values[0][i][`values`][`value`].toString(),
+                        // tslint:disable-next-line:max-line-length  val.values[0][i][`key`]
+                        value : undefined ===  val.values[0][i][`key`].toString() ? '' : thisObj.targetColumnformatter.format(val.values[0][i][`key`]).toString(),
+                        color: inDivColor
+                    });
+                }
+
+                return lineToolTipValue;
             } else {
                 if (data !== undefined && data[`key`] !== undefined) {
                     displayName = data[`key`].toString();
