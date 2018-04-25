@@ -1,0 +1,12 @@
+Brief Description:
+Compare progress against identified goals and warning zones.
+
+Long Description:
+Linear Gauge by MAQ Software shows progress toward a target value, such as achieved sales versus targetted monthly sales. This visual allows users to include multiple data points, which is useful for illustrating trends such as monthly or year-to-date (YTD) completion rates. Information displayed includes the present value, percentage toward completion, and two optional trend values.
+
+Key features:
+•	Set the minimum and maximum value of the metric.
+•	Customize the color of the gauge and data labels.
+•	Choose from six unit options for the metric. 
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

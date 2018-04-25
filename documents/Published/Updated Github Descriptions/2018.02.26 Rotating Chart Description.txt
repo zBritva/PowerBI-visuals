@@ -1,0 +1,15 @@
+Brief Description:
+Automatically flipping tile with set frequency that displays different key performance indicators (KPIs).
+
+Long Description:
+Rotating Chart by MAQ Software is a horizontal bar chart that rotates on the horizontal axis to showcase multiple KPIs. Each flip can have a new value based on the number of KPIs that need to be displayed. For better visibility, users can set a timer for the rotation delay.
+
+Business reports often require many KPIs in a single report, especially when showcasing historical data. Rotating Chart by MAQ Software lets users display multiple KPIs or metrics in a small viewing area, saving space on lengthy reports. 
+
+Key features:
+•	The tile can be rotated on the horizontal or the vertical axis.
+•	Flip delay time can be specified, ensuring that all data shown in the tile is readable.
+•	Includes a 3D effect option, emphasizing when different data is displayed.
+•	Includes basic formatting options such as font type, size, and color for the label and title, background, and tile borders.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

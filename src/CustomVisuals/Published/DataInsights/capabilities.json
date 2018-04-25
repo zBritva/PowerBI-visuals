@@ -23,16 +23,21 @@
         }
     ],
     "sorting": {
-        "implicit": {
-            "clauses": [
-                {
-                    "role": "category",
-                    "direction": 1
-                }
-            ]
-        }
+        "default":{}    
     },
     "objects": {
+        "legendLabel": {
+            "displayName": "Legend",
+            "description": "Display legend options",
+            "properties": {
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                } 
+            }
+        },  
         "orient": {
             "displayName": "View As",
             "properties": {
@@ -88,10 +93,30 @@
                         "numeric": true
                     }
                 },
-                "columns": {
+                "columns":{
                     "displayName": "Columns",
-                    "type": {
+                    "type":{
                         "text": true
+                    }
+                  },
+                "colorBy": {
+                    "displayName": "colorBy",
+                    "type":{
+                        "numeric": true
+                    }
+                }
+            }
+          },    "colorSelector": {
+            "displayName": "Data Colors",
+            "properties": {
+                "fill": {
+                    "displayName": "Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
                     }
                 }
             }
@@ -106,6 +131,18 @@
                     }
                 }
             }
+        }, 
+        "xaxis": {
+            "displayName": "Show X-Axis",
+            "description": "Display X-Axis options",
+            "properties": {
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                } 
+            }
         },
         "analytics": {
             "displayName": "Analytics Options",
@@ -116,6 +153,7 @@
                         "bool": true
                     }
                 },
+                
                 "maxLineStyle": {
                     "displayName": "Line style",
                     "type": {
@@ -136,7 +174,7 @@
                     }
                 },
                 "maxLineFill": {
-                    "displayName": "Max line color",
+                    "displayName": "Color",
                     "type": {
                         "fill": {
                             "solid": {
@@ -146,7 +184,7 @@
                     }
                 },
                 "maxLineOpacity": {
-                    "displayName": "Opacity %",
+                    "displayName": "Transparency %",
                     "type": {
                         "formatting": {
                             "fontSize": true
@@ -154,7 +192,7 @@
                     }
                 },
                 "maxLineDataLabel": {
-                    "displayName": "Data label for max line",
+                    "displayName": "Data label",
                     "type": {
                         "bool": true
                     }
@@ -266,7 +304,7 @@
                 "constantLineValue": {
                     "displayName": "Value",
                     "type": {
-                        "text": true
+                        "numeric": true
                     }
                 },
                 "constantLineStyle": {
@@ -312,6 +350,18 @@
                         "bool": true
                     }
                 }
+            }
+        },  "ratio":{
+            "displayName": "Display Ratio",
+            "properties":{
+             "percent":{
+                 "displayName": "Ratio",
+                 "type":{
+                    "formatting": {
+                            "fontSize": true
+                        }
+                 }
+             }   
             }
         },
         "value": {

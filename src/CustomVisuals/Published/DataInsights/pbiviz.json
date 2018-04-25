@@ -4,7 +4,7 @@
     "displayName": "Data Insights by MAQ Software",
     "guid": "dataInsightsEC19A7A1FF1C44B784A13A27E1A145AB",
     "visualClassName": "Visual",
-    "version": "3.0.0.3",
+    "version": "3.1.0.1",
     "description": "",
     "supportUrl": "https://github.com/maqsoftware/PowerBI-visuals/issues",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals"
@@ -18,14 +18,17 @@
     "icon": "assets/icon.png"
   },
   "externalJS": [
+    "node_modules/jquery/dist/jquery.js",
+    "node_modules/d3/d3.js",
     "node_modules/globalize/lib/globalize.js",
     "node_modules/globalize/lib/cultures/globalize.culture.en-US.js",
     "node_modules/powerbi-visuals-utils-typeutils/lib/index.js",
+    "node_modules/powerbi-visuals-utils-svgutils/lib/index.js",
     "node_modules/powerbi-visuals-utils-dataviewutils/lib/index.js",
     "node_modules/powerbi-visuals-utils-formattingutils/lib/index.js",
-    "node_modules/jquery/dist/jquery.js",
-    "node_modules/powerbi-visuals-utils-tooltiputils/lib/index.js",
-    "node_modules/d3/d3.js"
+    "node_modules/powerbi-visuals-utils-interactivityutils/lib/index.js",
+    "node_modules/powerbi-visuals-utils-chartutils/lib/index.js",
+  "node_modules/powerbi-visuals-utils-tooltiputils/lib/index.js"
   ],
   "style": "style/visual.less",
   "capabilities": "capabilities.json",

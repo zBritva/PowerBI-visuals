@@ -1,72 +1,105 @@
- .arrow {
+.slideArrows{
+	width: 0px;
+	height: 0px;
+	border-color: #000;
+	position: absolute;
+	border-bottom: 10px solid transparent;
+	border-left: 10px solid transparent;
+}
+#prev{
+	transform: rotate(-135deg);
+	left: 5px;
+	border-right: 10px solid #777380;
+}
+#prev:hover {
+	border-right: 10px solid #15b96d;
+}
+#next{
+	transform: rotate(45deg);
+	right: 3px;
+	border-right: 10px solid #777380;
+}
+#next:hover{
+	border-right: 10px solid #15b96d;
+}
+#bottom{
+	transform: rotate(-45deg);
+	margin-top: 5px;
+	border-top: 10px solid #777380;
+}
+#bottom:hover{
+	border-top: 10px solid #15b96d;
+}
+#top{
+	transform: rotate(135deg);
+	top: -4px;
+	margin-left: 10px;
+	border-right: 10px solid #777380;
+}
+#top:hover{
+	border-right: 10px solid #15b96d;
+}
+.arrow {
 	border-left: 10px solid transparent;
 	border-right: 10px solid transparent;
 	display: inline-block;
 	height: 0;
-    margin-top: 3%;
+	margin-top: 3%;
 	margin-right: 10px;
 	overflow: hidden;
 	width: 0;
- }
-
+}
 .arrowDown {
-    border-top: 10px solid #f00;
+	border-top: 10px solid #f00;
 }
- 
 .arrowUp {
-    border-bottom: 10px solid #009900;
+	border-bottom: 10px solid #009900;
 }
-  
-#container1, #container2, #container3, #container4, #container5, #container6, #container7, #container8 {
+.containers{
 	background: #efefef;
-	border-left: 1px solid white;
+	border-left: 1px solid #ffffff;
+	border-top: 1px solid #ffffff;
 	color: #333;
 	float: left;
 	font-family: 'Segoe UI';
-    font-weight: bold;
+	font-weight: bold;
 	height: 80px;
 	overflow: hidden;
- }
-
- .indicator {
-	background: white;
+	cursor: initial;
+}
+.indicator {
+	background: #ffffff;
 	display: inline-block;
 	height: 5px;
 	margin-right: 10px;
 	overflow: hidden;
-	width: 15px;	
- }
-
- .indicatorKPIOne{
-	 margin-top: 1.4%;
- }
-
-  .indicatorKPITwo{
-	 margin-top: 2%;
- }
-
-  .indicatorKPIThree{
-	 margin-top: 2%;
- }
-
- .kpi1{
-	 width: 1200px;
- }
- .kpi2{
-	 width: 590px;
- }
- .kpi3{
+	width: 15px;
+}
+.indicatorKPIOne{
+	margin-top: 1.4%;
+}
+.indicatorKPITwo{
+	margin-top: 2%;
+}
+.indicatorKPIThree{
+	margin-top: 2%;
+}
+.kpi1{
+	width: 1200px;
+}
+.kpi2{
+	width: 590px;
+}
+.kpi3{
 	width: 390px;
 }
 .kpi4{
-	 width: 290px;
- }
- 
-.neutral {
-    background: #00f;
+	width: 290px;
 }
-
- #textToDisplay{
+.neutral {
+	background: #00f;
+}
+#textToDisplay{
 	font-size: 20px;
 	color: #000000;
 	height: 100%;
@@ -74,113 +107,93 @@
 	font-family: 'Segoe UI';
 	text-align: center;
 }
-
 .tliChange {
 	color: #043c74;
 	font-family: 'SEGOE UI';
 	font-size: 10px;
 	height: 10%;
-    margin-top: 2%;
+	margin-top: 2%;
 	margin-right: 10px;
 	display:inline-block;
- }
-
+}
 .tliChangeKPIOne{
-	margin-top: 1%; 
+	margin-top: 1%;
 }
-
- .tliChangeNegative {
-    color: #f00;
+.tliChangeNegative {
+	color: #f00;
 }
-
 .tliChangeNeutral {
-    color: #00f;
+	color: #00f;
 }
-
 .tliChangePositive {
-    color: #090;
+	color: #090;
 }
-
 .tliChangePrice {
 	color: #043c74;
 	font-family: 'SEGOE UI';
 	font-size: 10px;
 	height: 10%;
-    margin-top: 2% ;
+	margin-top: 2% ;
 	margin-right: 10px;
 	display: inline-block;
- }
-
- .tliChangePriceKPIOne{
-	 margin-top: 1%;
- }
- 
+}
+.tliChangePriceKPIOne{
+	margin-top: 1%;
+}
 .tliChangePriceNegative {
-    color: #f00;
+	color: #f00;
 }
-
 .tliChangePriceNeutral {
-    color: #00f;
+	color: #00f;
 }
- 
 .tliChangePricePositive {
-    color: #090;
+	color: #090;
 }
-
 .tliName {
 	color: #043c74;
-	float: left;
 	font-size: 12px;
-	height: 45%;
-	margin-left: 10px;
-    margin-top:5%;
-	width: 280px;
- }
-
- .tliNameKPIOne{
-	 height: 15%;
-	 margin-top: 2%;
-	 margin-left: 10px;
-	 width:1180px;
- }
-
-  .tliNameKPITwo{
-	 height: 15%;
-	 width: 580px;
- }
-
-  .tliNameKPIThree{
-	 height: 35%;
-	 width: 380px;
- }
- 
+	height: 50%;
+	margin-left: 5px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+.tliNameKPIOne{
+	height: 35%;
+	margin-left: 5px;
+	width:1180px;
+}
+.tliNameKPITwo{
+	height: 35%;
+	width: 580px;
+}
+.tliNameKPIThree{
+	height: 35%;
+	width: 380px;
+}
 .tliPrice {
 	color: #043c74;
 	font-family: 'SEGOE UI';
 	font-size: 10px;
 	height: 10%;
-    margin-top: 2%;
+	margin-top: 2%;
 	margin-left: 10px;
 	margin-right: 10px;
 	display: inline-block;
- }
-
- .tliPriceKPIOne{
-	 margin-top: 1%;
-	 margin-left: 10px;
- }
-
+}
+.tliPriceKPIOne{
+	margin-top: 1%;
+	margin-left: 10px;
+}
 #wrapper {
+	margin: 15px;
 	height: 80px;
-    margin: 0% 5% 0% 5%;
-	overflow: hidden; 
-	position: relative;
-	width: 1200px;
- }
- 
-#wrapper1, #wrapper2 {
-	height: 80px;
-	position: absolute;
-	width: 1200px;
 	overflow: hidden;
- }
+	position: absolute;
+	cursor: initial;
+}
+#wrapper1, #wrapper2 {
+	position: absolute;
+	overflow: hidden;
+	cursor: initial;
+}

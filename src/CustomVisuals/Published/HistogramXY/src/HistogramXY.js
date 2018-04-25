@@ -181,117 +181,117 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
             "usageWidth": 90
         },
         "yAxis":
-        {
-            "dualAxisEnabled": "true",
-            "title":
             {
-                "text": "true"
+                "dualAxisEnabled": "true",
+                "title":
+                    {
+                        "text": "true"
+                    },
+                "dualyAxis": {
+                    "axisLeft":
+                        {
+                            "title": {
+                                "enabled": configChange.showyAxisLeftTitle,
+                                "align": "center",
+                                "text": configChange.yTitleTextLeft,
+                                "style": {
+                                    "fill": "#777777",
+                                    "fontSize": "14px",
+                                    "fontFamily": "Segoe UI"
+                                },
+                                "x": 10,
+                                "y": -9
+                            },
+                            "labels": {
+                                "enabled": configChange.showyAxisLeftLabel,
+                                "align": "right",
+                                "series": [],
+                                "formatter": "scaleFormatter",
+                                "staggerLines": false,
+                                "rotation": 0,
+                                "style": {
+                                    "fill": "#777777",
+                                    "fontSize": "12px",
+                                    "fontFamily": "Segoe UI"
+                                },
+                                "x": 0,
+                                "y": 0
+                            },
+                            "numberOfGridLines": 8,
+                            "gridLineWidth": 1,
+                            "gridLineColor": "silver",
+                            "gridLineDashStyle": "shortdash",
+                            "lineWidth": 1,
+                            "lineColor": "silver",
+                            "tickWidth": 0,
+                            "tickHeight": 0,
+                            "tickPosition": "onaxis",
+                            "tickColor": "silver",
+                            "labelSpacing": 5,
+                            "shiftStartBy": 0,
+                            "skipInterval": 0,
+                            "alternateGridColor": ""
+                        },
+                    "axisRight":
+                        {
+                            "title": {
+                                "enabled": configChange.showyAxisRightTitle,
+                                "align": "center",
+                                "text": configChange.yTitleTextRight,
+                                "style": {
+                                    "fill": "#777777",
+                                    "fontSize": "14px",
+                                    "fontFamily": "Segoe UI"
+                                },
+                                "x": -9,
+                                "y": 10
+                            },
+                            "labels": {
+                                "enabled": configChange.showyAxisRightLabel,
+                                "align": "right",
+                                "series": [],
+                                "formatter": "scaleFormatter",
+                                "staggerLines": false,
+                                "rotation": 0,
+                                "style": {
+                                    "fill": "#777777",
+                                    "fontSize": "12px",
+                                    "fontFamily": "Segoe UI"
+                                },
+                                "x": 0,
+                                "y": 0
+                            },
+                            "numberOfGridLines": 8,
+                            "gridLineWidth": 1,
+                            "gridLineColor": "silver",
+                            "gridLineDashStyle": "shortdash",
+                            "lineWidth": 1,
+                            "lineColor": "silver",
+                            "tickWidth": 0,
+                            "tickHeight": 0,
+                            "tickPosition": "onaxis",
+                            "tickColor": "silver",
+                            "labelSpacing": 5,
+                            "shiftStartBy": 0,
+                            "skipInterval": 0,
+                            "alternateGridColor": ""
+                        },
+                    "numberOfGridLines": 8,
+                    "gridLineWidth": 1,
+                    "gridLineColor": "silver",
+                    "gridLineDashStyle": "shortdash",
+                    "lineWidth": 1,
+                    "lineColor": "silver",
+                    "tickWidth": 5,
+                    "tickHeight": 5,
+                    "tickPosition": "onaxis",
+                    "tickColor": "silver",
+                    "labelSpacing": 5,
+                    "shiftStartBy": 0,
+                    "skipInterval": 0,
+                    "alternateGridColor": "",
+                }
             },
-            "dualyAxis": {
-                "axisLeft":
-                {
-                    "title": {
-                        "enabled": configChange.showyAxisLeftTitle,
-                        "align": "center",
-                        "text": configChange.yTitleTextLeft,
-                        "style": {
-                            "fill": "#777777",
-                            "fontSize": "12px",
-                            "fontFamily": "Segoe UI"
-                        },
-                        "x": 0,
-                        "y": 0
-                    },
-                    "labels": {
-                        "enabled": configChange.showyAxisLeftLabel,
-                        "align": "right",
-                        "series": [],
-                        "formatter": "scaleFormatter",
-                        "staggerLines": false,
-                        "rotation": 0,
-                        "style": {
-                            "fill": "#777777",
-                            "fontSize": "12px",
-                            "fontFamily": "Segoe UI"
-                        },
-                        "x": 0,
-                        "y": 0
-                    },
-                    "numberOfGridLines": 8,
-                    "gridLineWidth": 1,
-                    "gridLineColor": "silver",
-                    "gridLineDashStyle": "shortdash",
-                    "lineWidth": 1,
-                    "lineColor": "silver",
-                    "tickWidth": 0,
-                    "tickHeight": 0,
-                    "tickPosition": "onaxis",
-                    "tickColor": "silver",
-                    "labelSpacing": 5,
-                    "shiftStartBy": 0,
-                    "skipInterval": 0,
-                    "alternateGridColor": ""
-                },
-                "axisRight":
-                {
-                    "title": {
-                        "enabled": configChange.showyAxisRightTitle,
-                        "align": "center",
-                        "text": configChange.yTitleTextRight,
-                        "style": {
-                            "fill": "#777777",
-                            "fontSize": "12px",
-                            "fontFamily": "Segoe UI"
-                        },
-                        "x": 7,
-                        "y": 0
-                    },
-                    "labels": {
-                        "enabled": configChange.showyAxisRightLabel,
-                        "align": "right",
-                        "series": [],
-                        "formatter": "scaleFormatter",
-                        "staggerLines": false,
-                        "rotation": 0,
-                        "style": {
-                            "fill": "#777777",
-                            "fontSize": "12px",
-                            "fontFamily": "Segoe UI"
-                        },
-                        "x": 0,
-                        "y": 0
-                    },
-                    "numberOfGridLines": 8,
-                    "gridLineWidth": 1,
-                    "gridLineColor": "silver",
-                    "gridLineDashStyle": "shortdash",
-                    "lineWidth": 1,
-                    "lineColor": "silver",
-                    "tickWidth": 0,
-                    "tickHeight": 0,
-                    "tickPosition": "onaxis",
-                    "tickColor": "silver",
-                    "labelSpacing": 5,
-                    "shiftStartBy": 0,
-                    "skipInterval": 0,
-                    "alternateGridColor": ""
-                },
-                "numberOfGridLines": 8,
-                "gridLineWidth": 1,
-                "gridLineColor": "silver",
-                "gridLineDashStyle": "shortdash",
-                "lineWidth": 1,
-                "lineColor": "silver",
-                "tickWidth": 5,
-                "tickHeight": 5,
-                "tickPosition": "onaxis",
-                "tickColor": "silver",
-                "labelSpacing": 5,
-                "shiftStartBy": 0,
-                "skipInterval": 0,
-                "alternateGridColor": "",
-            }
-        },
 
         "tooltip": {
             "enabled": true,
@@ -311,9 +311,9 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
                     "scaleX": dataViewObject.categorical.categories[identifierX].values,
                     "scaleY": dataViewObject.categorical.categories[identifierY].values,
                     "frequency":
-                    {
-                        "data": []
-                    }
+                        {
+                            "data": []
+                        }
 
                 }
             }
@@ -352,7 +352,7 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
     }
     var xAxisFormat = dataView.metadata.columns[identifierX].format;
     var yAxisFormat = dataView.metadata.columns[identifierY].format;
-    var xFormatter = valueFormatter.create({ format: dataView.metadata.columns[identifierX].format });
+    var xFormatter = valueFormatter.create({ format: dataView.metadata.columns[identifierX].format, precision: settings.xTextPrecision });
     var yFormatter = valueFormatter.create({ format: dataView.metadata.columns[identifierY].format });
     (function (config) {
         /*jslint white: true, devel:true, browser: true, this:true, for:true  */
@@ -1967,14 +1967,14 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
                     if (oParam.rowIndex) {
                         oExtParam.rowIndex = oParam.rowIndex;
                     }
-                   oToolTip.textContent = MAQ.applyFormatter(oExtParam, sToolTipFunctionName);
+                    oToolTip.textContent = MAQ.applyFormatter(oExtParam, sToolTipFunctionName);
                 } else {
                     var sChartType = oConfig.chart.type, iLen, i, tempValue;
                     switch (sChartType.toLowerCase()) {
                         case 'histogram':
-                             while (oToolTip.firstChild) {
-                                 oToolTip.removeChild(oToolTip.firstChild);
-                             }
+                            while (oToolTip.firstChild) {
+                                oToolTip.removeChild(oToolTip.firstChild);
+                            }
                             if (oParam.category == "histogram") {
                                 var x, y;
                                 //X value in tooltip
@@ -1996,7 +1996,7 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
                                     xTitle.textContent = (config.xAxis.title.text ? oConfig.xAxis.title.text : xAxisName) + ': ';
                                     xTitle.style.fontWeight = 'bold';
                                     container.appendChild(xTitle);
-                    
+
                                     var xTitleValue = document.createElement('span');
                                     xTitleValue.textContent = xFormatter.format(Math.round(oSeries.data.scaleX[iSelectedIndex] * 100) / 100 || 0);
                                     container.appendChild(xTitleValue);
@@ -2012,8 +2012,8 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
 
                                     var yTitleValue = document.createElement('span');
                                     yTitleValue.textContent = yFormatter.format(Math.round(oSeries.data.scaleY[iSelectedIndex] * 100) / 100 || 0);
-                                     container.appendChild(yTitleValue);
-                                     oToolTip.appendChild(container);
+                                    container.appendChild(yTitleValue);
+                                    oToolTip.appendChild(container);
                                 }
                                 else {
                                     var container = document.createElement('div');
@@ -2027,31 +2027,30 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
                                     container.appendChild(yTitleValue);
                                     oToolTip.appendChild(container);
                                 }
-                             
-                            }
-                           
-                            else if (oParam.category == "column") {
-                                debugger
-                                if (oConfig.yAxis.dualyAxis.axisLeft.title.text) {
-                                var container = document.createElement('div');
-                                var yTitle = document.createElement('span');
-                                yTitle.textContent = (config.yAxis.dualyAxis.axisLeft.title.text ? oConfig.yAxis.dualyAxis.axisLeft.title.text : yAxisName) + ': ';
-                                yTitle.style.fontWeight = 'bold';
-                                container.appendChild(yTitle);
 
-                                var yTitleValue = document.createElement('span');
-                                yTitleValue.textContent += oSeries.data.frequency.data[oParam.position];
-                                 container.appendChild(yTitleValue);
-                                 oToolTip.appendChild(container);
+                            }
+
+                            else if (oParam.category == "column") {
+                                if (oConfig.yAxis.dualyAxis.axisLeft.title.text) {
+                                    var container = document.createElement('div');
+                                    var yTitle = document.createElement('span');
+                                    yTitle.textContent = (config.yAxis.dualyAxis.axisLeft.title.text ? oConfig.yAxis.dualyAxis.axisLeft.title.text : yAxisName) + ': ';
+                                    yTitle.style.fontWeight = 'bold';
+                                    container.appendChild(yTitle);
+
+                                    var yTitleValue = document.createElement('span');
+                                    yTitleValue.textContent += oSeries.data.frequency.data[oParam.position];
+                                    container.appendChild(yTitleValue);
+                                    oToolTip.appendChild(container);
                                 }
                                 else {
-                                    oToolTip.innerText =  'Histogram Count' + ':' + oSeries.data.frequency.data[oParam.position];
+                                    oToolTip.innerText = 'Histogram Count' + ':' + oSeries.data.frequency.data[oParam.position];
                                 }
                             }
                             break;
 
                         default:
-                            oToolTip.innerText =  oSeries.name + oLabels[iSelectedIndex] + ': ' + (Math.round(oSeries.data[iSelectedIndex] * 100) / 100 || 0);
+                            oToolTip.innerText = oSeries.name + oLabels[iSelectedIndex] + ': ' + (Math.round(oSeries.data[iSelectedIndex] * 100) / 100 || 0);
                             break;
                     }
                 }
@@ -3140,6 +3139,18 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
                     if (xAxisLabel.enabled) {
                         bSetTooltip = false;
                         oAttrLabel.text = parseFloat(xAxisSeries[iCounter]);
+                        //   Adding decimal places for x axis label.
+                        if (settings.xTextPrecision % 1 != 0) {
+                            settings.xTextPrecision = Math.round(settings.xTextPrecision);
+                        }
+                        if (settings.xTextPrecision < 0) {
+                            settings.xTextPrecision = 0;
+                        }
+                        if (settings.xTextPrecision > 4) {
+                            settings.xTextPrecision = 4;
+                        }
+                        oAttrLabel.text = Number(oAttrLabel.text).toFixed(settings.xTextPrecision);
+
                         index = String(iCounter);
                         oAttrLabel.class = 'text' + index;
                         /* Code for clipping the text to specified number of characters */
@@ -3200,6 +3211,7 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
 
         /* Create Histogram XY chart */
         MAQ.createHistogramChart = function (chartConfigOptions) {
+            debugger
             'use strict';
             d3.select('#container').style({ "overflow-y": "hidden", "overflow-x": "hidden" })
             if (chartConfigOptions.availHeight < 170 && chartConfigOptions.availWidth < 510) {
@@ -3251,15 +3263,42 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
             oNormalizedDataYAxis = MAQ.getNormalized_Min_Max_Interval(oDataInfoY.min, oDataInfoY.max, chartConfigOptions.yAxis.numberOfGridLines);
             oNormalizedDataXAxis = MAQ.getNormalized_Min_Max_Interval(oDataInfoX.min, oDataInfoX.max, chartConfigOptions.xAxis.numberOfGridLines);
 
+            // get/set X-Axis start and end data from formatting pane
+            if (settings.startxAxis !== null && settings.startxAxis <= oDataInfoX.min && settings.endxAxis === null) {
+                oNormalizedDataXAxis.min = settings.startxAxis;
+
+            }
+            else if (settings.startxAxis !== null && settings.startxAxis <= oDataInfoX.min && settings.endxAxis !== null) {
+                oNormalizedDataXAxis.min = settings.startxAxis;
+            }
+            else if (settings.startxAxis !== null && settings.startxAxis > oDataInfoX.min) {
+                settings.startxAxis = null;
+            }
+            if (settings.endxAxis !== null && settings.endxAxis > oDataInfoX.max && settings.startxAxis === null) {
+                oNormalizedDataXAxis.max = settings.endxAxis;
+            }
+            else if (settings.endxAxis !== null && settings.endxAxis > oDataInfoX.max && settings.startxAxis !== null) {
+                oNormalizedDataXAxis.max = settings.endxAxis;
+            }
+
+            else if (settings.startxAxis !== null && settings.endxAxis !== null && settings.startxAxis <= settings.endxAxis && settings.startxAxis <= oDataInfoX.min && settings.endxAxis > oDataInfoX.max) {
+                oNormalizedDataXAxis.min = settings.startxAxis;
+                oNormalizedDataXAxis.max = settings.endxAxis;
+
+            }
+            else if (settings.endxAxis !== null && settings.endxAxis <= oDataInfoX.max) {
+                settings.endxAxis = null;
+            }
+
+            oNormalizedDataXAxis.interval = (oNormalizedDataXAxis.max - oNormalizedDataXAxis.min) / chartConfigOptions.xAxis.numberOfGridLines;
+
             //Sum for x and y axis
             oNormalizedDataXAxis.sum = oNormalizedDataXAxis.max + Math.abs(oNormalizedDataXAxis.min);
             oNormalizedDataYAxis.sum = oNormalizedDataYAxis.max + Math.abs(oNormalizedDataYAxis.min);
-
             var oxAxisSeries = [];
             chartConfigOptions.xAxis.labels.series = [];
             var iStartX = oNormalizedDataXAxis.min, numberParts;
             iLength = oNormalizedDataXAxis.sum / oNormalizedDataXAxis.interval;
-
             //loop for xAxis labels
             for (iCounter = 0; iCounter <= iLength; iCounter += 1) {
                 numberParts = iStartX.toString().split('.');

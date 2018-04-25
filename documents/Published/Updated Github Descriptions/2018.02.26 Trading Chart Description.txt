@@ -1,0 +1,11 @@
+Brief Description:
+Displays significant stock price points as colored vertical bars.
+
+Long Description:
+Trading Chart by MAQ Software lets users enter historical trading records and translates them into a simple chart. Gray bars signify low and high price values. Red or green bars superimposed over the low and high values show which direction the stock moved.
+
+Key features:
+•	A red bar indicates a stock’s price has dropped; a green bar indicates the price rose.
+•	Customizable price ranges and time increments.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

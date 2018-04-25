@@ -1,6 +1,13 @@
+
 module powerbi.extensibility.visual {
 
     import valueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
+    import tooltipUtils = powerbi.extensibility.utils.tooltip;
+
+    let fytargetChecker: boolean = false;
+    let xAxisName: string = 'X-Axis';
+    let yAxisName: string = 'Y-Axis';
+    let columnValue: DataViewValueColumn;
 
     /* do not update*/
     export module DataViewObjects {
@@ -100,6 +107,17 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         tooltip: any;
     }
+    interface IIndividualTargetData {
+
+        value: PrimitiveValue;
+        ytd: PrimitiveValue;
+        forecasted: PrimitiveValue;
+        category: string;
+        color: string;
+        selectionId: ISelectionId;
+        // tslint:disable-next-line:no-any
+        tooltip: any;
+    }
 
     interface IBarChartSettings {
         enableAxis: {
@@ -133,8 +151,16 @@ module powerbi.extensibility.visual {
             displayUnits: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'displayUnits' },
             fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'fontSize' },
             gridLines: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'gridLines' },
+            title: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'title' },
             start: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'start' },
-            end: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'end' }
+            end: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'end' },
+            fontFamily: <DataViewObjectPropertyIdentifier>{ objectName: 'yAxis', propertyName: 'fontFamily' }
+        },
+        xAxisConfig: {
+            fontColor: <DataViewObjectPropertyIdentifier>{ objectName: 'xAxis', propertyName: 'fill' },
+            title: <DataViewObjectPropertyIdentifier>{ objectName: 'xAxis', propertyName: 'title' },
+            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'xAxis', propertyName: 'fontSize' },
+            fontFamily: <DataViewObjectPropertyIdentifier>{ objectName: 'xAxis', propertyName: 'fontFamily' }
         },
         yTDConfig: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'yTDTarget', propertyName: 'show' },
@@ -172,7 +198,11 @@ module powerbi.extensibility.visual {
         horizontal: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'horizontal', propertyName: 'show' }
         },
+        animation: {
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'animation', propertyName: 'show' }
+        },
         backgroundImage: {
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'backgroundImage', propertyName: 'show' },
             imageUrl: <DataViewObjectPropertyIdentifier>{ objectName: 'backgroundImage', propertyName: 'imageUrl' },
             transparency: <DataViewObjectPropertyIdentifier>{ objectName: 'backgroundImage', propertyName: 'transparency' }
         }
@@ -187,6 +217,12 @@ module powerbi.extensibility.visual {
         defaultColor: string;
     }
 
+    export interface IXAxisSettings {
+        fontColor: string;
+        fontSize: number;
+        title: boolean;
+        fontFamily: string;
+    }
     export interface IYAxisSettings {
         fontColor: string;
         fontSize: number;
@@ -195,6 +231,8 @@ module powerbi.extensibility.visual {
         gridLines: boolean;
         start: number;
         end: number;
+        title: boolean;
+        fontFamily: string;
     }
 
     export interface ITargetSettings {
@@ -220,6 +258,7 @@ module powerbi.extensibility.visual {
         position: string;
     }
     export interface IBackgroundImage {
+        show: boolean;
         imageUrl: string;
         transparency: number;
     }
@@ -238,6 +277,9 @@ module powerbi.extensibility.visual {
         strokeSizeMedian: number;
     }
     export interface IHorizontal {
+        show: boolean;
+    }
+    export interface IAnimation {
         show: boolean;
     }
     export interface ITooltipDataPoints {
@@ -269,9 +311,12 @@ module powerbi.extensibility.visual {
             || !dataViews[0].categorical
             || !dataViews[0].categorical.categories
             || !dataViews[0].categorical.categories[0].source
-            || !dataViews[0].categorical.values) { return viewModel; }
+            || !dataViews[0].categorical.values
+            || !dataViews[0].metadata) { return viewModel; }
         let categorical: DataViewCategorical;
         categorical = dataViews[0].categorical;
+        const iNumberOfCategory: number = categorical.categories.length;
+        const iNumberOfValues: number = categorical.values.length;
         context.setYtdTarget = 0;
         let category: DataViewCategoryColumn = null;
         let forecasted: DataViewCategoryColumn = null;
@@ -281,6 +326,8 @@ module powerbi.extensibility.visual {
         let measureRoleLiteral: string;
         let fytargetLiteral: string;
         let ytdtargetLiteral: string;
+        // tslint:disable-next-line:prefer-const, typedef
+        columnValue = categorical.values[2];
         categoryRoleLiteral = 'category';
         forecastedRoleLiterral = 'forecasted';
         measureRoleLiteral = 'measure';
@@ -288,20 +335,21 @@ module powerbi.extensibility.visual {
         ytdtargetLiteral = 'ytdtarget';
         const tooltipData: string = 'tooltipData';
         const tooltipValues: ITooltipDataPoints[] = [];
+        const tooltipIndividualTargetValues: ITooltipDataPoints[] = [];
         let cnt: number = 0;
         let lengthValues: number = 1;
-        for (let iCounter: number = 0; iCounter < categorical.categories.length; iCounter++) {
+        for (let iCounter: number = 0; iCounter < iNumberOfCategory; iCounter++) {
             if (categorical.categories[iCounter].source.roles[categoryRoleLiteral]) {
                 category = categorical.categories[iCounter];
             } else if (categorical.categories[iCounter].source.roles[forecastedRoleLiterral]) {
                 forecasted = categorical.categories[iCounter];
             }
         }
-        for (let iCounter: number = 0; iCounter < categorical.values.length; iCounter++) {
+        for (let iCounter: number = 0; iCounter < iNumberOfValues; iCounter++) {
             if (categorical.values[iCounter].source.roles[tooltipData]) {
                 cnt++;
                 lengthValues = categorical.values[iCounter].values.length;
-                for (let jCnt: number = 0; jCnt < categorical.values[iCounter].values.length; jCnt++) {
+                for (let jCnt: number = 0; jCnt < lengthValues; jCnt++) {
                     const tooltipDataPoint: ITooltipDataPoints = {
                         name: categorical.values[iCounter].source.displayName,
                         value: <string>categorical.values[iCounter].values[jCnt]
@@ -312,6 +360,8 @@ module powerbi.extensibility.visual {
         }
         // tslint:disable-next-line:no-any
         const tooltips: any = [];
+        xAxisName = categorical.categories[0].source.displayName;
+        yAxisName = categorical.values[0].source.displayName;
 
         for (let j: number = 0; j < lengthValues; j++) {
             // tslint:disable-next-line:no-any
@@ -326,6 +376,23 @@ module powerbi.extensibility.visual {
             tooltips.push(newValues);
         }
         // tslint:disable-next-line:no-any
+        const tooltipsIndividual: any = [];
+        xAxisName = categorical.categories[0].source.displayName;
+        yAxisName = categorical.values[0].source.displayName;
+
+        for (let j: number = 0; j < lengthValues; j++) {
+            // tslint:disable-next-line:no-any
+            const newValues: any = [];
+            for (let iCnt: number = 0; iCnt < cnt; iCnt++) {
+                if (iCnt === 0) {
+                    newValues.push(tooltipIndividualTargetValues[j]);
+                } else {
+                    newValues.push(tooltipIndividualTargetValues[j + iCnt * lengthValues]);
+                }
+            }
+            tooltipsIndividual.push(newValues);
+        }
+        // tslint:disable-next-line:no-any
         let values: any = [];
 
         let dataValue: DataViewValueColumn = null;
@@ -333,7 +400,7 @@ module powerbi.extensibility.visual {
         let targetValue: DataViewValueColumn = null;
         let sum: number = 0;
         let length: number = 0;
-        for (let iCounter: number = 0; iCounter < categorical.values.length; iCounter++) {
+        for (let iCounter: number = 0; iCounter < iNumberOfValues; iCounter++) {
             if (categorical.values[iCounter].source.roles[measureRoleLiteral]) {
                 length = categorical.values[iCounter].values.length;
                 // tslint:disable-next-line:no-any
@@ -387,13 +454,12 @@ module powerbi.extensibility.visual {
         };
         let i: number;
         i = 0;
-        let len: number;
-        len = 0;
+        let len: number = 0;
         for (i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
             let defaultColor: string;
             if (targetValue) {
                 let colorValue: number;
-                colorValue = <number>dataValue.values[i] / <number>targetValue.values[i];
+                colorValue = <number>dataValue.values[i] / (<number>targetValue.values[i]);
                 if (colorValue < zoneSettings.zone1Value / 100) {
                     defaultColor = zoneSettings.zone1Color;
                 } else if (colorValue < zoneSettings.zone2Value / 100) {
@@ -427,6 +493,19 @@ module powerbi.extensibility.visual {
             });
         }
         const fontstyle: string = 'Segoe UI,wf_segoe-ui_normal,helvetica,arial,sans-serif';
+        let xAxisHeight: void;
+        xAxisHeight =
+            category.values.forEach((element: number) => {
+                // tslint:disable-next-line:no-any
+                let measureTextProperties: any;
+                measureTextProperties = {
+                    text: category.values[element],
+                    fontFamily: fontstyle,
+                    fontSize: '12px'
+                };
+                let xAxisWidth: number;
+                xAxisWidth = textMeasurementService.measureSvgTextWidth(measureTextProperties);
+            });
         let yAxisHeight: void;
         yAxisHeight =
             category.values.forEach((element: number) => {
@@ -466,7 +545,6 @@ module powerbi.extensibility.visual {
         }
         dataMax = Math.max(dataValMax, targetValMax, fytargetValMax);
         dataMin = Math.min(dataValMin, targetValMin, fytargetValMin);
-        dataMin = dataMin < 0 ? 0 : dataMin;
 
         return {
             dataPoints: barChartDataPoints,
@@ -488,9 +566,10 @@ module powerbi.extensibility.visual {
         private yAxis: d3.Selection<SVGElement>;
         private barDataPoints: IBarChartDataPoint[];
         private barChartSettings: IBarChartSettings;
-        private tooltipServiceWrapper: ITooltipServiceWrapper;
+        private tooltipServiceWrapper: tooltipUtils.ITooltipServiceWrapper;
         private locale: string;
         private dataViews: DataView;
+        private xAxisFormatter: IValueFormatter;
         private yAxisFormatter: IValueFormatter;
         public setYtdTarget: number;
         private baseDiv: d3.Selection<SVGElement>;
@@ -512,6 +591,7 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         public static config: any = {
             xScalePadding: 0.1,
+            yScalePadding: 0.1,
             solidOpacity: 1,
             transparentOpacity: 0.5,
             margins: {
@@ -535,7 +615,7 @@ module powerbi.extensibility.visual {
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
-            this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
+            this.tooltipServiceWrapper = tooltipUtils.createTooltipServiceWrapper(this.host.tooltipService, options.element);
 
             this.rootDiv = d3.select(options.element)
                 .append('div')
@@ -575,19 +655,22 @@ module powerbi.extensibility.visual {
                 width: 0,
                 height: 0
             });
+            $('#textToDisplay').remove();
             this.baseDiv.style('width', 0);
+            this.svg.selectAll('.yTitle').remove();
+            this.svg.selectAll('.xTitle').remove();
             const fontstyle: string = 'Segoe UI,wf_segoe-ui_normal,helvetica,arial,sans-serif';
             let measureRoleLiteral: string;
             let ytdtargetLiteral: string;
             let pxLiteral: string;
             let doubleSpaceLiteral: string;
+            const transitionDuration: number = 1000;
+            const marginForLegend: number = 60;
             const labelYVal: number = 5;
-
             measureRoleLiteral = 'measure';
             ytdtargetLiteral = 'ytdtarget';
             pxLiteral = 'px';
             doubleSpaceLiteral = '  ';
-
             BarChart.thisObj = this;
             this.isITAvailable = false;
             this.itText = '';
@@ -599,15 +682,72 @@ module powerbi.extensibility.visual {
             this.yAxis.selectAll('*').remove();
             this.targetLines.selectAll('*').remove();
             this.svg.selectAll('.barContainer').selectAll('*').remove();
+            let iNumberOfValues: number = -1;
+            let iNumberOfCategory: number = -1;
+            if (dataView.categorical.values) {
+                iNumberOfValues = dataView.categorical.values.length;
+            }
+            if (dataView.categorical.categories) {
+                iNumberOfCategory = dataView.categorical.categories.length;
+            }
+            let iIndex: number;
+            let iIndexOfCategory: number = -1;
+            let iIndexOfForecasted: number = -1;
+            let iIndexOfYtd: number = -1;
             this.rootDiv.selectAll
                 ('.legend .yTDTargetLegend,.legend .fullYearTargetLegend, .minLegend, .maxLegend, .avgLegend, .medianLegend').remove();
-            for (let iCounter: number = 0; iCounter < dataView.categorical.values.length; iCounter++) {
-                if (dataView.categorical.values[iCounter].source.roles[measureRoleLiteral]) {
-                    this.measureFormat = options.dataViews[0].categorical.values[iCounter].source.format;
+            if (iNumberOfValues !== -1) {
+                for (let iCounter: number = 0; iCounter < iNumberOfValues; iCounter++) {
+                    if (dataView.categorical.values[iCounter].source.roles[measureRoleLiteral]) {
+                        this.measureFormat = options.dataViews[0].categorical.values[iCounter].source.format;
 
-                } else if (dataView.categorical.values[iCounter].source.roles[ytdtargetLiteral]) {
-                    this.targetFormat = options.dataViews[0].categorical.values[iCounter].source.format;
+                    } else if (dataView.categorical.values[iCounter].source.roles[ytdtargetLiteral]) {
+                        this.targetFormat = options.dataViews[0].categorical.values[iCounter].source.format;
 
+                    }
+                }
+            }
+            // assigning proper index for category KPI Name
+            if (iNumberOfCategory !== -1) {
+                for (iIndex = 0; iIndex < iNumberOfCategory; iIndex++) {
+                    if (dataView.categorical.categories[iIndex].source.roles[`category`]) {
+                        iIndexOfCategory = iIndex;
+                    } else if (dataView.categorical.categories[iIndex].source.roles[`forecasted`]) {
+                        iIndexOfForecasted = iIndex;
+                    }
+                }
+            }
+            // assigning proper index for measures
+            if (iNumberOfValues !== -1) {
+                for (iIndex = 0; iIndex < iNumberOfValues; iIndex++) {
+                    // assigning index for measure KPI Current Value
+                    if (dataView.categorical.values[iIndex].source.roles[`measure`]) { // assigning index for measure KPI Last Value
+                        iIndexOfYtd = iIndex;
+                    }
+                }
+            }
+            if (iIndexOfCategory === -1 && iIndexOfYtd === -1) {
+                this.displayBasicRequirement(0);
+
+                return;
+            } else if (iIndexOfCategory === -1) {
+                this.displayBasicRequirement(1);
+            } else if (iIndexOfYtd === -1) {
+                this.displayBasicRequirement(2);
+
+                return;
+            }
+            // if status column has values other than 0 and 1
+            if (iIndexOfForecasted !== -1) {
+                const oStatusData: PrimitiveValue[] = dataView.categorical.categories[iIndexOfForecasted].values;
+                const iLengthOfData: number = oStatusData.length;
+                for (iIndex = 0; iIndex < iLengthOfData; iIndex++) {
+                    if (oStatusData[iIndex] === null || !(oStatusData[iIndex] === 1 ||
+                        oStatusData[iIndex] === 0)) {
+                        this.displayBasicRequirement(3);
+
+                        return;
+                    }
                 }
             }
             this.min = 0;
@@ -620,26 +760,18 @@ module powerbi.extensibility.visual {
                 let settings: IBarChartSettings;
                 settings = this.barChartSettings = viewModel.settings;
                 this.barDataPoints = viewModel.dataPoints;
-                let width: number;
-                width = options.viewport.width;
-                let height: number;
-                height = options.viewport.height;
-                let yAxisConfig: IYAxisSettings;
-                yAxisConfig = this.getYAxisSettings(this.dataViews);
-                let fullTargetConfig: ITargetSettings;
-                fullTargetConfig = this.getFullTargetSettings(this.dataViews);
-                let yTDTargetConfig: ITargetSettings;
-                yTDTargetConfig = this.getYTDSettings(this.dataViews);
-                let legendSettings: ILegendSettings;
-                legendSettings = this.getLegendSettings(this.dataViews);
-                let dataLabels: IDataLabels;
-                dataLabels = this.getDataLabelSettings(this.dataViews);
-                let analytics: IAnalyticsSettings;
-                analytics = this.getAnalyticsSettings(this.dataViews);
-                let horizontal: IHorizontal;
-                horizontal = this.getHorizontalSettings(this.dataViews);
-                let backgroundImage: IBackgroundImage;
-                backgroundImage = this.getBackgroundImageSettings(this.dataViews);
+                let width: number = options.viewport.width;
+                let height: number = options.viewport.height;
+                const xAxisConfig: IXAxisSettings = this.getXAxisSettings(this.dataViews);
+                const yAxisConfig: IYAxisSettings = this.getYAxisSettings(this.dataViews);
+                const fullTargetConfig: ITargetSettings = this.getFullTargetSettings(this.dataViews);
+                const yTDTargetConfig: ITargetSettings = this.getYTDSettings(this.dataViews);
+                const legendSettings: ILegendSettings = this.getLegendSettings(this.dataViews);
+                const dataLabels: IDataLabels = this.getDataLabelSettings(this.dataViews);
+                const analytics: IAnalyticsSettings = this.getAnalyticsSettings(this.dataViews);
+                const horizontal: IHorizontal = this.getHorizontalSettings(this.dataViews);
+                const animation: IAnimation = this.getAnimationSettings(this.dataViews);
+                const backgroundImage: IBackgroundImage = this.getBackgroundImageSettings(this.dataViews);
                 if (viewModel.dataMax === 0) {
                     return;
                 } else {
@@ -649,14 +781,14 @@ module powerbi.extensibility.visual {
                         if (analytics.min || analytics.max || analytics.avg) {
                             legendNumber = legendNumber + 1;
                         }
-
                         let legendItemWidth: number;
                         if (this.isITAvailable && this.isTargetAvailable) {
                             legendNumber = legendNumber + 2;
-                            legendItemWidth = (options.viewport.width) / 2 - 60 > 0 ? (options.viewport.width) / 2 - 60 : 0;
+                            legendItemWidth = (options.viewport.width) / 2 - marginForLegend > 0
+                                ? (options.viewport.width) / 2 - marginForLegend : 0;
                         } else {
                             legendNumber = legendNumber + 1;
-                            legendItemWidth = options.viewport.width - legendSettings.labelSize - 30;
+                            legendItemWidth = options.viewport.width - legendSettings.labelSize - (marginForLegend / 2);
                         }
 
                         // this is for solid line
@@ -700,7 +832,6 @@ module powerbi.extensibility.visual {
                                 .style({
                                     'margin-top': ytdtargetHeight / 2 + pxLiteral,
                                     width: legendSettings.labelSize + pxLiteral,
-                                    height: '1px',
                                     'background-color': legendSettings.labelColor,
                                     'font-family': legendSettings.fontFamily
                                 })
@@ -713,7 +844,6 @@ module powerbi.extensibility.visual {
                                     .text(doubleSpaceLiteral + iTargetText)
                                     .attr('title', this.itText)
                                     .style({
-                                        'margin-left': '5px',
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
                                         'font-family': legendSettings.fontFamily,
@@ -731,7 +861,6 @@ module powerbi.extensibility.visual {
                                 .text('---')
                                 .classed('legendInnerPart', true)
                                 .style({
-                                    'margin-left': '5px',
                                     color: legendSettings.labelColor,
                                     'line-height': fyTargetTextHeight + pxLiteral,
                                     'font-size': legendSettings.labelSize + pxLiteral,
@@ -747,14 +876,12 @@ module powerbi.extensibility.visual {
                                 .text(fyTargetText)
                                 .attr('title', this.targetText)
                                 .style({
-                                    'margin-left': '5px',
                                     'font-size': legendSettings.labelSize + pxLiteral,
                                     color: legendSettings.labelColor,
                                     'font-family': legendSettings.fontFamily,
                                     'max-width': legendItemWidth + pxLiteral
                                 });
                         }
-
                         if (analytics.min) {
                             let minLineText: string = 'Min';
                             let minLineProp: TextProperties;
@@ -764,8 +891,7 @@ module powerbi.extensibility.visual {
                                 fontSize: legendSettings.labelSize + pxLiteral
                             };
                             minLineText = textMeasurementService.getTailoredTextOrDefault(minLineProp, legendItemWidth);
-                            let minLineTextHeight: number;
-                            minLineTextHeight = textMeasurementService.measureSvgTextHeight(minLineProp);
+                            const minLineTextHeight: number = textMeasurementService.measureSvgTextHeight(minLineProp);
                             this.rootDiv.select('.legend')
                                 .append('div')
                                 .classed('minLegend', true)
@@ -777,7 +903,6 @@ module powerbi.extensibility.visual {
                                 .style({
                                     'margin-top': ytdtargetHeight / 2 + pxLiteral,
                                     width: legendSettings.labelSize + pxLiteral,
-                                    height: '1px',
                                     'background-color': analytics.lineColorMin,
                                     'font-family': legendSettings.fontFamily
                                 })
@@ -789,7 +914,6 @@ module powerbi.extensibility.visual {
                                     .text(minLineText)
                                     .attr('title', 'Min')
                                     .style({
-                                        'margin-left': '5px',
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
                                         'font-family': legendSettings.fontFamily,
@@ -818,7 +942,6 @@ module powerbi.extensibility.visual {
                                 .append('span')
                                 .classed('legendInnerPart', true)
                                 .style({
-                                    height: '1px',
                                     'margin-top': ytdtargetHeight / 2 + pxLiteral,
                                     width: legendSettings.labelSize + pxLiteral,
                                     'background-color': analytics.lineColorMax,
@@ -834,14 +957,12 @@ module powerbi.extensibility.visual {
                                     .style({
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
-                                        'margin-left': '5px',
                                         'font-family': legendSettings.fontFamily,
                                         'max-width': legendItemWidth + pxLiteral
                                     });
                             }
                         }
                         if (analytics.avg) {
-
                             let avgLineText: string = 'Avg';
                             let avgLineProp: TextProperties;
                             avgLineProp = {
@@ -861,7 +982,6 @@ module powerbi.extensibility.visual {
                                 .append('span')
                                 .classed('legendInnerPart', true)
                                 .style({
-                                    height: '1px',
                                     'margin-top': ytdtargetHeight / 2 + pxLiteral,
                                     width: legendSettings.labelSize + pxLiteral,
                                     'background-color': analytics.lineColorAvg,
@@ -877,14 +997,12 @@ module powerbi.extensibility.visual {
                                     .style({
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
-                                        'margin-left': '5px',
                                         'font-family': legendSettings.fontFamily,
                                         'max-width': legendItemWidth + pxLiteral
                                     });
                             }
                         }
                         if (analytics.median) {
-
                             let medianLineText: string = 'Median';
                             let medianLineProp: TextProperties;
                             medianLineProp = {
@@ -904,7 +1022,6 @@ module powerbi.extensibility.visual {
                                 .append('span')
                                 .classed('legendInnerPart', true)
                                 .style({
-                                    height: '1px',
                                     'margin-top': ytdtargetHeight / 2 + pxLiteral,
                                     width: legendSettings.labelSize + pxLiteral,
                                     'background-color': analytics.lineColorMedian,
@@ -920,7 +1037,6 @@ module powerbi.extensibility.visual {
                                     .style({
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
-                                        'margin-left': '5px',
                                         'font-family': legendSettings.fontFamily,
                                         'max-width': legendItemWidth + pxLiteral
                                     });
@@ -934,13 +1050,13 @@ module powerbi.extensibility.visual {
                     } else {
                         legendHeight = 0;
                     }
-
+                    this.rootDiv.style('height', (height) + pxLiteral);
                     height = height - legendHeight > 0 ? height - legendHeight : 0;
-
                     this.svg.attr({
                         width: width,
                         height: height
                     });
+
                     // tslint:disable-next-line:no-any
                     let margins: any;
                     margins = BarChart.config.margins;
@@ -948,17 +1064,8 @@ module powerbi.extensibility.visual {
 
                     let displayVal: number = 0;
                     if (yAxisConfig.displayUnits === 0) {
-                        let valLen: number;
-                        valLen = viewModel.dataMax.toString().length;
-                        if (valLen > 9) {
-                            displayVal = 1e9;
-                        } else if (valLen <= 9 && valLen > 6) {
-                            displayVal = 1e6;
-                        } else if (valLen <= 6 && valLen >= 4) {
-                            displayVal = 1e3;
-                        } else {
-                            displayVal = 10;
-                        }
+                        const valLen: number = viewModel.dataMax.toString().length;
+                        displayVal = this.getAutoDisplayUnits(valLen);
                     }
                     if (options.dataViews[0].categorical.values[0].source.format &&
                         options.dataViews[0].categorical.values[0].source.format.indexOf('%') !== -1) {
@@ -983,601 +1090,1367 @@ module powerbi.extensibility.visual {
                     const dataSetFormatMaxValue: number = dataSetMaxLength > dataSetMinLength ? viewModel.dataMax : viewModel.dataMin;
                     const maxValue: number = yAxisFormatMaxValue.toString().length > dataSetFormatMaxValue.toString().length
                         ? yAxisFormatMaxValue : dataSetFormatMaxValue;
-                    formattedMaxMeasure = this.yAxisFormatter.format(parseFloat(maxValue.toString()) * 1.1);
+                    formattedMaxMeasure = this.yAxisFormatter.format(parseFloat(maxValue.toString()) * 1.3);
                     let measureTextProperties: TextProperties;
                     measureTextProperties = {
                         text: formattedMaxMeasure,
                         fontFamily: fontstyle,
                         fontSize: '12px'
                     };
-                    let yAxisWidth: number;
-                    yAxisWidth = textMeasurementService.measureSvgTextWidth(measureTextProperties);
+                    const yAxisWidth: number = textMeasurementService.measureSvgTextWidth(measureTextProperties);
                     margins.left = yAxisWidth + 10;
-                    this.yAxis.style({
-                        'stroke-width': '0.01em',
+                    this.yAxis.classed('yAxis', true).style({
                         fill: yAxisConfig.fontColor
+                    });
+                    fytargetChecker = false;
+                    if (viewModel.fytarget) {
+                        fytargetChecker = true;
+                    }
+                    this.xAxis.classed('xAxis', true).style({
+                        fill: xAxisConfig.fontColor
                     });
                     // tslint:disable-next-line:no-any
                     let bars: any;
                     // tslint:disable-next-line:no-any
                     let xScale: any;
-                    xScale = d3.scale.ordinal()
-                        .domain(viewModel.dataPoints.map((d: IBarChartDataPoint) => d.category))
-                        .rangeBands([margins.left, width], 0.2, 0.3);
-
+                    let xAxis: d3.svg.Axis;
                     let barWidths: number;
-                    barWidths = xScale.rangeBand();
-                    let dynamicWidth: number;
-
-                    if (barWidths < 17) {
-                        dynamicWidth = width + (viewModel.dataPoints.length * (17 - barWidths));
-                        xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
-                        this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
-                        this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
-                    } else {
-                        if (barWidths >= 35) {
-                            height = height + 20;
-                        }
-                        dynamicWidth = width;
-                        xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
-                        this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
-                        this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
-                    }
-
-                    // Y scale
                     // tslint:disable-next-line:no-any
                     let yScale: any;
-                    yScale = d3.scale.linear()
-                        .domain([<number>yAxisConfig.start, <number>yAxisConfig.end * 1.1])
-                        .range([<number>height, 10]);
-
-                    let xTargetAxis: d3.Selection<SVGElement>;
-                    xTargetAxis = this.targetLines.append('line')
-                        .classed('xTargetAxis', true);
-                    if (fullTargetConfig.show && viewModel.fytarget) {
-                        let yVal: number;
-                        yVal = yScale(<number>viewModel.fytarget);
-                        xTargetAxis.attr({
-                            x1: margins.left,
-                            y1: yVal,
-                            x2: dynamicWidth,
-                            y2: yVal,
-                            stroke: fullTargetConfig.lineColor,
-                            'stroke-width': fullTargetConfig.strokeSize
-                        })
-                            .append('title')
-                            .text(viewModel.fytarget);
-
-                        let targetLineDataLabel: d3.Selection<SVGElement>;
-                        targetLineDataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(viewModel.fytarget))
-                            .classed('TargetdataLabel', true);
-                        targetLineDataLabel.attr({
-                            x: margins.left,
-                            y: yVal - labelYVal,
-                            fill: fullTargetConfig.lineColor
-                        });
-                        targetLineDataLabel.append('title').text(viewModel.fytarget);
-
-                        xTargetAxis.style('stroke-dasharray', '7,7');
-                    } else {
-                        xTargetAxis.attr({
-                            'stroke-width': 0
-                        });
-                    }
-                    if (analytics.min) {
-                        let minLine: d3.Selection<SVGElement>;
-                        minLine = this.targetLines.append('line')
-                            .classed('minLine', true);
-                        let yValMin: number;
-                        yValMin = yScale(<number>this.min);
-                        minLine.attr({
-                            x1: margins.left,
-                            y1: yValMin,
-                            x2: dynamicWidth,
-                            y2: yValMin,
-                            stroke: analytics.lineColorMin,
-                            'stroke-width': analytics.strokeSizeMin
-                        });
-
-                        let minLinedataLabel: d3.Selection<SVGElement>;
-                        minLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.min))
-                            .classed('minLinedataLabel', true);
-                        minLinedataLabel.attr({
-                            x: margins.left,
-                            y: yValMin - labelYVal,
-                            fill: analytics.lineColorMin
-                        });
-                        minLinedataLabel.append('title').text(this.min);
-
-                    }
-                    if (analytics.max) {
-                        let maxLine: d3.Selection<SVGElement>;
-                        maxLine = this.targetLines.append('line')
-                            .classed('maxLine', true);
-                        let yValMax: number;
-                        yValMax = yScale(<number>this.max);
-                        maxLine.attr({
-                            x1: margins.left,
-                            y1: yValMax,
-                            x2: dynamicWidth,
-                            y2: yValMax,
-                            stroke: analytics.lineColorMax,
-                            'stroke-width': analytics.strokeSizeMax
-                        });
-
-                        let maxLinedataLabel: d3.Selection<SVGElement>;
-                        maxLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.max))
-                            .classed('maxLinedataLabel', true);
-                        maxLinedataLabel.attr({
-                            x: margins.left,
-                            y: yValMax - labelYVal,
-                            fill: analytics.lineColorMax
-                        });
-                        maxLinedataLabel.append('title').text(this.max);
-                    }
-                    if (analytics.avg) {
-                        let avgLine: d3.Selection<SVGElement>;
-                        avgLine = this.targetLines.append('line')
-                            .classed('avgLine', true);
-                        let yValAvg: number;
-                        yValAvg = yScale(<number>this.average);
-                        avgLine.attr({
-                            x1: margins.left,
-                            y1: yValAvg,
-                            x2: dynamicWidth,
-                            y2: yValAvg,
-                            stroke: analytics.lineColorAvg,
-                            'stroke-width': analytics.strokeSizeAvg
-                        });
-
-                        let avgLinedataLabel: d3.Selection<SVGElement>;
-                        avgLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.average))
-                            .classed('maxLinedataLabel', true);
-                        avgLinedataLabel.attr({
-                            x: margins.left,
-                            y: yValAvg - labelYVal,
-                            fill: analytics.lineColorAvg
-                        });
-                        avgLinedataLabel.append('title').text(this.average);
-                    }
-                    if (analytics.median) {
-                        let medianLine: d3.Selection<SVGElement>;
-                        medianLine = this.targetLines.append('line')
-                            .classed('medianLine', true);
-                        // tslint:disable-next-line:no-any
-                        let yValMedian: any;
-                        yValMedian = yScale(<number>this.median);
-                        medianLine.attr({
-                            x1: margins.left,
-                            y1: yValMedian,
-                            x2: dynamicWidth,
-                            y2: yValMedian,
-                            stroke: analytics.lineColorMedian,
-                            'stroke-width': analytics.strokeSizeMedian
-                        });
-
-                        let medianLinedataLabel: d3.Selection<SVGElement>;
-                        medianLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.median))
-                            .classed('medianLinedataLabel', true);
-                        medianLinedataLabel.attr({
-                            x: margins.left,
-                            y: yValMedian - labelYVal,
-                            fill: analytics.lineColorMedian
-                        });
-                        medianLinedataLabel.append('title').text(this.median);
-                    }
-                    this.svg.selectAll('.xAxisText').remove();
-                    // Format Y Axis labels and render Y Axis labels
                     // tslint:disable-next-line:no-any
                     let yAxis: any;
-                    yAxis = d3.svg.axis()
-                        .scale(yScale)
-                        .orient('left')
-                        .tickFormat(this.yAxisFormatter.format)
-                        .ticks(options.viewport.height / 80);
-
-                    const translate: number = margins.left;
-
-                    let translateLeft: string = '';
-                    translateLeft = 'translate(';
-                    translateLeft += translate;
-                    translateLeft += ',0)';
-
-                    this.yAxis.attr('transform', translateLeft)
-                        .call(yAxis);
-
-                    this.yAxis.selectAll('path')
-                        .style({ stroke: 'black', fill: 'none', 'stroke-width': '0px', 'shape-rendering': 'crispEdges' });
-                    // Draw Y Axis grid lines
-                    let yTitleTooltip: IValueFormatter;
-                    yTitleTooltip = valueFormatter.create({
-                        format: options.dataViews[0].categorical.values[0].source.format
-                    });
-                    // tslint:disable-next-line:no-any
-                    let yTicks: any;
-                    yTicks = this.svg.selectAll('.yAxis .tick');
-                    yTicks.append('title')
-                        .text((d: string) => {
-                            return yTitleTooltip.format(d);
-                        });
-                    let tickLeng: number;
-                    tickLeng = yTicks.size();
-                    let i: number = 0;
-                    for (i = 0; i < tickLeng; i++) {
-                        let yCoordinate: string;
-                        yCoordinate = yTicks[0][i].getAttribute('transform')
-                            .substring(12, yTicks[0][i].getAttribute('transform').length - 1);
-                        if (parseFloat(yCoordinate) !==
-                            (viewModel.fytarget && yScale(<number>viewModel.fytarget)) || !fullTargetConfig.show) {
-                            if (yAxisConfig.gridLines) {
-                                this.yAxis.append('line')
-                                    .classed('yAxisGrid', true).attr({
-                                        x1: 0,
-                                        y1: yCoordinate,
-                                        x2: dynamicWidth,
-                                        y2: yCoordinate,
-                                        stroke: '#ccc',
-                                        'stroke-width': 0.5
-                                    });
-                            }
-                        }
-                    }
-                    // tslint:disable-next-line:no-any
-                    const chartBackground: any = this.barContainer.append('image')
-                        .attr('xline:href', backgroundImage.imageUrl);
-
-                    let barData: IBarChartDataPoint[];
-                    barData = [];
-                    let barforecastedData: IBarChartDataPoint[];
-                    barforecastedData = [];
-                    let len: number = 0;
-                    for (i = 0, len = viewModel.dataPoints.length; i < len; i++) {
-                        if (viewModel.dataPoints[i].forecasted !== 1) {
-                            barData.push(viewModel.dataPoints[i]);
-                        } else {
-                            barforecastedData.push(viewModel.dataPoints[i]);
-                        }
-                    }
-
-                    bars = this.barContainer.selectAll('.bar').data(barData);
-                    bars.enter()
-                        .append('rect')
-                        .classed('bar', true);
-                    bars.attr({
-                        width: xScale.rangeBand(),
-                        // tslint:disable-next-line:no-any
-                        height: 0,
-                        // tslint:disable-next-line:no-any
-                        y: yScale(yAxisConfig.start),
-                        // tslint:disable-next-line:no-any
-                        x: function (d: any): any { return xScale(d.category); },
-                        // tslint:disable-next-line:no-any
-                        fill: (d: any): void => d.color
-                    })
-                        .transition()
-                        .duration(1000)
-                        .ease('linear')
-                        .attr({
-                            // tslint:disable-next-line:no-any
-                            y: function (d: any): any {
-                                return yScale(<number>d.value);
-                            },
-                            // tslint:disable-next-line:no-any
-                            height: function (d: any): number {
-                                return height - yScale(<number>d.value) < 0 ? 0 : height - yScale(<number>d.value);
-                            }
-                        });
-                    // tslint:disable-next-line:no-any
-                    let barforecasted: any;
-                    barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
-                    barforecasted.enter()
-                        .append('rect')
-                        .classed('barforecasted', true);
-
-                    barforecasted.attr({
-                        width: xScale.rangeBand(),
-                        // tslint:disable-next-line:no-any
-                        height: 0,
-                        // tslint:disable-next-line:no-any
-                        y: yScale(yAxisConfig.start),
-                        // tslint:disable-next-line:no-any
-                        x: (d: any): any => xScale(d.category),
-                        // tslint:disable-next-line:no-any
-                        fill: (d: any): any => d.color,
-                        'fill-opacity': 0.5,
-                        // tslint:disable-next-line:no-any
-                        stroke: (d: any): any => d.color,
-                        'stroke-width': 1
-                    })
-                        .transition()
-                        .duration(1000)
-                        .ease('linear')
-                        .attr({
-                            // tslint:disable-next-line:no-any
-                            y: function (d: any): any {
-                                return yScale(<number>d.value);
-                            },
-                            // tslint:disable-next-line:no-any
-                            height: function (d: any): number {
-                                return height - yScale(<number>d.value) < 0 ? 0 : height - yScale(<number>d.value);
-                            }
-                        });
-
-                    this.barContainer.selectAll('.barforecasted').style('stroke-dasharray', '10,5');
-
-                    // tslint:disable-next-line:no-any
-                    barforecasted.on('click', function (d: any): void {
-                        // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
-                        if (allowInteractions) {
-                            selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
-                                bars.attr({
-                                    'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
-                                });
-
-                                barforecasted.attr({
-                                    'fill-opacity': BarChart.config.transparentOpacity
-                                });
-
-                                if (ids.length > 0) {
-                                    d3.select(this).attr({
-                                        'fill-opacity': 1
-                                    });
-                                }
-
-                            });
-                            (<Event>d3.event).stopPropagation();
-                        }
-                    });
-
-                    // This must be an anonymous function instead of a lambda because
-                    // d3 uses 'this' as the reference to the element that was clicked.
-                    // tslint:disable-next-line:no-any
-                    bars.on('click', function (d: any): void {
-                        // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
-                        if (allowInteractions) {
-                            selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
-                                bars.attr({
-                                    'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
-                                });
-
-                                barforecasted.attr({
-                                    'fill-opacity': BarChart.config.transparentOpacity
-                                });
-
-                                d3.select(this).attr({
-                                    'fill-opacity': BarChart.config.solidOpacity
-                                });
-                            });
-                            (<Event>d3.event).stopPropagation();
-                        }
-                    });
-
-                    bars.exit()
-                        .remove();
-
-                    barforecasted.exit()
-                        .remove();
-
-                    chartBackground.attr({
-                        x: margins.left,
-                        y: 10,
-                        height: $('.yAxis')[0].getBoundingClientRect().height + pxLiteral,
-                        width: (dynamicWidth - margins.left) + pxLiteral,
-                        opacity: backgroundImage.transparency / 100,
-                        preserveAspectRatio: 'none'
-                    });
                     // tslint:disable-next-line:no-any
                     let lineDataPoints: any;
-                    lineDataPoints = [];
-                    for (i = 0, len = viewModel.dataPoints.length; i < len; i++) {
-                        if (viewModel.dataPoints[i].ytd || viewModel.dataPoints[i].ytd === 0) {
-                            lineDataPoints.push({
-                                x1: xScale(viewModel.dataPoints[i].category) + (xScale.rangeBand() / 2),
-                                y1: yScale(<number>viewModel.dataPoints[i].ytd)
-                            });
-                        }
-                    }
                     let linePoints: string = '';
+                    let ytdLine: d3.Selection<SVGElement>;
+                    let minVisibleBarWidth: number = 19;
+                    const marginForWidth: number = 25;
+                    let barOrigin: number = 0;
+                    const minWidthForHorizontal: number = 800;
+                    const widthForScroll: number = 20;
+                    const minHeightForHorizontal: number = 330;
+                    const minWidthForVertical: number = 40;
+                    const minHeightForVertical: number = 70;
+                    const marginForXAxis: number = 40;
+                    const marginForyAxis: number = 50;
+                    const marginForYAxis: number = 70;
+                    const marginForDataLabel: number = 30;
+                    const parseIntValue: number = 10;
+                    const horizontalEndRange: number = 10;
+                    const textWordBreakWidth: number = 50;
+                    const textTailoredWidth: number = 70;
+                    if (yAxisConfig.start > 0) {
+                        barOrigin = <number>yAxisConfig.start;
+                    }
 
-                    for (i = 0; i < lineDataPoints.length; i++) {
+                    if (horizontal.show) {
+                        margins.left = 30;
+                        xScale = d3.scale.ordinal()
+                            .domain(viewModel.dataPoints.reverse().map((d: IBarChartDataPoint) => d.category))
+                            .rangeBands([height, horizontalEndRange], 0.2, 0.3);
+
+                        barWidths = xScale.rangeBand();
+                        let scrollableHeight: number;
+                        let flag: boolean = true;
+                        const axisDisplayHeight: number = 50;
+                        if (barWidths < minVisibleBarWidth) {
+                            barWidths = minVisibleBarWidth;
+                            height = minHeightForHorizontal;
+                            scrollableHeight = height;
+                            xScale.rangeBands([scrollableHeight, horizontalEndRange], 0.2, 0.3);
+                        } else {
+                            scrollableHeight = height;
+                            flag = false;
+                            xScale.rangeBands([scrollableHeight, horizontalEndRange], 0.2, 0.3);
+                        }
+                        this.rootDiv.select('.barChart').style('height', (scrollableHeight + axisDisplayHeight) + pxLiteral);
+                        this.rootDiv.select('.baseDiv').style('height', (scrollableHeight + axisDisplayHeight) + pxLiteral);
+                        if (width < minWidthForHorizontal) {
+                            width = minWidthForHorizontal;
+                        }
+                        this.rootDiv.select('.baseDiv').style('width', (width - widthForScroll) + pxLiteral);
+                        this.rootDiv.select('.barChart').style('width', (width - widthForScroll) + pxLiteral);
+
+                        let xAxisTitleShift: number = 0;
+                        const xAxisTitleMargin: number = 140;
+                        const xAxisTitleXPosition: number = 17;
+
+                        if (xAxisConfig.title) {
+                            xAxisTitleShift = xAxisConfig.fontSize * 1.2;
+                            innerWidth -= margins.left;
+                            this.svg.append('text')
+                                .classed('xTitle', true)
+                                .text(xAxisName)
+                                .attr('transform', `translate(${xAxisTitleXPosition},
+                                    ${(scrollableHeight + xAxisTitleMargin) / 2}) rotate(-90)`)
+                                .style({
+                                    'max-width': options.viewport.width / 2 + pxLiteral,
+                                    'font-size': xAxisConfig.fontSize + pxLiteral,
+                                    color: xAxisConfig.fontColor,
+                                    'font-family': xAxisConfig.fontFamily
+                                })
+                                .append('title').text(xAxisName);
+                        }
+                        // Y scale
+                        if (width <= minWidthForHorizontal) {
+                            const endRange: number = width;
+                            yScale = d3.scale.linear()
+                                .domain([(<number>yAxisConfig.start), <number>(yAxisConfig.end) * 1.12])
+                                .range([margins.left, endRange - margins.left - marginForYAxis]);
+                        } else {
+                            const endRange: number = width;
+                            yScale = d3.scale.linear()
+                                .domain([(<number>yAxisConfig.start), <number>(yAxisConfig.end) * 1.12])
+                                .range([margins.left, endRange - margins.left]);
+                        }
+
+                        const displayRightAdjuster: number = 18 + xAxisTitleShift;
+                        const rightShift: number = 70 + xAxisTitleShift;
+                        const fyTargetLineStartShift: number = marginForWidth + xAxisTitleShift;
+                        const fyTargetTextStartShift: number = 15;
+                        const analyticsStartAdjust: number = 8;
+                        const analyticsEndAdjust: number = 12 + xAxisTitleShift;
+                        const analyticsTextAdjust: number = analyticsStartAdjust + 2;
+
+                        let xTargetAxis: d3.Selection<SVGElement>;
+                        xTargetAxis = this.targetLines.append('line')
+                            .classed('xTargetAxis', true);
+                        if (fullTargetConfig.show && viewModel.fytarget) {
+                            let yVal: number;
+                            yVal = yScale(<number>viewModel.fytarget);
+                            xTargetAxis.attr({
+                                x1: yVal + rightShift + pxLiteral,
+                                y1: 0,
+                                x2: yVal + rightShift + pxLiteral,
+                                y2: scrollableHeight + pxLiteral,
+                                stroke: fullTargetConfig.lineColor,
+                                'stroke-width': fullTargetConfig.strokeSize
+                            })
+                                .append('title')
+                                .text(viewModel.fytarget);
+
+                            let targetLineDataLabel: d3.Selection<SVGElement>;
+                            targetLineDataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(viewModel.fytarget))
+                                .classed('TargetdataLabel', true);
+                            targetLineDataLabel.attr({
+                                x: yVal - labelYVal - displayRightAdjuster + rightShift + xAxisTitleShift + pxLiteral,
+                                y: margins.left - analyticsTextAdjust + pxLiteral,
+                                fill: fullTargetConfig.lineColor
+                            });
+                            targetLineDataLabel.append('title').text(viewModel.fytarget);
+                        }
+
+                        if (analytics.min) {
+                            let minLine: d3.Selection<SVGElement>;
+                            minLine = this.targetLines.append('line')
+                                .classed('minLine', true);
+                            let yValMin: number;
+                            yValMin = yScale(<number>this.min);
+                            minLine.attr({
+                                x1: yValMin + rightShift + pxLiteral,
+                                y1: 0,
+                                x2: yValMin + rightShift + pxLiteral,
+                                y2: scrollableHeight + pxLiteral,
+                                stroke: analytics.lineColorMin,
+                                'stroke-width': analytics.strokeSizeMin
+                            });
+                            let minLinedataLabel: d3.Selection<SVGElement>;
+                            minLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.min))
+                                .classed('minLinedataLabel', true);
+                            minLinedataLabel.attr({
+                                x: yValMin - labelYVal - displayRightAdjuster + rightShift + xAxisTitleShift + pxLiteral,
+                                y: margins.left - analyticsTextAdjust + pxLiteral,
+                                fill: analytics.lineColorMin
+                            });
+                            if (this.min === this.yMin) {
+                                minLinedataLabel.attr({
+                                    x: yValMin - labelYVal - displayRightAdjuster + rightShift
+                                        + xAxisTitleShift + marginForWidth + pxLiteral
+                                });
+                            }
+                            minLinedataLabel.append('title').text(this.min);
+                        }
+
+                        if (analytics.max) {
+                            let maxLine: d3.Selection<SVGElement>;
+                            maxLine = this.targetLines.append('line')
+                                .classed('maxLine', true);
+                            let yValMax: number;
+                            yValMax = yScale(<number>this.max);
+                            maxLine.attr({
+                                x1: yValMax + rightShift + pxLiteral,
+                                y1: 0,
+                                x2: yValMax + rightShift + pxLiteral,
+                                y2: scrollableHeight + pxLiteral,
+                                stroke: analytics.lineColorMax,
+                                'stroke-width': analytics.strokeSizeMax
+                            });
+                            let maxLinedataLabel: d3.Selection<SVGElement>;
+                            maxLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.max))
+                                .classed('maxLinedataLabel', true);
+                            maxLinedataLabel.attr({
+                                x: yValMax - labelYVal - displayRightAdjuster + rightShift + xAxisTitleShift + pxLiteral,
+                                y: margins.left - analyticsTextAdjust + pxLiteral,
+                                fill: analytics.lineColorMax
+                            });
+                            maxLinedataLabel.append('title').text(this.max);
+                        }
+
+                        if (analytics.avg) {
+                            let avgLine: d3.Selection<SVGElement>;
+                            avgLine = this.targetLines.append('line')
+                                .classed('avgLine', true);
+                            let yValAvg: number;
+                            yValAvg = yScale(<number>this.average);
+                            avgLine.attr({
+                                x1: yValAvg + rightShift + pxLiteral,
+                                y1: 0,
+                                x2: yValAvg + rightShift + pxLiteral,
+                                y2: scrollableHeight + pxLiteral,
+                                stroke: analytics.lineColorAvg,
+                                'stroke-width': analytics.strokeSizeAvg
+                            });
+                            let avgLinedataLabel: d3.Selection<SVGElement>;
+                            avgLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.average))
+                                .classed('maxLinedataLabel', true);
+                            avgLinedataLabel.attr({
+                                x: yValAvg - labelYVal - displayRightAdjuster + rightShift + xAxisTitleShift + pxLiteral,
+                                y: margins.left - analyticsTextAdjust + pxLiteral,
+                                fill: analytics.lineColorAvg
+                            });
+                            avgLinedataLabel.append('title').text(this.average);
+                        }
+
+                        if (analytics.median) {
+                            let medianLine: d3.Selection<SVGElement>;
+                            medianLine = this.targetLines.append('line')
+                                .classed('medianLine', true);
+                            // tslint:disable-next-line:no-any
+                            let yValMedian: any;
+                            yValMedian = yScale(<number>this.median);
+                            medianLine.attr({
+                                x1: yValMedian + rightShift + pxLiteral,
+                                y1: 0,
+                                x2: yValMedian + rightShift + pxLiteral,
+                                y2: scrollableHeight + pxLiteral,
+                                stroke: analytics.lineColorMedian,
+                                'stroke-width': analytics.strokeSizeMedian
+                            });
+                            let medianLinedataLabel: d3.Selection<SVGElement>;
+                            medianLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.median))
+                                .classed('medianLinedataLabel', true);
+                            medianLinedataLabel.attr({
+                                x: yValMedian - labelYVal - displayRightAdjuster + rightShift + xAxisTitleShift + pxLiteral,
+                                y: margins.left - analyticsTextAdjust + pxLiteral,
+                                fill: analytics.lineColorMedian
+                            });
+                            medianLinedataLabel.append('title').text(this.median);
+                        }
+                        this.svg.selectAll('.xAxisText').remove();
+                        // Format Y Axis labels and render Y Axis labels
+                        yAxis = d3.svg.axis()
+                            .scale(yScale)
+                            .orient('bottom')
+                            .tickFormat(this.yAxisFormatter.format)
+                            .ticks(options.viewport.height / 80);
+
+                        const translate: number = margins.left;
+                        const translateHeight: string = `translate(${rightShift},${scrollableHeight})`;
+                        this.yAxis.attr('transform', translateHeight)
+                            .call(yAxis);
+
+                        this.yAxis.selectAll('path').classed('path', true);
+                        // Draw Y Axis grid lines
+                        let yTitleTooltip: IValueFormatter;
+                        yTitleTooltip = valueFormatter.create({
+                            format: options.dataViews[0].categorical.values[0].source.format
+                        });
+                        // tslint:disable-next-line:no-any
+                        let yTicks: any;
+                        yTicks = this.svg.selectAll('.yAxis .tick');
+                        yTicks.append('title')
+                            .text((d: string) => {
+                                return yTitleTooltip.format(d);
+                            });
+                        const adjustBar: number = 30;
+                        let tickLeng: number;
+                        tickLeng = yTicks.size();
+                        let i: number = 0;
+                        for (i = 0; i < tickLeng; i++) {
+                            let yCoordinate: string;
+                            yCoordinate = yTicks[0][i].getAttribute('transform')
+                                .substring(10, yTicks[0][i].getAttribute('transform').length - 3);
+                            if (parseFloat(yCoordinate) !==
+                                (viewModel.fytarget && yScale(<number>viewModel.fytarget)) || !fullTargetConfig.show) {
+                                if (yAxisConfig.gridLines) {
+                                    this.xAxis.append('line')
+                                        .classed('yAxisGrid', true).attr({
+                                            x1: parseInt(yCoordinate, parseIntValue) - adjustBar + pxLiteral,
+                                            y1: 0,
+                                            x2: parseInt(yCoordinate, parseIntValue) - adjustBar + pxLiteral,
+                                            y2: scrollableHeight + pxLiteral
+                                        });
+                                }
+                            }
+                        }
+
+                        const adjustedHeight: number = height + 80;
+                        const marginsForYAxisTitle: number = 50;
+                        if (yAxisConfig.title) {
+                            this.svg.append('text')
+                                .classed('yTitle', true)
+                                .text(yAxisName)
+                                .attr('transform', `translate(${yScale(yAxisConfig.end) / 2 + marginsForYAxisTitle},
+                                ${scrollableHeight + axisDisplayHeight})`)
+                                .style({
+                                    'font-size': yAxisConfig.fontSize + pxLiteral,
+                                    color: yAxisConfig.fontColor,
+                                    'font-family': yAxisConfig.fontFamily
+                                })
+                                .append('title').text(yAxisName);
+                        }
+
+                        // tslint:disable-next-line:no-any
+                        const chartBackground: any = this.barContainer.append('image')
+                            .attr('xline:href', backgroundImage.imageUrl);
+
+                        let barData: IBarChartDataPoint[];
+                        barData = [];
+                        let barforecastedData: IBarChartDataPoint[];
+                        barforecastedData = [];
+                        let circleData: IBarChartDataPoint[];
+                        circleData = [];
+                        let len: number = viewModel.dataPoints.length;
+                        for (i = 0; i < len; i++) {
+                            if (viewModel.dataPoints[i].forecasted !== 1) {
+                                barData.push(viewModel.dataPoints[i]);
+                            } else {
+                                barforecastedData.push(viewModel.dataPoints[i]);
+                            }
+                            circleData.push(viewModel.dataPoints[i]);
+                        }
+                        bars = this.barContainer.selectAll('.bar').data(barData);
+                        // tslint:disable-next-line:no-any
+                        let barforecasted: any;
+                        barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
+                        if (animation.show) {
+                            bars.enter()
+                                .reverse()
+                                .append('rect')
+                                .classed('bar', true);
+                            bars.attr({
+                                width: 0,
+                                height: xScale.rangeBand(),
+                                // tslint:disable-next-line:no-any
+                                y: function (d: any): any { return xScale(d.category) + pxLiteral; },
+                                // tslint:disable-next-line:typedef
+                                x: d => d.value > 0 ? yScale(barOrigin) + rightShift + pxLiteral
+                                    : yScale(<number>d.value) + rightShift + pxLiteral,
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): void => d.color
+                            })
+                                .transition()
+                                .duration(transitionDuration)
+                                .ease('linear')
+                                .attr({
+                                    // tslint:disable-next-line:no-any
+                                    y: function (d: any): any {
+                                        return xScale(<number>d.category);
+                                    },
+                                    // tslint:disable-next-line:typedef
+                                    width: d => d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
+                                        : yScale(barOrigin) - yScale(d.value)
+                                });
+                            barforecasted.enter()
+                                .reverse()
+                                .append('rect')
+                                .classed('barforecasted', true);
+
+                            barforecasted.attr({
+                                width: 0,
+                                // tslint:disable-next-line:no-any
+                                height: xScale.rangeBand(),
+                                // tslint:disable-next-line:no-any
+                                y: function (d: any): any { return xScale(d.category) + pxLiteral; },
+                                // tslint:disable-next-line:typedef
+                                x: d => d.value > 0 ? yScale(barOrigin) + rightShift + pxLiteral
+                                    : yScale(<number>d.value) + rightShift + pxLiteral,
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): any => d.color,
+                                // tslint:disable-next-line:no-any
+                                stroke: (d: any): any => d.color
+                            })
+                                .transition()
+                                .duration(transitionDuration)
+                                .ease('linear')
+                                .attr({
+                                    // tslint:disable-next-line:no-any
+                                    y: function (d: any): any {
+                                        return xScale(d.category);
+                                    },
+                                    // tslint:disable-next-line:typedef
+                                    width: d => d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
+                                        : yScale(barOrigin) - yScale(d.value)
+                                });
+                        } else {
+                            bars.enter()
+                                .reverse()
+                                .append('rect')
+                                .classed('bar', true);
+                            bars.attr({
+                                width: 0,
+                                height: xScale.rangeBand(),
+                                // tslint:disable-next-line:no-any
+                                y: function (d: any): any { return xScale(d.category); },
+                                // tslint:disable-next-line:typedef
+                                x: d => d.value > 0 ? yScale(barOrigin) + rightShift
+                                    : yScale(<number>d.value) + rightShift,
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): void => d.color
+                            })
+                                .attr({
+                                    // tslint:disable-next-line:no-any
+                                    y: function (d: any): any {
+                                        return xScale(<number>d.category);
+                                    },
+                                    // tslint:disable-next-line:typedef
+                                    width: d => d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
+                                        : yScale(barOrigin) - yScale(d.value)
+                                });
+                            barforecasted.enter()
+                                .reverse()
+                                .append('rect')
+                                .classed('barforecasted', true);
+
+                            barforecasted.attr({
+                                width: 0,
+                                // tslint:disable-next-line:no-any
+                                height: xScale.rangeBand(),
+                                // tslint:disable-next-line:no-any
+                                y: function (d: any): any { return xScale(d.category); },
+                                // tslint:disable-next-line:typedef
+                                x: d => d.value > 0 ? yScale(barOrigin) + rightShift
+                                    : yScale(<number>d.value) + rightShift,
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): any => d.color,
+                                // tslint:disable-next-line:no-any
+                                stroke: (d: any): any => d.color
+                            })
+                                .attr({
+                                    // tslint:disable-next-line:no-any
+                                    y: function (d: any): any {
+                                        return xScale(d.category);
+                                    },
+                                    // tslint:disable-next-line:typedef
+                                    width: d => d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
+                                        : yScale(barOrigin) - yScale(d.value)
+                                });
+                        }
+
+                        // tslint:disable-next-line:no-any
+                        barforecasted.on('click', function (d: any): void {
+                            // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
+                            if (allowInteractions) {
+                                selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                                    bars.attr({
+                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
+                                    });
+
+                                    barforecasted.attr({
+                                        'fill-opacity': BarChart.config.transparentOpacity
+                                    });
+
+                                    if (ids.length > 0) {
+                                        d3.select(this).attr({
+                                            'fill-opacity': 1
+                                        });
+                                    }
+
+                                });
+                                (<Event>d3.event).stopPropagation();
+                            }
+                        });
+
+                        // This must be an anonymous function instead of a lambda because
+                        // d3 uses 'this' as the reference to the element that was clicked.
+                        // tslint:disable-next-line:no-any
+                        bars.on('click', function (d: any): void {
+                            // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
+                            if (allowInteractions) {
+                                selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                                    bars.attr({
+                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
+                                    });
+
+                                    barforecasted.attr({
+                                        'fill-opacity': BarChart.config.transparentOpacity
+                                    });
+
+                                    d3.select(this).attr({
+                                        'fill-opacity': BarChart.config.solidOpacity
+                                    });
+                                });
+                                (<Event>d3.event).stopPropagation();
+                            }
+                        });
+
+                        bars.exit()
+                            .remove();
+
+                        barforecasted.exit()
+                            .remove();
+
+                        const imageRightMargin: number = 100 + xAxisTitleShift;
+
+                        chartBackground.attr({
+                            x: margins.left + rightShift,
+                            y: 0,
+                            height: scrollableHeight + pxLiteral,
+                            width: (width - imageRightMargin) + pxLiteral,
+                            opacity: backgroundImage.transparency / 100,
+                            preserveAspectRatio: 'none'
+                        });
+
+                        lineDataPoints = [];
+                        for (i = 0, len = viewModel.dataPoints.length; i < len; i++) {
+                            if (viewModel.dataPoints[i].ytd || viewModel.dataPoints[i].ytd === 0) {
+                                lineDataPoints.push({
+                                    x1: xScale(viewModel.dataPoints[i].category) + (xScale.rangeBand() / 2),
+                                    y1: yScale(<number>viewModel.dataPoints[i].ytd)
+                                });
+                            }
+                        }
+
+                        for (i = 0; i < lineDataPoints.length; i++) {
+                            if (yTDTargetConfig.show) {
+                                let circle: d3.Selection<SVGElement>;
+                                circle = this.targetLines.append('circle').classed('circle', true)
+                                    .attr({
+                                        cx: lineDataPoints[i].y1 + rightShift,
+                                        cy: lineDataPoints[i].x1,
+                                        r: yTDTargetConfig.strokeSize + 1
+                                    });
+                            }
+                            linePoints += `${lineDataPoints[i].y1 + rightShift},${lineDataPoints[i].x1} `;
+                        }
+                        // tslint:disable-next-line:no-any
+                        const circles: any = this.targetLines.selectAll('.circle').data(circleData);
+
                         if (yTDTargetConfig.show) {
-                            let circle: d3.Selection<SVGElement>;
-                            circle = this.targetLines.append('circle').attr({
-                                cx: lineDataPoints[i].x1,
-                                cy: lineDataPoints[i].y1,
-                                r: yTDTargetConfig.strokeSize + 1
+                            ytdLine = this.targetLines.append('polyline');
+                            ytdLine.attr({
+                                stroke: yTDTargetConfig.lineColor,
+                                'stroke-width': yTDTargetConfig.strokeSize,
+                                points: linePoints,
+                                fill: 'none'
                             });
                         }
-                        linePoints += lineDataPoints[i].x1;
-                        linePoints += ',';
-                        linePoints += lineDataPoints[i].y1;
-                        linePoints += ' ';
-                    }
 
-                    let ytdLine: d3.Selection<SVGElement>;
-                    ytdLine = this.targetLines.append('polyline')
-                        .classed('ytdLine', true);
+                        // X-axis
+                        xAxis = d3.svg.axis()
+                            .scale(xScale)
+                            .orient('left');
 
-                    if (yTDTargetConfig.show) {
-                        ytdLine.attr({
-                            stroke: yTDTargetConfig.lineColor,
-                            'stroke-width': yTDTargetConfig.strokeSize,
-                            points: linePoints,
-                            fill: 'none'
-                        });
-                    } else {
-                        ytdLine.attr({
-                            'stroke-width': 0
-                        });
-                    }
+                        const xAxisShift: number = 100 + xAxisTitleShift;
 
-                    // X-axis
-                    let xAxis: d3.svg.Axis;
-                    xAxis = d3.svg.axis()
-                        .scale(xScale)
-                        .orient('bottom');
+                        const translateLeft: string = `translate(${xAxisShift},0)`;
 
-                    let translateHeight: string = '';
-                    translateHeight = 'translate(0, ';
-                    translateHeight += height;
-                    translateHeight += ')';
-                    this.xAxis.attr('transform', translateHeight)
-                        .call(xAxis);
+                        this.xAxis.attr('transform', translateLeft)
+                            .call(xAxis);
+                        this.xAxis.selectAll('path').classed('path', true);
 
-                    this.xAxis.selectAll('path')
-                        .style({ stroke: 'black', fill: 'none', 'stroke-width': '0px' });
-
-                    this.svg.selectAll('.xAxis .tick').append('title')
-                        // tslint:disable-next-line:no-any
-                        .text(function (d: any): string {
-                            return d.toString();
-                        });
-
-                    translateHeight = 'translate(-10, ';
-                    translateHeight += height;
-                    translateHeight += ')';
-                    if (barWidths < 35) {
-                        this.xAxis.attr('transform', translateHeight);
-                        this.svg.selectAll('.xAxis .tick text')
+                        this.svg.selectAll('.xAxis .tick').append('title')
                             // tslint:disable-next-line:no-any
                             .text(function (d: any): string {
-                                if (d.toString().length <= 13) {
-                                    return d.toString();
-                                } else {
-                                    let textProperties: TextProperties;
-                                    textProperties = {
-                                        text: d.toString(),
-                                        fontFamily: 'sans-serif',
-                                        fontSize: '12px'
+                                return d.toString();
+                            });
+                        if (barWidths < minHeightForVertical) {
+                            this.xAxis.attr('transform', translateLeft);
+                            this.svg.selectAll('.xAxis .tick text')
+                                // tslint:disable-next-line:no-any
+                                .text(function (d: any): string {
+                                    if (d.toString().length <= 13) {
+                                        return d.toString();
+                                    } else {
+                                        let textProperties: TextProperties;
+                                        textProperties = {
+                                            text: d.toString(),
+                                            fontFamily: 'sans-serif',
+                                            fontSize: '12px'
+                                        };
+
+                                        return textMeasurementService.getTailoredTextOrDefault(textProperties, textTailoredWidth);
+                                    }
+                                })
+                                .style('text-anchor', 'end');
+                        } else {
+                            const boxes: d3.Selection<SVGElement> = this.svg.selectAll('.barContainer rect');
+                            const adjustedbarWidthValue: number = 90;
+                            if (boxes[0].length) {
+                                const barWidthValue: number = parseInt(boxes.attr('width'), parseIntValue) + adjustedbarWidthValue;
+                                // tslint:disable-next-line:no-any
+                                let xTicksLabels: any;
+                                xTicksLabels = this.svg.selectAll('.xAxis .tick text')[0];
+                                len = xTicksLabels.length - 1;
+                                while (len >= 0) {
+                                    // tslint:disable-next-line:no-any
+                                    let xAxisLabel: any;
+                                    xAxisLabel = xTicksLabels[len];
+                                    xAxisLabel.style.textAnchor = 'left';
+                                    textMeasurementService.wordBreak(xAxisLabel, barWidthValue, textWordBreakWidth);
+                                    len--;
+                                }
+                            }
+                        }
+
+                        if (dataLabels.show) {
+                            let measureFormat: string;
+                            measureFormat = this.measureFormat;
+                            let targetLinesHeight: string;
+                            targetLinesHeight = $('.xTargetAxis').attr('y1');
+                            let displayValLabels: number;
+                            if (dataLabels.displayUnits === 0) {
+                                const valLen: number = viewModel.dataMax.toString().length;
+                                displayValLabels = this.getAutoDisplayUnits(valLen);
+                            }
+                            let formatter: IValueFormatter;
+                            formatter = ValueFormatter.create({
+                                format: measureFormat ? measureFormat : ValueFormatter.DefaultNumericFormat,
+                                value: dataLabels.displayUnits === 0 ? displayValLabels : dataLabels.displayUnits,
+                                precision: dataLabels.valueDecimal
+                            });
+                            const centerDataLabelAdjust: number = 90;
+                            const endDataLabelAdjust: number = 35;
+                            const baseDataLabelAdjust: number = 20;
+                            const barMiddleAdjust: number = 3;
+                            const yCoordinateAdjust: number = 50;
+                            // tslint:disable-next-line:no-any
+                            let labelMargin: any;
+                            labelMargin = { top: 20, right: 10, left: 2 };
+                            this.barContainer
+                                .append('g')
+                                .classed('labelGraphicContext', true)
+                                .selectAll('text')
+                                .data(viewModel.dataPoints)
+                                .enter()
+                                .append('text')
+                                .classed('dataLabel', true)
+                                .style('fill', dataLabels.fontColor)
+                                // tslint:disable-next-line:no-any
+                                .text(function (d: any): string {
+                                    let labelFormattedText: string;
+                                    labelFormattedText = formatter.format(d.value);
+                                    let tp: TextProperties;
+                                    tp = {
+                                        text: labelFormattedText,
+                                        fontFamily: dataLabels.fontFamily,
+                                        fontSize: dataLabels.fontSize + pxLiteral
                                     };
 
-                                    return textMeasurementService.getTailoredTextOrDefault(textProperties, 70);
-                                }
-                            })
-                            .attr('transform', 'rotate(-45)')
-                            .style('text-anchor', 'end');
-                    } else {
-                        let boxes: d3.Selection<SVGElement>;
-                        boxes = this.svg.selectAll('.barContainer rect');
-                        if (boxes[0].length) {
-                            let barWidthValue: number;
-                            barWidthValue = parseInt(boxes.attr('width'), 10);
-                            // tslint:disable-next-line:no-any
-                            let xTicksLabels: any;
-                            xTicksLabels = this.svg.selectAll('.xAxis .tick text')[0];
-                            len = xTicksLabels.length - 1;
-                            while (len >= 0) {
+                                    return textMeasurementService.getTailoredTextOrDefault(tp, 50);
+                                })
+                                .attr({
+                                    // tslint:disable-next-line:no-any
+                                    x: (d: any): any => d.value >= 0 ?
+                                        (dataLabels.position === 'insideCenter' ?
+                                            (yScale(<number>d.value) + yScale(barOrigin)) / 2
+                                            + centerDataLabelAdjust :
+                                            dataLabels.position === 'insideEnd' ? yScale(<number>d.value) + yCoordinateAdjust
+                                                + (dataLabels.fontSize / 2) :
+                                                yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust + rightShift)
+                                        : (dataLabels.position === 'insideCenter' ?
+                                            ((yScale(<number>d.value) + yScale(barOrigin)) / 2) + rightShift :
+                                            dataLabels.position === 'insideEnd' ? yScale(<number>d.value) + endDataLabelAdjust
+                                                + rightShift :
+                                                yScale(barOrigin) - (dataLabels.fontSize / 2) + rightShift - marginForDataLabel),
+                                    // tslint:disable-next-line:no-any
+                                    y: (d: any): any => xScale(d.category) + xScale.rangeBand() / 2 + barMiddleAdjust,
+                                    // tslint:disable-next-line:no-any
+                                    dataBarY: (d: any): any => yScale(<number>d.value) + yCoordinateAdjust,
+                                    'font-size': dataLabels.fontSize + pxLiteral,
+                                    'font-family': dataLabels.fontFamily
+                                }).append('title').text((d: IBarChartDataPoint): number => <number>d.value);
+                            $('.labelGraphicContext').find('text').each(function (): void {
+                                let labelWidth: number;
+                                labelWidth = dataLabels.fontSize / 2;
+                                let barlabel: string;
+                                barlabel = $(this).attr('x');
                                 // tslint:disable-next-line:no-any
-                                let xAxisLabel: any;
-                                xAxisLabel = xTicksLabels[len];
-                                xAxisLabel.style.textAnchor = 'middle';
-                                textMeasurementService.wordBreak(xAxisLabel, barWidthValue, 50);
-                                len--;
-                            }
+                                const yValue: any = $(this).attr('dataBarY');
+                                const yNum: number = parseInt(yValue, parseIntValue);
+                                let diff: number;
+                                diff = parseInt(barlabel, parseIntValue) - 0;
+                                if (diff < labelWidth) {
+                                    $(this).attr('x', parseInt(barlabel, parseIntValue));
+                                }
+                            });
                         }
-                    }
 
-                    if (dataLabels.show) {
-                        let measureFormat: string;
-                        measureFormat = this.measureFormat;
-                        let targetLinesHeight: string;
-                        targetLinesHeight = $('.xTargetAxis').attr('y1');
-                        let displayValLabels: number = 0;
-                        if (dataLabels.displayUnits === 0) {
-                            let valLen: number;
-                            valLen = viewModel.dataMax.toString().length;
-                            if (valLen > 9) {
-                                displayValLabels = 1e9;
-                            } else if (valLen <= 9 && valLen > 6) {
-                                displayValLabels = 1e6;
-                            } else if (valLen <= 6 && valLen >= 4) {
-                                displayValLabels = 1e3;
-                            } else {
-                                displayValLabels = 10;
-                            }
+                        this.tooltipServiceWrapper.addTooltip(
+                            this.barContainer.selectAll('.bar,.barforecasted'),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
+                        this.tooltipServiceWrapper.addTooltip(this.targetLines.selectAll('.circle'),
+                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) =>
+                                this.getTooltipIndividualTargetData(tooltipEvent.data),
+                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
+
+                        let selectionManager: ISelectionManager;
+                        selectionManager = this.selectionManager;
+                        let allowInteractions: boolean;
+                        allowInteractions = this.host.allowInteractions;
+
+                    } else {
+                        if (height + margins.bottom - marginForWidth < minHeightForHorizontal) {
+                            height = minHeightForHorizontal - margins.bottom + marginForWidth;
                         }
-                        let formatter: IValueFormatter;
-                        formatter = ValueFormatter.create({
-                            format: measureFormat ? measureFormat : ValueFormatter.DefaultNumericFormat,
-                            value: dataLabels.displayUnits === 0 ? displayValLabels : dataLabels.displayUnits,
-                            precision: dataLabels.valueDecimal
+                        this.rootDiv.select('.baseDiv').style('height',
+                                                              (height + margins.bottom - marginForWidth - widthForScroll) + pxLiteral);
+                        this.rootDiv.select('.barChart').style('height',
+                                                               (height + margins.bottom - marginForWidth - widthForScroll) + pxLiteral);
+                        xScale = d3.scale.ordinal()
+                            .domain(viewModel.dataPoints.map((d: IBarChartDataPoint) => d.category))
+                            .rangeBands([margins.left, width], 0.2, 0.3);
+
+                        barWidths = xScale.rangeBand();
+                        let dynamicWidth: number;
+
+                        if (yAxisConfig.title) {
+                            margins.left += marginForyAxis;
+                        }
+
+                        minVisibleBarWidth = 40;
+                        if (barWidths < minVisibleBarWidth) {
+                            dynamicWidth = width + (viewModel.dataPoints.length * (minVisibleBarWidth - barWidths)) - widthForScroll;
+                            xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
+                            this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
+                            this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
+                        } else {
+                            dynamicWidth = width - widthForScroll;
+                            xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
+                            this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
+                            this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
+                        }
+                        height = height - marginForyAxis;
+                        yScale = d3.scale.linear()
+                            .domain([(<number>yAxisConfig.start), <number>yAxisConfig.end * 1.1])
+                            .range([(<number>height), horizontalEndRange]);
+
+                        let xTargetAxis: d3.Selection<SVGElement>;
+                        xTargetAxis = this.targetLines.append('line')
+                            .classed('xTargetAxis', true);
+                        if (fullTargetConfig.show && viewModel.fytarget) {
+                            let yVal: number;
+                            yVal = yScale(<number>viewModel.fytarget);
+                            xTargetAxis.attr({
+                                x1: margins.left,
+                                y1: yVal,
+                                x2: dynamicWidth,
+                                y2: yVal,
+                                stroke: fullTargetConfig.lineColor,
+                                'stroke-width': fullTargetConfig.strokeSize
+                            })
+                                .append('title')
+                                .text(viewModel.fytarget);
+
+                            let targetLineDataLabel: d3.Selection<SVGElement>;
+                            targetLineDataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(viewModel.fytarget))
+                                .classed('TargetdataLabel', true);
+                            targetLineDataLabel.attr({
+                                x: margins.left,
+                                y: yVal - labelYVal,
+                                fill: fullTargetConfig.lineColor
+                            });
+                            targetLineDataLabel.append('title').text(viewModel.fytarget);
+                        }
+                        if (analytics.min) {
+                            let minLine: d3.Selection<SVGElement>;
+                            minLine = this.targetLines.append('line')
+                                .classed('minLine', true);
+                            let yValMin: number;
+                            yValMin = yScale(<number>this.min);
+                            minLine.attr({
+                                x1: margins.left,
+                                y1: yValMin,
+                                x2: dynamicWidth,
+                                y2: yValMin,
+                                stroke: analytics.lineColorMin,
+                                'stroke-width': analytics.strokeSizeMin
+                            });
+
+                            let minLinedataLabel: d3.Selection<SVGElement>;
+                            minLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.min))
+                                .classed('minLinedataLabel', true);
+                            minLinedataLabel.attr({
+                                x: margins.left,
+                                y: yValMin - labelYVal,
+                                fill: analytics.lineColorMin
+                            });
+                            minLinedataLabel.append('title').text(this.min);
+                        }
+                        if (analytics.max) {
+                            let maxLine: d3.Selection<SVGElement>;
+                            maxLine = this.targetLines.append('line')
+                                .classed('maxLine', true);
+                            let yValMax: number;
+                            yValMax = yScale(<number>this.max);
+                            maxLine.attr({
+                                x1: margins.left,
+                                y1: yValMax,
+                                x2: dynamicWidth,
+                                y2: yValMax,
+                                stroke: analytics.lineColorMax,
+                                'stroke-width': analytics.strokeSizeMax
+                            });
+
+                            let maxLinedataLabel: d3.Selection<SVGElement>;
+                            maxLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.max))
+                                .classed('maxLinedataLabel', true);
+                            maxLinedataLabel.attr({
+                                x: margins.left,
+                                y: yValMax - labelYVal,
+                                fill: analytics.lineColorMax
+                            });
+                            maxLinedataLabel.append('title').text(this.max);
+                        }
+                        if (analytics.avg) {
+                            let avgLine: d3.Selection<SVGElement>;
+                            avgLine = this.targetLines.append('line')
+                                .classed('avgLine', true);
+                            let yValAvg: number;
+                            yValAvg = yScale(<number>this.average);
+                            avgLine.attr({
+                                x1: margins.left,
+                                y1: yValAvg,
+                                x2: dynamicWidth,
+                                y2: yValAvg,
+                                stroke: analytics.lineColorAvg,
+                                'stroke-width': analytics.strokeSizeAvg
+                            });
+
+                            let avgLinedataLabel: d3.Selection<SVGElement>;
+                            avgLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.average))
+                                .classed('maxLinedataLabel', true);
+                            avgLinedataLabel.attr({
+                                x: margins.left,
+                                y: yValAvg - labelYVal,
+                                fill: analytics.lineColorAvg
+                            });
+                            avgLinedataLabel.append('title').text(this.average);
+                        }
+                        if (analytics.median) {
+                            let medianLine: d3.Selection<SVGElement>;
+                            medianLine = this.targetLines.append('line')
+                                .classed('medianLine', true);
+                            // tslint:disable-next-line:no-any
+                            let yValMedian: any;
+                            yValMedian = yScale(<number>this.median);
+                            medianLine.attr({
+                                x1: margins.left,
+                                y1: yValMedian,
+                                x2: dynamicWidth,
+                                y2: yValMedian,
+                                stroke: analytics.lineColorMedian,
+                                'stroke-width': analytics.strokeSizeMedian
+                            });
+
+                            let medianLinedataLabel: d3.Selection<SVGElement>;
+                            medianLinedataLabel = this.targetLines.append('text').text(this.yAxisFormatter.format(this.median))
+                                .classed('medianLinedataLabel', true);
+                            medianLinedataLabel.attr({
+                                x: margins.left,
+                                y: yValMedian - labelYVal,
+                                fill: analytics.lineColorMedian
+                            });
+                            medianLinedataLabel.append('title').text(this.median);
+                        }
+                        this.svg.selectAll('.xAxisText').remove();
+
+                        // Format Y Axis labels and render Y Axis labels
+                        yAxis = d3.svg.axis()
+                            .scale(yScale)
+                            .orient('left')
+                            .tickFormat(this.yAxisFormatter.format)
+                            .ticks(options.viewport.height / 80);
+
+                        const translate: number = margins.left;
+                        const translateLeft: string = `translate( ${translate},0)`;
+                        const yTitleXCoordinate: number = 40;
+                        if (yAxisConfig.title) {
+                            this.svg.append('text')
+                                .classed('yTitle', true)
+                                .text(yAxisName)
+                                .attr('transform', `translate(${yTitleXCoordinate},
+                                    ${height / 2 + marginForXAxis}) rotate(-90)`)
+                                .style({
+                                    'max-width': options.viewport.width / 2 + pxLiteral,
+                                    'font-size': yAxisConfig.fontSize + pxLiteral,
+                                    color: yAxisConfig.fontColor,
+                                    'font-family': yAxisConfig.fontFamily
+                                })
+                                .append('title').text(yAxisName);
+                        }
+                        const adjustedHeight: number = height + 80;
+                        if (xAxisConfig.title) {
+                            this.svg.append('text')
+                                .classed('xTitle', true)
+                                .text(xAxisName)
+                                .attr('transform', `translate(${dynamicWidth / 2},${adjustedHeight})`)
+                                .style({
+                                    'font-size': xAxisConfig.fontSize + pxLiteral,
+                                    color: xAxisConfig.fontColor,
+                                    'font-family': xAxisConfig.fontFamily
+                                })
+                                .append('title').text(xAxisName);
+                        }
+
+                        this.yAxis.attr('transform', translateLeft)
+                            .call(yAxis);
+
+                        this.yAxis.selectAll('path').classed('path', true);
+                        // Draw Y Axis grid lines
+                        let yTitleTooltip: IValueFormatter;
+                        yTitleTooltip = valueFormatter.create({
+                            format: options.dataViews[0].categorical.values[0].source.format
                         });
                         // tslint:disable-next-line:no-any
-                        let labelMargin: any;
-                        labelMargin = { top: 20, right: 10, left: 2 };
-                        this.barContainer
-                            .append('g')
-                            .classed('labelGraphicContext', true)
-                            .selectAll('text')
-                            .data(viewModel.dataPoints)
-                            .enter()
-                            .append('text')
-                            .classed('dataLabel', true)
-                            .style('fill', dataLabels.fontColor)
-                            .style('text-anchor', 'middle')
-                            .style('display', 'inline')
-                            // tslint:disable-next-line:no-any
-                            .text(function (d: any): string {
-                                let labelFormattedText: string;
-                                labelFormattedText = formatter.format(d.value);
-                                let tp: TextProperties;
-                                tp = {
-                                    text: labelFormattedText,
-                                    fontFamily: dataLabels.fontFamily,
-                                    fontSize: dataLabels.fontSize + pxLiteral
-                                };
-
-                                return textMeasurementService.getTailoredTextOrDefault(tp, barWidths);
-                            })
-                            .attr({
-                                // tslint:disable-next-line:no-any
-                                x: (d: any): any => xScale(d.category) + xScale.rangeBand() / 2 + 2,
-                                // tslint:disable-next-line:no-any
-                                y: (d: any): any => dataLabels.position === 'insideCenter' ?
-                                    yScale(<number>d.value - (<number>d.value - <number>yAxisConfig.start) / 2)
-                                    + (dataLabels.fontSize / 2) : dataLabels.position === 'insideEnd' ? yScale(<number>d.value) +
-                                        (dataLabels.fontSize / 2) + 10
-                                        : yScale(yAxisConfig.start) + (dataLabels.fontSize / 2) - 10,
-                                'font-size': dataLabels.fontSize + pxLiteral,
-                                'font-weight': 'bold',
-                                'font-family': dataLabels.fontFamily,
-                                'text-anchor': 'middle'
-                            }).append('title').text((d: IBarChartDataPoint): number => <number>d.value);
-
-                        $('.labelGraphicContext').find('text').each(function (): void {
-                            let labelHeight: number;
-                            labelHeight = $(this).height();
-                            let barlabel: string;
-                            barlabel = $(this).attr('y');
-                            let diff: number;
-                            diff = parseInt(barlabel, 10) - 0;
-                            if (diff < labelHeight) {
-                                $(this).attr('y', parseInt(barlabel, 10));
+                        let yTicks: any;
+                        yTicks = this.svg.selectAll('.yAxis .tick');
+                        yTicks.append('title')
+                            .text((d: string) => {
+                                return yTitleTooltip.format(d);
+                            });
+                        let tickLeng: number;
+                        tickLeng = yTicks.size();
+                        const marginForGridLines: number = 80;
+                        let i: number = 0;
+                        for (i = 0; i < tickLeng; i++) {
+                            let yCoordinate: string;
+                            yCoordinate = yTicks[0][i].getAttribute('transform')
+                                .substring(12, yTicks[0][i].getAttribute('transform').length - 1);
+                            if (parseFloat(yCoordinate) !==
+                                (viewModel.fytarget && yScale(<number>viewModel.fytarget)) || !fullTargetConfig.show) {
+                                if (yAxisConfig.gridLines) {
+                                    this.yAxis.append('line')
+                                        .classed('yAxisGrid', true).attr({
+                                            x1: 0,
+                                            y1: yCoordinate,
+                                            x2: dynamicWidth - marginForGridLines,
+                                            y2: yCoordinate
+                                        });
+                                }
                             }
-                            if (parseInt(barlabel, 10) + labelHeight > yScale(<number>yAxisConfig.start) &&
-                             dataLabels.position !== 'insideBase') {
-                                $(this).hide();
+                        }
+                        // tslint:disable-next-line:no-any
+                        const chartBackground: any = this.barContainer.append('image')
+                            .attr('xline:href', backgroundImage.imageUrl);
+
+                        let barData: IBarChartDataPoint[];
+                        barData = [];
+                        let barforecastedData: IBarChartDataPoint[];
+                        barforecastedData = [];
+                        let circleData: IBarChartDataPoint[];
+                        circleData = [];
+                        let len: number = viewModel.dataPoints.length;
+                        for (i = 0; i < len; i++) {
+                            if (viewModel.dataPoints[i].forecasted !== 1) {
+                                barData.push(viewModel.dataPoints[i]);
+                            } else {
+                                barforecastedData.push(viewModel.dataPoints[i]);
+                            }
+                            circleData.push(viewModel.dataPoints[i]);
+                        }
+                        let add: number = 0;
+                        if ((this.yMax > 0 && this.yMin < 0)
+                            || ((this.yMax < 0 && this.yMin < 0))) {
+                            add = (height - yScale(Math.abs(this.yMin)));
+                        }
+
+                        bars = this.barContainer.selectAll('.bar').data(barData);
+                        // tslint:disable-next-line:no-any
+                        let barforecasted: any;
+                        barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
+                        if (animation.show) {
+                            bars.enter()
+                                .append('rect')
+                                .classed('bar', true);
+                            bars.attr({
+                                width: xScale.rangeBand(),
+                                height: 0,
+                                // tslint:disable-next-line:typedef
+                                y: d => (d.value > 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                // tslint:disable-next-line:no-any
+                                x: function (d: any): any { return xScale(d.category); },
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): void => d.color
+                            })
+                                .transition()
+                                .duration(transitionDuration)
+                                .ease('linear')
+                                .attr({
+                                    // tslint:disable-next-line:typedef
+                                    y: d => (d.value < 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                    // tslint:disable-next-line:typedef
+                                    height: d => (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
+                                        : yScale(barOrigin) - yScale(<number>d.value)
+                                });
+                            barforecasted.enter()
+                                .append('rect')
+                                .classed('barforecasted', true);
+
+                            barforecasted.attr({
+                                width: xScale.rangeBand(),
+                                // tslint:disable-next-line:no-any
+                                height: 0,
+                                // tslint:disable-next-line:typedef
+                                y: d => (d.value > 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                // tslint:disable-next-line:no-any
+                                x: function (d: any): any { return xScale(d.category); },
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): any => d.color,
+                                // tslint:disable-next-line:no-any
+                                stroke: (d: any): any => d.color
+                            })
+                                .transition()
+                                .duration(transitionDuration)
+                                .ease('linear')
+                                .attr({
+                                    // tslint:disable-next-line:typedef
+                                    y: d => (d.value < 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                    // tslint:disable-next-line:typedef
+                                    height: d => (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
+                                        : yScale(barOrigin) - yScale(<number>d.value)
+                                });
+                        } else {
+                            bars.enter()
+                                .append('rect')
+                                .classed('bar', true);
+                            bars.attr({
+                                width: xScale.rangeBand(),
+                                height: 0,
+                                // tslint:disable-next-line:typedef
+                                y: d => (d.value < 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                // tslint:disable-next-line:no-any
+                                x: function (d: any): any { return xScale(d.category); },
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): void => d.color
+                            })
+                                .attr({
+                                    // tslint:disable-next-line:typedef
+                                    y: d => (d.value < 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                    // tslint:disable-next-line:typedef
+                                    height: d => (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
+                                        : yScale(barOrigin) - yScale(<number>d.value)
+                                });
+                            barforecasted.enter()
+                                .append('rect')
+                                .classed('barforecasted', true);
+
+                            barforecasted.attr({
+                                width: xScale.rangeBand(),
+                                // tslint:disable-next-line:no-any
+                                height: 0,
+                                // tslint:disable-next-line:typedef
+                                y: d => (d.value < 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                // tslint:disable-next-line:no-any
+                                x: function (d: any): any { return xScale(d.category); },
+                                // tslint:disable-next-line:no-any
+                                fill: (d: any): any => d.color,
+                                // tslint:disable-next-line:no-any
+                                stroke: (d: any): any => d.color
+                            })
+                                .attr({
+                                    // tslint:disable-next-line:typedef
+                                    y: d => (d.value < 0) ? yScale(barOrigin) : yScale(<number>d.value),
+                                    // tslint:disable-next-line:typedef
+                                    height: d => (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
+                                        : yScale(barOrigin) - yScale(<number>d.value)
+                                });
+                        }
+
+                        // tslint:disable-next-line:no-any
+                        barforecasted.on('click', function (d: any): void {
+                            // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
+                            if (allowInteractions) {
+                                selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                                    bars.attr({
+                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
+                                    });
+
+                                    barforecasted.attr({
+                                        'fill-opacity': BarChart.config.transparentOpacity
+                                    });
+
+                                    if (ids.length > 0) {
+                                        d3.select(this).attr({
+                                            'fill-opacity': 1
+                                        });
+                                    }
+
+                                });
+                                (<Event>d3.event).stopPropagation();
                             }
                         });
+
+                        // This must be an anonymous function instead of a lambda because
+                        // d3 uses 'this' as the reference to the element that was clicked.
+                        // tslint:disable-next-line:no-any
+                        bars.on('click', function (d: any): void {
+                            // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
+                            if (allowInteractions) {
+                                selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                                    bars.attr({
+                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
+                                    });
+
+                                    barforecasted.attr({
+                                        'fill-opacity': BarChart.config.transparentOpacity
+                                    });
+
+                                    d3.select(this).attr({
+                                        'fill-opacity': BarChart.config.solidOpacity
+                                    });
+                                });
+                                (<Event>d3.event).stopPropagation();
+                            }
+                        });
+
+                        bars.exit()
+                            .remove();
+
+                        barforecasted.exit()
+                            .remove();
+
+                        chartBackground.attr({
+                            x: margins.left,
+                            y: 10,
+                            height: $('.yAxis')[0].getBoundingClientRect().height + pxLiteral,
+                            width: (dynamicWidth - margins.left) + pxLiteral,
+                            opacity: backgroundImage.transparency / 100,
+                            preserveAspectRatio: 'none'
+                        });
+
+                        lineDataPoints = [];
+                        for (i = 0, len = viewModel.dataPoints.length; i < len; i++) {
+                            if (viewModel.dataPoints[i].ytd || viewModel.dataPoints[i].ytd === 0) {
+                                lineDataPoints.push({
+                                    x1: xScale(viewModel.dataPoints[i].category) + (xScale.rangeBand() / 2),
+                                    y1: yScale(<number>viewModel.dataPoints[i].ytd)
+                                });
+                            }
+                        }
+
+                        for (i = 0; i < lineDataPoints.length; i++) {
+                            if (yTDTargetConfig.show) {
+                                let circle: d3.Selection<SVGElement>;
+                                circle = this.targetLines.append('circle').classed('circle', true).attr({
+                                    cx: lineDataPoints[i].x1,
+                                    cy: lineDataPoints[i].y1,
+                                    r: yTDTargetConfig.strokeSize + 1
+                                });
+                            }
+                            linePoints += `${lineDataPoints[i].x1},${lineDataPoints[i].y1} `;
+                        }
+                        // tslint:disable-next-line:no-any
+                        const circles: any = this.targetLines.selectAll('.circle').data(circleData);
+
+                        if (yTDTargetConfig.show) {
+                            ytdLine = this.targetLines.append('polyline');
+                            ytdLine.attr({
+                                stroke: yTDTargetConfig.lineColor,
+                                'stroke-width': yTDTargetConfig.strokeSize,
+                                points: linePoints,
+                                fill: 'none'
+                            });
+                        }
+                        // X-axis
+                        xAxis = d3.svg.axis()
+                            .scale(xScale)
+                            .orient('bottom');
+
+                        let translateHeight: string = `translate(0, ${yScale(yAxisConfig.start)} )`;
+                        this.xAxis.attr('transform', translateHeight)
+                            .call(xAxis);
+
+                        this.xAxis.selectAll('path').classed('path', true);
+
+                        this.svg.selectAll('.xAxis .tick').append('title')
+                            // tslint:disable-next-line:no-any
+                            .text(function (d: any): string {
+                                return d.toString();
+                            });
+
+                        translateHeight = `translate(-10, ${height})`;
+                        if (barWidths < minWidthForVertical) {
+                            this.svg.selectAll('.xAxis .tick text')
+                                // tslint:disable-next-line:no-any
+                                .text(function (d: any): string {
+                                    if (d.toString().length <= 13) {
+                                        return d.toString();
+                                    } else {
+                                        let textProperties: TextProperties;
+                                        textProperties = {
+                                            text: d.toString(),
+                                            fontFamily: 'sans-serif',
+                                            fontSize: '12px'
+                                        };
+
+                                        return textMeasurementService.getTailoredTextOrDefault(textProperties, textTailoredWidth);
+                                    }
+                                })
+                                .attr('transform', 'rotate(-45)')
+                                .style('text-anchor', 'end');
+                        } else {
+                            let boxes: d3.Selection<SVGElement>;
+                            boxes = this.svg.selectAll('.barContainer rect');
+                            if (boxes[0].length) {
+                                const barWidthValue: number = parseInt(boxes.attr('width'), parseIntValue);
+                                // tslint:disable-next-line:no-any
+                                const xTicksLabels: any = this.svg.selectAll('.xAxis .tick text')[0];
+                                len = xTicksLabels.length - 1;
+                                while (len >= 0) {
+                                    // tslint:disable-next-line:no-any
+                                    let xAxisLabel: any;
+                                    xAxisLabel = xTicksLabels[len];
+                                    xAxisLabel.style.textAnchor = 'middle';
+                                    textMeasurementService.wordBreak(xAxisLabel, barWidthValue, textWordBreakWidth);
+                                    len--;
+                                }
+                            }
+                        }
+
+                        if (dataLabels.show) {
+                            let measureFormat: string;
+                            measureFormat = this.measureFormat;
+                            let targetLinesHeight: string;
+                            targetLinesHeight = $('.xTargetAxis').attr('y1');
+                            let displayValLabels: number = 0;
+                            if (dataLabels.displayUnits === 0) {
+                                const valLen: number = viewModel.dataMax.toString().length;
+                                displayValLabels = this.getAutoDisplayUnits(valLen);
+                            }
+                            let formatter: IValueFormatter;
+                            formatter = ValueFormatter.create({
+                                format: measureFormat ? measureFormat : ValueFormatter.DefaultNumericFormat,
+                                value: dataLabels.displayUnits === 0 ? displayValLabels : dataLabels.displayUnits,
+                                precision: dataLabels.valueDecimal
+                            });
+                            const baseDataLabelAdjust: number = 10;
+                            const barMiddleAdjust: number = 2;
+                            // tslint:disable-next-line:no-any
+                            let labelMargin: any;
+                            labelMargin = { top: 20, right: 10, left: 2 };
+                            this.barContainer
+                                .append('g')
+                                .classed('labelGraphicContext', true)
+                                .selectAll('text')
+                                .data(viewModel.dataPoints)
+                                .enter()
+                                .append('text')
+                                .classed('dataLabel', true)
+                                .style('fill', dataLabels.fontColor)
+                                // tslint:disable-next-line:no-any
+                                .text(function (d: any): string {
+                                    let labelFormattedText: string;
+                                    labelFormattedText = formatter.format(d.value);
+                                    let tp: TextProperties;
+                                    tp = {
+                                        text: labelFormattedText,
+                                        fontFamily: dataLabels.fontFamily,
+                                        fontSize: dataLabels.fontSize + pxLiteral
+                                    };
+
+                                    return textMeasurementService.getTailoredTextOrDefault(tp, barWidths);
+                                })
+                                .attr({
+                                    // tslint:disable-next-line:no-any
+                                    x: (d: any): any => xScale(d.category) + xScale.rangeBand() / 2 + barMiddleAdjust,
+                                    // tslint:disable-next-line:no-any
+                                    y: (d: any): any => d.value >= 0 ?
+                                        (dataLabels.position === 'insideCenter' ?
+                                            yScale(<number>d.value - (<number>d.value - barOrigin) / 2)
+                                            + (dataLabels.fontSize / 2)
+                                            : dataLabels.position === 'insideEnd' ?
+                                                yScale(<number>d.value) + (dataLabels.fontSize / 2) + baseDataLabelAdjust
+                                                : yScale(barOrigin) + (dataLabels.fontSize / 2) - baseDataLabelAdjust
+                                        ) :
+                                        (dataLabels.position === 'insideCenter' ?
+                                            yScale(<number>d.value - (<number>d.value - barOrigin) / 2)
+                                            + (dataLabels.fontSize / 2)
+
+                                            : dataLabels.position === 'insideEnd' ?
+                                                yScale(<number>d.value) + (dataLabels.fontSize / 2) - baseDataLabelAdjust
+                                                : yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust
+                                        ),
+                                    'font-size': dataLabels.fontSize + pxLiteral,
+                                    'font-family': dataLabels.fontFamily
+                                }).append('title').text((d: IBarChartDataPoint): number => <number>d.value);
+
+                            $('.labelGraphicContext').find('text').each(function (): void {
+                                const labelHeight: number = $(this).height();
+                                const barlabel: string = $(this).attr('y');
+                                // Convert barlabel to integer and store in diff
+                                const diff: number = parseInt(barlabel, parseIntValue) - 0;
+                                if (diff < labelHeight) {
+                                    $(this).attr('y', parseInt(barlabel, parseIntValue));
+                                }
+                            });
+                        }
+                        this.tooltipServiceWrapper.addTooltip(
+                            this.barContainer.selectAll('.bar,.barforecasted'),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
+                        this.tooltipServiceWrapper.addTooltip(
+                            this.targetLines.selectAll('.circle'),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipIndividualTargetData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
+
+                        let selectionManager: ISelectionManager;
+                        selectionManager = this.selectionManager;
+                        let allowInteractions: boolean;
+                        allowInteractions = this.host.allowInteractions;
                     }
-
-                    this.tooltipServiceWrapper.addTooltip(
-                        this.barContainer.selectAll('.bar,.barforecasted'),
-                        (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                        (tooltipEvent: TooltipEventArgs<number>) => null);
-
-                    let selectionManager: ISelectionManager;
-                    selectionManager = this.selectionManager;
-                    let allowInteractions: boolean;
-                    allowInteractions = this.host.allowInteractions;
                 }
             }
             this.svg.on(
                 'click',
                 () => this.selectionManager.clear().then(() => this.svg.selectAll('.bar').attr('fill-opacity', 1)));
-
         }
 
+        // method to set the display units when selected as auto
+        public getAutoDisplayUnits(valLen: number): number {
+            let displayVal: number;
+            if (valLen > 9) {
+                displayVal = 1e9;
+            } else if (valLen <= 9 && valLen > 6) {
+                displayVal = 1e6;
+            } else if (valLen <= 6 && valLen >= 4) {
+                displayVal = 1e3;
+            } else {
+                displayVal = 10;
+            }
+
+            return displayVal;
+        }
+        /*
+                * method to display text if basic requirements are not satisfied
+                */
+        public displayBasicRequirement(iStatus: number): void {
+            this.rootDiv.selectAll('*').empty();
+            this.svg.selectAll('*').empty();
+            // Change basediv height to 0 when basic requirements are not satisfied
+            this.rootDiv.select('.baseDiv').style('height', '0px');
+            $('<div>').attr('id', 'textToDisplay').appendTo('.rootDiv');
+            if (iStatus === 0) { // if category and measure fields are not selected
+                document.getElementById('textToDisplay').textContent = `Please select 'Category' and 'Measure' `;
+            } else if (iStatus === 1) { // if column for category is not selected
+                document.getElementById('textToDisplay').textContent = `Please select 'Category' `;
+            } else if (iStatus === 2) { // if column is not selected for measure
+                document.getElementById('textToDisplay').textContent = `Please select 'Measure' `;
+            } else { // if appropriate column for forecasted is not selected
+                document.getElementById('textToDisplay').textContent = `Please select a column with values 0 and 1 for forecasted values `;
+            }
+        }
         public getHorizontalSettings(dataView: DataView): IHorizontal {
             let objects: DataViewObjects = null;
             let horizontalSetting: IHorizontal;
@@ -1591,6 +2464,24 @@ module powerbi.extensibility.visual {
         }
 
         public getDefaultHorizontalSettings(): IHorizontal {
+            return {
+                show: false
+            };
+        }
+
+        public getAnimationSettings(dataView: DataView): IAnimation {
+            let objects: DataViewObjects = null;
+            let animationSetting: IAnimation;
+            animationSetting = this.getDefaultAnimationSettings();
+
+            if (!dataView.metadata || !dataView.metadata.objects) { return animationSetting; }
+            objects = dataView.metadata.objects;
+            animationSetting.show = DataViewObjects.getValue(objects, chartProperties.animation.show, animationSetting.show);
+
+            return animationSetting;
+        }
+
+        public getDefaultAnimationSettings(): IAnimation {
             return {
                 show: false
             };
@@ -1635,7 +2526,6 @@ module powerbi.extensibility.visual {
 
             objects = dataView.metadata.objects;
             yAxisSetting.fontColor = DataViewObjects.getFillColor(objects, chartProperties.yAxisConfig.fontColor, yAxisSetting.fontColor);
-            yAxisSetting.fontSize = DataViewObjects.getValue(objects, chartProperties.yAxisConfig.fontSize, yAxisSetting.fontSize);
             yAxisSetting.displayUnits = DataViewObjects.getValue(
                 objects, chartProperties.yAxisConfig.displayUnits, yAxisSetting.displayUnits);
             yAxisSetting.decimalPlaces = DataViewObjects.getValue(
@@ -1643,10 +2533,13 @@ module powerbi.extensibility.visual {
             yAxisSetting.gridLines = DataViewObjects.getValue(objects, chartProperties.yAxisConfig.gridLines, yAxisSetting.gridLines);
             yAxisSetting.start = DataViewObjects.getValue(objects, chartProperties.yAxisConfig.start, yAxisSetting.start);
             yAxisSetting.end = DataViewObjects.getValue(objects, chartProperties.yAxisConfig.end, yAxisSetting.end);
+            yAxisSetting.fontSize = DataViewObjects.getValue(objects, chartProperties.yAxisConfig.fontSize, yAxisSetting.fontSize);
+            yAxisSetting.title = DataViewObjects.getValue(objects, chartProperties.yAxisConfig.title, yAxisSetting.title);
+            yAxisSetting.fontFamily = DataViewObjects.getValue(objects, chartProperties.yAxisConfig.fontFamily, yAxisSetting.fontFamily);
             if (yAxisSetting.start > this.yMin) {
                 yAxisSetting.start = this.yMin;
             }
-            if (yAxisSetting.start < 0) {
+            if (yAxisSetting.start > this.yMin) {
                 yAxisSetting.start = this.yMin;
             }
             if (yAxisSetting.end < this.yMax) {
@@ -1657,8 +2550,25 @@ module powerbi.extensibility.visual {
             } else if (yAxisSetting.decimalPlaces < 0) {
                 yAxisSetting.decimalPlaces = 0;
             }
+            if (yAxisSetting.fontSize > 20) {
+                yAxisSetting.fontSize = 20;
+            }
 
             return yAxisSetting;
+        }
+
+        public getDefaultYAxisSettings(): IYAxisSettings {
+            return {
+                fontColor: '#000000',
+                fontSize: 12,
+                displayUnits: 0,
+                decimalPlaces: 0,
+                gridLines: true,
+                start: this.yMin,
+                end: this.yMax,
+                title: true,
+                fontFamily: 'Arial'
+            };
         }
 
         private getAnalyticsSettings(dataView: DataView): IAnalyticsSettings {
@@ -1711,26 +2621,42 @@ module powerbi.extensibility.visual {
                 lineColorMin: 'black',
                 strokeSizeMin: 1,
                 max: false,
-                lineColorMax: 'black',
+                lineColorMax: 'purple',
                 strokeSizeMax: 1,
                 avg: false,
-                lineColorAvg: 'black',
+                lineColorAvg: 'red',
                 strokeSizeAvg: 1,
                 median: false,
-                lineColorMedian: 'black',
+                lineColorMedian: 'blue',
                 strokeSizeMedian: 1
             };
         }
 
-        public getDefaultYAxisSettings(): IYAxisSettings {
+        private getXAxisSettings(dataView: DataView): IXAxisSettings {
+            let objects: DataViewObjects = null;
+            let xAxisSetting: IXAxisSettings;
+            xAxisSetting = this.getDefaultXAxisSettings();
+
+            if (!dataView.metadata || !dataView.metadata.objects) { return xAxisSetting; }
+
+            objects = dataView.metadata.objects;
+            xAxisSetting.fontColor = DataViewObjects.getFillColor(objects, chartProperties.xAxisConfig.fontColor, xAxisSetting.fontColor);
+            xAxisSetting.fontSize = DataViewObjects.getValue(objects, chartProperties.xAxisConfig.fontSize, xAxisSetting.fontSize);
+            xAxisSetting.title = DataViewObjects.getValue(objects, chartProperties.xAxisConfig.title, xAxisSetting.title);
+            xAxisSetting.fontFamily = DataViewObjects.getValue(objects, chartProperties.xAxisConfig.fontFamily, xAxisSetting.fontFamily);
+            if (xAxisSetting.fontSize > 20) {
+                xAxisSetting.fontSize = 20;
+            }
+
+            return xAxisSetting;
+        }
+
+        public getDefaultXAxisSettings(): IXAxisSettings {
             return {
                 fontColor: '#000000',
                 fontSize: 12,
-                displayUnits: 0,
-                decimalPlaces: 0,
-                gridLines: true,
-                start: 0,
-                end: this.yMax
+                title: true,
+                fontFamily: 'Arial'
             };
         }
 
@@ -1745,6 +2671,7 @@ module powerbi.extensibility.visual {
             yTDSetting.show = DataViewObjects.getValue(objects, chartProperties.yTDConfig.show, yTDSetting.show);
             yTDSetting.lineColor = DataViewObjects.getFillColor(objects, chartProperties.yTDConfig.lineColor, yTDSetting.lineColor);
             yTDSetting.strokeSize = DataViewObjects.getValue(objects, chartProperties.yTDConfig.strokeSize, yTDSetting.strokeSize);
+            // Allowed stroke size from 1 to 5 only
             if (yTDSetting.strokeSize > 5) {
                 yTDSetting.strokeSize = 5;
             } else if (yTDSetting.strokeSize < 1) {
@@ -1767,7 +2694,7 @@ module powerbi.extensibility.visual {
                 objects, chartProperties.fullTargetConfig.lineColor, fullTargetSettings.lineColor);
             fullTargetSettings.strokeSize = DataViewObjects.getValue(
                 objects, chartProperties.fullTargetConfig.strokeSize, fullTargetSettings.strokeSize);
-
+            // Allowed stroke size form 1 to 5 only
             if (fullTargetSettings.strokeSize > 5) {
                 fullTargetSettings.strokeSize = 5;
             } else if (fullTargetSettings.strokeSize < 1) {
@@ -1784,6 +2711,8 @@ module powerbi.extensibility.visual {
 
             if (!dataView.metadata || !dataView.metadata.objects) { return backgroundImageSettings; }
             objects = dataView.metadata.objects;
+            backgroundImageSettings.show = DataViewObjects.getValue
+                (objects, chartProperties.backgroundImage.show, backgroundImageSettings.show);
             backgroundImageSettings.imageUrl = DataViewObjects.getValue
                 (objects, chartProperties.backgroundImage.imageUrl, backgroundImageSettings.imageUrl);
             backgroundImageSettings.transparency = DataViewObjects.getValue
@@ -1801,6 +2730,7 @@ module powerbi.extensibility.visual {
         }
         public getDefaultBackgroundImageSettings(): IBackgroundImage {
             return {
+                show: false,
                 imageUrl: '',
                 transparency: 50
             };
@@ -1831,6 +2761,9 @@ module powerbi.extensibility.visual {
             legendSettings.labelSize = DataViewObjects.getValue(objects, legendProps.labelSize, legendSettings.labelSize);
             legendSettings.title = DataViewObjects.getValue(objects, legendProps.title, legendSettings.title);
             legendSettings.fontFamily = DataViewObjects.getValue(objects, legendProps.fontFamily, legendSettings.fontFamily);
+            if (legendSettings.labelSize > 20) {
+                legendSettings.labelSize = 20;
+            }
 
             return legendSettings;
         }
@@ -1852,14 +2785,21 @@ module powerbi.extensibility.visual {
             dataLabelsSettings.displayUnits = DataViewObjects.getValue(objects, dataProps.displayUnits, dataLabelsSettings.displayUnits);
             dataLabelsSettings.valueDecimal = DataViewObjects.getValue(objects, dataProps.valueDecimal, dataLabelsSettings.valueDecimal);
             dataLabelsSettings.position = DataViewObjects.getValue(objects, dataProps.position, dataLabelsSettings.position);
+            // Allowed decimal paces from 0 to 4 only
             if (dataLabelsSettings.valueDecimal > 4) {
                 dataLabelsSettings.valueDecimal = 4;
             } else if (dataLabelsSettings.valueDecimal < 0) {
                 dataLabelsSettings.valueDecimal = 0;
             }
+            // Restrict data labels font size to 20 max
+            if (dataLabelsSettings.fontSize > 20) {
+                dataLabelsSettings.fontSize = 20;
+            }
 
             return dataLabelsSettings;
         }
+
+        // Function to get the default label settings
         public getDefaultDataLabelSettings(): IDataLabels {
             return {
                 show: false,
@@ -1871,7 +2811,8 @@ module powerbi.extensibility.visual {
                 position: 'insideEnd'
             };
         }
-
+        // Function to enumerate object instances
+        // tslint:disable-next-line:cyclomatic-complexity
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
             let zoneSetting: IZoneSettings;
             zoneSetting = this.getZoneSettings(this.dataViews);
@@ -1881,6 +2822,8 @@ module powerbi.extensibility.visual {
             yTDConfigs = this.getYTDSettings(this.dataViews);
             let fullYearConfigs: ITargetSettings;
             fullYearConfigs = this.getFullTargetSettings(this.dataViews);
+            let xAxisConfigs: IXAxisSettings;
+            xAxisConfigs = this.getXAxisSettings(this.dataViews);
             let legendConfig: ILegendSettings;
             legendConfig = this.getLegendSettings(this.dataViews);
             let dataLabels: IDataLabels;
@@ -1889,28 +2832,68 @@ module powerbi.extensibility.visual {
             analytics = this.getAnalyticsSettings(this.dataViews);
             let horizontal: IHorizontal;
             horizontal = this.getHorizontalSettings(this.dataViews);
+            let animation: IAnimation;
+            animation = this.getAnimationSettings(this.dataViews);
             let backgroundImage: IBackgroundImage;
             backgroundImage = this.getBackgroundImageSettings(this.dataViews);
             let objectName: string;
             objectName = options.objectName;
             let objectEnumeration: VisualObjectInstance[];
             objectEnumeration = [];
+            const yObjProps: {} = {};
+            const xObjProps: {} = {};
             switch (objectName) {
                 case 'yAxis':
+                    yObjProps[`fill`] = yAxisConfigs.fontColor;
+                    yObjProps[`displayUnits`] = yAxisConfigs.displayUnits;
+                    yObjProps[`decimalPlaces`] = yAxisConfigs.decimalPlaces;
+                    yObjProps[`gridLines`] = yAxisConfigs.gridLines;
+                    if (fytargetChecker && this.setYtdTarget) {
+                        yObjProps[`start`] = yAxisConfigs.start;
+                        yObjProps[`end`] = yAxisConfigs.end;
+                    }
+                    yObjProps[`title`] = yAxisConfigs.title;
+                    if (yAxisConfigs.title) {
+                        yObjProps[`fontSize`] = yAxisConfigs.fontSize,
+                            yObjProps[`fontFamily`] = yAxisConfigs.fontFamily;
+                    }
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        properties: yObjProps,
+                        selector: null
+                    });
+                    break;
+                case 'xAxis':
+                    xObjProps[`fill`] = xAxisConfigs.fontColor;
+                    xObjProps[`title`] = xAxisConfigs.title;
+                    if (xAxisConfigs.title) {
+                        xObjProps[`fontSize`] = xAxisConfigs.fontSize;
+                        xObjProps[`fontFamily`] = xAxisConfigs.fontFamily;
+                    }
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        properties: xObjProps,
+                        selector: null
+                    });
+                    break;
+                case 'horizontal':
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
-                            fill: yAxisConfigs.fontColor,
-                            displayUnits: yAxisConfigs.displayUnits,
-                            decimalPlaces: yAxisConfigs.decimalPlaces,
-                            gridLines: yAxisConfigs.gridLines,
-                            start: yAxisConfigs.start,
-                            end: yAxisConfigs.end
+                            show: horizontal.show
                         },
                         selector: null
                     });
                     break;
-
+                case 'animation':
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        properties: {
+                            show: animation.show
+                        },
+                        selector: null
+                    });
+                    break;
                 case 'fullYearTarget':
                     objectEnumeration.push({
                         objectName: objectName,
@@ -2015,6 +2998,7 @@ module powerbi.extensibility.visual {
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
+                            show: backgroundImage.show,
                             imageUrl: backgroundImage.imageUrl,
                             transparency: backgroundImage.transparency
                         },
@@ -2029,10 +3013,17 @@ module powerbi.extensibility.visual {
             return objectEnumeration;
         }
 
-        public destroy(): void {
-            // Perform any cleanup tasks here
-        }
+        public getDecimalDigits(value: number): number {
+            let decimalDigits: number;
+            if (Math.floor(value) === value) {
+                return 0;
+            } else {
+                decimalDigits = value.toString().split('.')[1].length;
 
+                return (decimalDigits > 4 ? 4 : decimalDigits);
+            }
+        }
+        // Function to display tooltip data on bars
         // tslint:disable-next-line:no-any
         private getTooltipData(value: any): VisualTooltipDataItem[] {
             let language: string;
@@ -2062,14 +3053,67 @@ module powerbi.extensibility.visual {
                     format: targetFormat ? targetFormat : ValueFormatter.DefaultNumericFormat
                 });
                 tooltipDataPoints.push(
-                {
+                    {
+                        displayName: value.category,
+                        value: formatter.format(value.value.toFixed(this.getDecimalDigits(value.value)))
+                    },
+                    {
+                        displayName: ytdDisplayName,
+                        value: formatter1.format(value.ytd.toFixed(this.getDecimalDigits(value.ytd)))
+                    });
+            } else {
+                tooltipDataPoints.push({
                     displayName: value.category,
-                    value: formatter.format(value.value)
-                },
-                {
-                    displayName: ytdDisplayName,
-                    value: formatter1.format(value.ytd)
+                    value: formatter.format(value.value.toFixed(this.getDecimalDigits(value.value)))
                 });
+            }
+            for (const iCounter of value.tooltip) {
+                const tooltipData: VisualTooltipDataItem = {
+                    displayName: '',
+                    value: ''
+                };
+                tooltipData.displayName = iCounter.name.toString();
+                tooltipData.value = iCounter.value.toString();
+                tooltipDataPoints.push(tooltipData);
+            }
+
+            return tooltipDataPoints;
+
+        }
+        // Function to display tooltip data on indivdual target datapoints
+        // tslint:disable-next-line:no-any
+        private getTooltipIndividualTargetData(value: any): VisualTooltipDataItem[] {
+            let language: string;
+            const tooltipDataPoints: VisualTooltipDataItem[] = [];
+            language = getLocalizedString(this.locale, 'LanguageKey');
+            let measureFormat: string;
+            measureFormat = this.measureFormat;
+            let targetFormat: string;
+            targetFormat = this.targetFormat;
+            let ytdDisplayName: string = '';
+            let ytdTarget: string;
+            ytdTarget = 'ytdtarget';
+
+            // tslint:disable-next-line:no-any
+            this.dataViews.metadata.columns.forEach((element: any) => {
+                if (element.roles[ytdTarget]) {
+                    ytdDisplayName = element.displayName;
+                }
+            });
+            let formatter: IValueFormatter;
+            formatter = ValueFormatter.create({
+                format: measureFormat ? measureFormat : ValueFormatter.DefaultNumericFormat
+            });
+            if (value.ytd) {
+                let formatter1: IValueFormatter;
+                formatter1 = ValueFormatter.create({
+                    format: targetFormat ? targetFormat : ValueFormatter.DefaultNumericFormat
+                });
+                tooltipDataPoints.push(
+                    {
+                        displayName: ytdDisplayName,
+                        value: formatter1.format(value.ytd)
+                    });
             } else {
                 tooltipDataPoints.push({
                     displayName: value.category,
@@ -2087,7 +3131,6 @@ module powerbi.extensibility.visual {
             }
 
             return tooltipDataPoints;
-
         }
 
     }

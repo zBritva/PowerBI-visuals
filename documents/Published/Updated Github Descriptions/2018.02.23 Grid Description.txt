@@ -1,0 +1,12 @@
+Brief Description:
+Showcase data in a grid format with features such as pagination and sorting.
+
+Long Description:
+Grid by MAQ Software allows users to present specific data from a complex dataset. This visual enables users to navigate large datasets and focus on the most important items. Pagination facilitates easy navigation. Users can also sort data based on any column.
+
+Key features:
+•	Users can add an image to the grid using a URL.
+•	Support for multiple data formats including CSV.
+•	Support for special characters.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

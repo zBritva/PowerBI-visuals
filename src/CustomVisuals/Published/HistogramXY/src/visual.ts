@@ -76,7 +76,6 @@ module powerbi.extensibility.visual {
                 }
             }
         }
-
         /**
          * Enumerates through the objects defined in the capabilities and adds the properties to the format pane
          *
@@ -117,9 +116,26 @@ module powerbi.extensibility.visual {
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
-                            titleEnable: this.settings.showxAxisTitle,
-                            titleText: this.settings.xTitleText,
-                            label: this.settings.showxAxisLabel
+                            start: this.settings.startxAxis,
+                            end: this.settings.endxAxis,
+                            titleEnable: this.settings.showxAxisTitle
+                        },
+                        selector: null
+                    });
+                    if (this.settings.showxAxisTitle) {
+                        objectEnumeration.push({
+                            objectName: objectName,
+                            properties: {
+                                titleText: this.settings.xTitleText
+                            },
+                            selector: null
+                        });
+                    }
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        properties: {
+                            label: this.settings.showxAxisLabel,
+                            textPrecision: this.settings.xTextPrecision
                         },
                         selector: null
                     });
@@ -199,7 +215,12 @@ module powerbi.extensibility.visual {
                     //label
                     //grid lines
                     showxAxisGridLines: getValue<boolean>(objects, 'gridLines', 'xAxis', true),
-                    showyAxisGridLines: getValue<boolean>(objects, 'gridLines', 'yAxis', true)
+                    showyAxisGridLines: getValue<boolean>(objects, 'gridLines', 'yAxis', true),
+                    //x axis start and end points
+                    startxAxis: getValue<number>(objects, 'xAxis', 'start', null),
+                    endxAxis: getValue<number>(objects, 'xAxis', 'end', null),
+                    // tslint:disable-next-line:max-line-length
+                    xTextPrecision: getValue<number>(objects, 'xAxis', 'textPrecision', 0) < 0 ? 0 : getValue<number>(objects, 'xAxis', 'textPrecision', 0) > 4 ? 4 : getValue<number>(objects, 'xAxis', 'textPrecision', 0)
                 };
                 settingsChanged = true;
             }
