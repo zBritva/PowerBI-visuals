@@ -1,0 +1,12 @@
+Brief Description:
+Show upward or downward trends between two data points.
+
+Long Description:
+Slope Chart by MAQ Software allows users to analyze trends in data at a glance. This visual is useful for comparing interactions between two data points based on time or other user-chosen parameters. R package dependencies (auto-installed): plotly and ggplot2.
+
+Key features:
+•	Quick comparison of indicator growth or loss across categories.
+•	Easy interaction with many data points using zoom functionality.
+•	Quickly download an image of the chart with the capture image widget.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

@@ -280,12 +280,15 @@ module powerbi.extensibility.visual {
                 // tslint:disable-next-line:no-any
                 let formatter: any;
                 formatter = this.formatter;
-                yAxisLabel = formatter.format(yAxisLabel);
+                if (formatter !== undefined) {
+                    yAxisLabel = formatter.format(yAxisLabel);
+                }
             } else {
                 let precision: number;
                 precision = this.values.textPrecision;
                 yAxisLabel = d3.format(`,.${precision}f`)(yAxisLabel);
             }
+
             let yAxisLabelTextProperties: powerbi.extensibility.utils.formatting.TextProperties;
             yAxisLabelTextProperties = {
                 text: yAxisLabel,
@@ -565,11 +568,19 @@ module powerbi.extensibility.visual {
             this.svg.selectAll('g').remove();
             this.svg.selectAll('path').remove();
             this.svg.selectAll('line').remove();
+            this.svg.selectAll('text').remove();
 
             let self: this;
             self = this;
             let dataView: DataView;
             dataView = this.dataView = options.dataViews[0];
+
+            // If columns are not dragged to all fields, display message
+            if (dataView.categorical.values === undefined || dataView.categorical.values.length < 4
+                || dataView.categorical.categories === undefined) {
+                this.svg.append('text').text('Please insert data for all fields');
+            }
+
             let viewModel: IStackViewModel;
             viewModel = this.values = StockChart.converter(dataView);
             let objects: DataViewObjects;

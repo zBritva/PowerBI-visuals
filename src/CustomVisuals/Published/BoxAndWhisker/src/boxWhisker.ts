@@ -240,7 +240,7 @@ module powerbi.extensibility.visual {
                                 this.categoryColorData.push(group.values[k].values[i]);
                             }
                             const formatter0: utils.formatting.IValueFormatter = valueFormatter.create({
-                                format: group.values[k].source.format
+                                format: group.values[k].source.format ? group.values[k].source.format : valueFormatter.DefaultNumericFormat
                             });
                             const tooltipDataPoint: ITooltipDataPoints = {
                                 name: group.values[k].source.displayName,
@@ -328,24 +328,26 @@ module powerbi.extensibility.visual {
             const grouped: DataViewValueColumnGroup[] = dataView.categorical.values.grouped();
 
             if (Visual.isColorCategoryPresent) {
-                Visual.legendDataPoints = grouped.map((group: DataViewValueColumnGroup, index: number) => {
-                    const defaultColor: Fill = {
-                        solid: {
-                            color: colorPalette.getColor(group.identity.key).value
-                        }
-                    };
+                Visual.legendDataPoints = grouped
+                    .filter((group: DataViewValueColumnGroup) => group.identity)
+                    .map((group: DataViewValueColumnGroup, index: number) => {
+                        const defaultColor: Fill = {
+                            solid: {
+                                color: colorPalette.getColor(group.identity.key).value
+                            }
+                        };
 
-                    return {
-                        category: boxWhiskerUtils.convertToString(group.name),
-                        color: enumSettings.DataViewObjects
-                            .getValueOverload<Fill>(group.objects, 'colorSelector', 'fill', defaultColor).solid.color,
-                        identity: host.createSelectionIdBuilder()
-                            .withSeries(dataView.categorical.values, group)
-                            .createSelectionId(),
-                        selected: false,
-                        value: index
-                    };
-                });
+                        return {
+                            category: boxWhiskerUtils.convertToString(group.name),
+                            color: enumSettings.DataViewObjects
+                                .getValueOverload<Fill>(group.objects, 'colorSelector', 'fill', defaultColor).solid.color,
+                            identity: host.createSelectionIdBuilder()
+                                .withSeries(dataView.categorical.values, group)
+                                .createSelectionId(),
+                            selected: false,
+                            value: index
+                        };
+                    });
             } else {
                 if (Visual.catSizePresent) {
                     Visual.legendDataPoints.push({
@@ -361,7 +363,7 @@ module powerbi.extensibility.visual {
                 }
             }
             // Sorting functionality
-            const catElements: string[] = [];
+            let catElements: string[] = [];
             const catParentElements: string[] = [];
             let catDistinctElements: string[];
             let catDistinctParentElements: string[];
@@ -370,6 +372,7 @@ module powerbi.extensibility.visual {
 
             for (const cat1 of dataView.categorical.categories) {
                 if (cat1.source.roles.hasOwnProperty('categoryGroup')) {
+                    catElements = [];
                     formatter = valueFormatter.create({ format: cat1.source.format });
                     // tslint:disable-next-line:no-any
                     cat1.values.forEach((element: any) => {
@@ -723,7 +726,7 @@ module powerbi.extensibility.visual {
                     default:
                 }
             }
-            if (legendSetting.show && Visual.catSizePresent) {
+            if (legendSetting.show && Visual.catSizePresent && rangeConfig.dots) {
                 this.renderSizeLegend(legendHeight, legendOrient, isScrollPresent, dataSizeValues, legendSetting, legendWidth, options);
             }
 
@@ -945,8 +948,8 @@ module powerbi.extensibility.visual {
                 yAxisTitleText = yAxisConfig.titleText;
             }
 
-            let rangeMin: number = 2;
-            let rangeMax: number = 6;
+            let rangeMin: number = 4;
+            let rangeMax: number = 8;
 
             // Update Min/Max for radius scale
             if (rangeConfig.min || rangeConfig.min === 0) {
@@ -1185,7 +1188,7 @@ module powerbi.extensibility.visual {
 
                 rScale = d3.scale.linear()
                     .domain([boxWhiskerUtils.returnMin(dataSizeValues), (boxWhiskerUtils.returnMax(dataSizeValues))])
-                    .range([rangeConfig.min, rangeConfig.max]);
+                    .range([rangeMin, rangeMax]);
 
                 const widthForXAxis: number = width;
                 const heightForXAxis: number = height;
@@ -2150,7 +2153,7 @@ module powerbi.extensibility.visual {
 
                 rScale = d3.scale.linear()
                     .domain([boxWhiskerUtils.returnMin(dataSizeValues), (boxWhiskerUtils.returnMax(dataSizeValues))])
-                    .range([rangeConfig.min, rangeConfig.max]);
+                    .range([rangeMin, rangeMax]);
 
                 const widthForXAxis: number = width;
                 const heightForXAxis: number = height;

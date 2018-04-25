@@ -1,0 +1,14 @@
+Brief Description:
+Display relationships between values in a ring chart with a dynamic key performance indicator (KPI) in the center.
+
+Long Description:
+Ring Chart by MAQ Software breaks large sums into smaller data slices. The size of each slice is relative to the data itself. The center of the ring displays a dynamic KPI and summary. Threshold values define the color and direction of the indicator.
+
+For example, to display the contribution of various channels to the total sales, data for channels such as e-mail, store, and online can be represented as slices of the ring. In this scenario, the entire ring represents total sales.
+
+Key features:
+•	3D visual feedback when highlighting specific slices.
+•	Display raw data in legend, along with toggleable KPI indicators.
+•	Showcase multiple data fields in tooltips.
+
+For any feature requests or questions about this visual, please send an e-mail to our team at support@maqsoftware.com.

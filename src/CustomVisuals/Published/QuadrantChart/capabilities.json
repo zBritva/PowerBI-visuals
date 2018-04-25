@@ -53,6 +53,9 @@
                     },
                     "radialAxis": {
                         "max": 1
+                    },
+                    "legendAxis": {
+                        "min": 1
                     }
                 }
             ],
@@ -368,20 +371,20 @@
                 }
             }
         },
-        "legendColors": {
-            "displayName": "Bubble colors",
-            "properties": {
-                "legendColor": {
-                    "displayName": "Color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
+      "legendColors": {
+        "displayName": "Bubble colors",
+        "properties": {
+          "legendColor": {
+            "displayName": "Color",
+            "type": {
+              "fill": {
+                "solid": {
+                  "color": true
                 }
+              }
             }
+          }
         }
+      }
     }
 }
