@@ -349,7 +349,7 @@ module powerbi.extensibility.visual {
 
         private static barColor: IBarColor = {
             defaultColor: '#5F6B6D',
-            showall: false,
+            showall: true,
             fillColor: '#5F6B6D'
         };
 

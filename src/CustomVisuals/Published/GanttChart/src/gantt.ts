@@ -96,6 +96,7 @@ module powerbi.extensibility.visual {
     import LegendData = powerbi.extensibility.utils.chart.legend.LegendData;
     import LegendIcon = powerbi.extensibility.utils.chart.legend.LegendIcon;
     import LegendPosition = powerbi.extensibility.utils.chart.legend.LegendPosition;
+    import position = powerbi.extensibility.utils.chart.legend.positionChartArea;
 
     import DateTimeSequence = powerbi.extensibility.utils.formatting.DateTimeSequence;
     import VisualDataRoleKind = powerbi.VisualDataRoleKind;
@@ -103,6 +104,16 @@ module powerbi.extensibility.visual {
     import DataViewTableRow = powerbi.DataViewTableRow;
     import timeScale = d3.time.Scale;
 
+    let uniqueLegend: PrimitiveValue[] = [];
+    // tslint:disable-next-line:no-any
+    let uniqueColors: any;
+    let iterator: number = 1;
+    let errorMessage: boolean = false;
+    let legendsIndex: number;
+    let repeatVar: number;
+    let tasks: Task[] = [];
+    // tslint:disable-next-line:no-any
+    let uniquesColorsForLegends: any[] = [];
     const percentFormat: string = '0.00 %;-0.00 %;0.00 %';
     const millisecondsInADay: number = 24 * 60 * 60 * 1000;
     const millisecondsInWeek: number = 7 * millisecondsInADay;
@@ -156,6 +167,7 @@ module powerbi.extensibility.visual {
     // tslint:disable-next-line:interface-name
     export interface Task extends SelectableDataPoint {
         id: number;
+        repeat: number;
         name: string[];
         start: Date;
         end: Date;
@@ -166,6 +178,7 @@ module powerbi.extensibility.visual {
         KPIValues: KPIValues[];
         tooltipInfo: VisualTooltipDataItem[];
         selectionId: ISelectionId;
+        legendSelectionid: ISelectionId;
     }
 
     // tslint:disable-next-line:interface-name
@@ -301,7 +314,7 @@ module powerbi.extensibility.visual {
         export const axisGroup: ClassAndSelector = createClassAndSelector('gantt_axis');
         export const domain: ClassAndSelector = createClassAndSelector('gantt_domain');
         export const axisTick: ClassAndSelector = createClassAndSelector('gantt_tick');
-        export const tasks: ClassAndSelector = createClassAndSelector('gantt_tasks');
+        export const task: ClassAndSelector = createClassAndSelector('gantt_tasks');
         export const taskGroup: ClassAndSelector = createClassAndSelector('gantt_task-group');
         export const singleTask: ClassAndSelector = createClassAndSelector('gantt_task');
         export const singlePhase: ClassAndSelector = createClassAndSelector('gantt_phase');
@@ -370,6 +383,7 @@ module powerbi.extensibility.visual {
         private viewport: IViewport;
         private colors: IColorPalette;
         private legend: ILegend;
+        private barsLegend: ILegend;
         private textProperties: TextProperties = {
             fontFamily: 'wf_segoe-ui_normal',
             fontSize: PixelConverter.toString(9)
@@ -435,6 +449,7 @@ module powerbi.extensibility.visual {
         private static dataMIN: number = Gantt.maxSafeInteger;
         private static dataMAX: number = Gantt.minSafeInteger;
         private static drillLevelPadding: number = 10;
+        private static colorsIndex: number = 0;
         private static totalTasksNumber: number = 0;
         private static currentTasksNumber: number = 0;
         private static minTasksNumber: number = 0;
@@ -637,8 +652,8 @@ module powerbi.extensibility.visual {
         private backgroundGroupTask: Selection<HTMLElement>;
         private backgroundGroupKPI: Selection<HTMLElement>;
         private backgroundGroupBar: Selection<HTMLElement>;
-        private errorDiv: Selection<HTMLElement>;
-        private errorText: Selection<HTMLElement>;
+        private static errorDiv: Selection<HTMLElement>;
+        private static errorText: Selection<HTMLElement>;
         private chartGroup: Selection<HTMLElement>;
         private taskGroup: Selection<HTMLElement>;
         private lineGroup: Selection<HTMLElement>;
@@ -664,7 +679,7 @@ module powerbi.extensibility.visual {
         private todaytext: Selection<HTMLElement>;
         // tslint:disable-next-line:no-any
         private clearCatcher: Selection<any>;
-        private ganttDiv: Selection<HTMLElement>;
+        private static ganttDiv: Selection<HTMLElement>;
         private selectionManager: ISelectionManager;
         private behavior: GanttChartBehavior;
         private interactivityService: IInteractivityService;
@@ -672,6 +687,10 @@ module powerbi.extensibility.visual {
         private host: IVisualHost;
         private isInteractiveChart: boolean = false;
         private offset: number;
+        // tslint:disable-next-line:no-any
+        private element: any;
+        // tslint:disable-next-line:no-any
+        private options: any;
 
         constructor(options: VisualConstructorOptions) {
             this.init(options);
@@ -679,6 +698,8 @@ module powerbi.extensibility.visual {
 
         private init(options: VisualConstructorOptions): void {
             this.host = options.host;
+            this.options = options;
+            this.element = options.element;
             this.colors = options.host.colorPalette;
             this.selectionManager = options.host.createSelectionManager();
             this.body = d3.select(options.element);
@@ -689,25 +710,25 @@ module powerbi.extensibility.visual {
             this.interactivityService = createInteractivityService(this.host);
             this.createViewport($(options.element));
             this.clearViewport();
-            this.ganttDiv.classed('gantt_hidden', true);
-            this.errorDiv.classed('gantt_hidden', false);
-            this.errorText.text('');
+            Gantt.ganttDiv.classed('gantt_hidden', true);
+            Gantt.errorDiv.classed('gantt_hidden', false);
+            Gantt.errorText.text(' ');
+            this.barsLegend = createLegend($(this.element), false, null, true);
         }
-
         /**
          * Create the viewport area of the gantt chart
          */
         private createViewport(element: JQuery): void {
             // create div container to the whole viewport area
-            this.errorDiv = this.body.append('div')
+            Gantt.errorDiv = this.body.append('div')
                 .classed(Selectors.errorPanel.class, true)
                 .classed('gantt_hidden', true);
-            this.errorText = this.errorDiv.append('p');
+            Gantt.errorText = Gantt.errorDiv.append('p');
 
-            this.ganttDiv = this.body.append('div')
+            Gantt.ganttDiv = this.body.append('div')
                 .classed(Selectors.body.class, true);
 
-            this.legendDiv = this.ganttDiv
+            this.legendDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.legendPanel.class, true);
 
@@ -750,16 +771,15 @@ module powerbi.extensibility.visual {
                     height: 12,
                     x: 62
                 });
-
             this.addLegendHideShowEvents(this);
 
-            this.arrowDiv = this.ganttDiv
+            this.arrowDiv = Gantt.ganttDiv
                 .append('div')
                 .attr({
                     class: 'gantt_arrow-up arrow'
                 });
 
-            this.legendIndicatorDiv = this.ganttDiv
+            this.legendIndicatorDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.legendIndicatorPanel.class, true);
 
@@ -803,7 +823,7 @@ module powerbi.extensibility.visual {
 
             this.clearCatcher = appendClearCatcher(this.phaseIndicatorSvg);
 
-            this.timelineDiv = this.ganttDiv
+            this.timelineDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.timeLinePanel.class, true);
 
@@ -817,7 +837,7 @@ module powerbi.extensibility.visual {
                 .append('g')
                 .classed(Selectors.axisGroup.class, true);
 
-            this.kpiTitleDiv = this.ganttDiv
+            this.kpiTitleDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.kpiTitlePanel.class, true);
 
@@ -830,11 +850,11 @@ module powerbi.extensibility.visual {
                 .append('g')
                 .classed(Selectors.kpiLines.class, true);
 
-            this.drillAllDiv = this.ganttDiv
+            this.drillAllDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.drillAllPanel.class, true);
 
-            this.drillAllDiv2 = this.ganttDiv
+            this.drillAllDiv2 = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.drillAllPanel2.class, true);
 
@@ -849,7 +869,7 @@ module powerbi.extensibility.visual {
             this.drillAllGroup = this.drillAllSvg2
                 .append('g');
 
-            this.imageDiv = this.ganttDiv
+            this.imageDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.imagePanel.class, true);
 
@@ -865,7 +885,7 @@ module powerbi.extensibility.visual {
                 .attr('width', 12)
                 .attr('height', 12);
 
-            this.kpiImageDiv = this.ganttDiv
+            this.kpiImageDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.kpiImagePanel.class, true);
 
@@ -883,7 +903,7 @@ module powerbi.extensibility.visual {
 
             this.addExpandCollapseEvent(this);
 
-            this.bottomDiv = this.ganttDiv
+            this.bottomDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.bottomPannel.class, true);
 
@@ -949,9 +969,9 @@ module powerbi.extensibility.visual {
 
             this.taskGroup = this.chartGroup
                 .append('g')
-                .classed(Selectors.tasks.class, true);
+                .classed(Selectors.task.class, true);
 
-            this.bottommilestoneDiv = this.ganttDiv
+            this.bottommilestoneDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.bottomMilestonePanel.class, true);
 
@@ -969,7 +989,7 @@ module powerbi.extensibility.visual {
                 .append('g')
                 .classed(Selectors.bottomMilestoneGroup.class, true);
 
-            this.bottomTaskDiv = this.ganttDiv
+            this.bottomTaskDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.bottomTaskDiv.class, true);
 
@@ -1004,9 +1024,9 @@ module powerbi.extensibility.visual {
          */
         private updateChartSize(): void {
             this.viewport.width = Math.ceil(this.viewport.width);
-            this.viewport.height = Math.ceil(this.viewport.height);
+            this.viewport.height = Math.ceil(this.viewport.height) - 25;
 
-            this.ganttDiv.style({
+            Gantt.ganttDiv.style({
                 height: PixelConverter.toString(this.viewport.height),
                 width: PixelConverter.toString(this.viewport.width)
             });
@@ -1121,8 +1141,7 @@ module powerbi.extensibility.visual {
          */
         private static hasRole(column: DataViewMetadataColumn, name: string): boolean {
             // tslint:disable-next-line:no-any
-            let roles: any;
-            roles = column.roles;
+            const roles: any = column.roles;
 
             return roles && roles[name];
         }
@@ -1132,8 +1151,7 @@ module powerbi.extensibility.visual {
          * @param actualDate date which is actual date
          */
         private static isDateForecast(actualDate: Date): boolean {
-            let todayDate: Date;
-            todayDate = new Date();
+            const todayDate: Date = new Date();
 
             return (todayDate < actualDate ? true : false);
         }
@@ -1156,14 +1174,13 @@ module powerbi.extensibility.visual {
             let categorical: DataViewCategorical;
             let displayName: string;
             // tslint:disable-next-line:no-any
-            let oMap: any;
+            const oMap: any = {};
             prefixStartText = 'Actual';
             prefixEndText = 'Actual';
             prefixDurationText = 'Forecast';
             tooltipIndex = [];
             categorical = dataView.categorical;
             oColumns = dataView.metadata.columns;
-            oMap = {};
             let iColumnLength: number;
             iColumnLength = oColumns.length;
             for (let iColumnCount: number = 0; iColumnCount < iColumnLength; iColumnCount++) {
@@ -1176,8 +1193,7 @@ module powerbi.extensibility.visual {
                 }
             }
             tooltipDataArray = [];
-            let tooltipIndexLength: number;
-            tooltipIndexLength = tooltipIndex.length;
+            const tooltipIndexLength: number = tooltipIndex.length;
             for (let iTooltipIndexCount: number = 0; iTooltipIndexCount < tooltipIndexLength; iTooltipIndexCount++) {
                 let iCatLength: number;
                 iCatLength = categorical.categories.length;
@@ -1203,8 +1219,7 @@ module powerbi.extensibility.visual {
                         }
                     }
                 }
-                let iValLength: number;
-                iValLength = categorical.values.length;
+                const iValLength: number = categorical.values.length;
                 for (let iValCount: number = 0; iValCount < iValLength; iValCount++) {
                     if (categorical.values[iValCount].source.displayName === tooltipIndex[iTooltipIndexCount]) {
                         if (categorical.values[iValCount].values[taskIndex] &&
@@ -1231,7 +1246,6 @@ module powerbi.extensibility.visual {
             }
 
             if (phase.start != null) {
-
                 formattedDate = (zeroLiteral + (phase.start.getMonth() + 1)).slice(-2)
                     + slashLiteral + (zeroLiteral + phase.start.getDate()).slice(-2) +
                     slashLiteral + phase.start.getFullYear() + spaceLiteral +
@@ -1355,35 +1369,47 @@ module powerbi.extensibility.visual {
          * @param formatters task attributes represented format.
          * @param series An array that holds the color data of different task groups.
          */
+
         private static createTasks(dataView: DataView, host: IVisualHost,
-                                   formatters: GanttChartFormatters, colors: IColorPalette, settings: IGanttSettings): Task[] {
+                                   formatters: GanttChartFormatters, colors: IColorPalette,
+            // tslint:disable-next-line:no-any
+                                   settings: IGanttSettings, barsLegend: ILegend, viewport: any): Task[] {
             const metadataColumns: GanttColumns<DataViewMetadataColumn> = GanttColumns.getColumnSources(dataView);
-            let columns: GanttColumns<GanttCategoricalColumns>;
-            columns = GanttColumns.getCategoricalColumns(dataView);
+            const columns: GanttColumns<GanttCategoricalColumns> = GanttColumns.getCategoricalColumns(dataView);
             const columnSource: DataViewMetadataColumn[] = dataView.metadata.columns;
             // tslint:disable-next-line:no-any
-            let categoriesdata: any;
-            categoriesdata = dataView.categorical.categories;
-            let valuesdata: DataViewValueColumn[];
-            valuesdata = dataView.categorical.values;
-            let kpiRoles: number[];
-            kpiRoles = [];
-            let categoryRoles: number[];
-            categoryRoles = [];
+            const categoriesData: any = dataView.categorical.categories;
+            const valuesData: DataViewValueColumn[] = dataView.categorical.values;
+            const kpiRoles: number[] = [];
+            const categoryRoles: number[] = [];
 
-            if (!categoriesdata || categoriesdata.length === 0) { return; }
+            if (!categoriesData || categoriesData.length === 0) { return; }
 
             Gantt.categoriesTitle = [];
-            let tasks: Task[] = [];
+            tasks = [];
             let hashArr: Task[];
-
+            const kpiValuesNames: string[] = [];
+            const categoryNames: string[] = [];
             // tslint:disable-next-line:no-any
-            categoriesdata.map((child: any, index: number) => {
+            categoriesData.map((child: any, index: number) => {
+                //Logic to add roles
+                if (child.source.roles[GanttRoles.category]) {
+                    //If roles are are already present then not allowed to enter again
+                    if (!(categoryNames.indexOf(categoriesData[index].source.displayName) > -1)) {
+                        categoryRoles.push(index);
+                        Gantt.categoriesTitle.push(categoriesData[index].source.displayName);
+                        categoryNames.push(categoriesData[index].source.displayName);
+                    }
+
+                }
+
                 if (child.source.roles[GanttRoles.kpiValueBag]) {
-                    kpiRoles.push(index);
-                } else if (child.source.roles[GanttRoles.category]) {
-                    categoryRoles.push(index);
-                    Gantt.categoriesTitle.push(categoriesdata[index].source.displayName);
+                    //If roles are are already present then not allowed to enter again
+                    if (!(kpiValuesNames.indexOf(categoriesData[index].source.displayName) > -1)) {
+                        kpiRoles.push(index);
+                        kpiValuesNames.push(categoriesData[index].source.displayName);
+
+                    }
                 }
             });
 
@@ -1411,50 +1437,55 @@ module powerbi.extensibility.visual {
             let phaseIndex: number;
             phaseIndex = -1;
 
+            // Bars Legend
+            const legendData: LegendData = {
+                dataPoints: [],
+                fontSize: 8,
+                title: 'Legend'
+            };
+
+            const colorPalette: IColorPalette = host.colorPalette;
             // tslint:disable-next-line:cyclomatic-complexity no-any
-            categoriesdata[0].values.map((child: any, index: number) => {
+            categoriesData[0].values.map((child: any, index: number) => {
+                let legendIndex: number = -1;
                 let startDate: Date = null;
                 let endDate: Date = null;
                 let datamin: number = null;
                 let datamax: number = null;
-
-                if ((Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1)
-                    && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1)
+                if ((Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1)
+                    && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1)
                     === typeof this.earliestStartDate) ||
-                    (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1)
-                        && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1)
+                    (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1)
+                        && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1)
                         === typeof this.earliestStartDate)) {
-                    startDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1);
-                    endDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1);
+                    startDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1);
+                    endDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1);
 
                     startDate = startDate ? startDate : new Date();
                     endDate = endDate ? endDate : new Date();
                     Gantt.isDateData = true;
                 } else {
-                    datamin = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesdata, GanttRoles.startDate, index, -1);
-                    datamax = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesdata, GanttRoles.endDate, index, -1);
+                    datamin = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesData, GanttRoles.startDate, index, -1);
+                    datamax = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesData, GanttRoles.endDate, index, -1);
                     if (datamax == null || datamin > datamax) {
                         datamax = datamin;
                     }
                     if (datamin == null || datamin > datamax) {
                         datamin = datamax;
                     }
-                    if (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1)
-                        || Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1)) {
+                    if (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1)
+                        || Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1)) {
                         Gantt.isDateData = false;
                     }
                 }
-                let resource: string;
-                resource = Gantt.getCategoricalTaskProperty<string>(columnSource, valuesdata, GanttRoles.resource, index, -1);
-                let kpiValues: KPIValues[];
-                kpiValues = [];
-                let taskValues: string[];
-                taskValues = [];
+                const resource: string = Gantt.getCategoricalTaskProperty<string>(columnSource, valuesData, GanttRoles.resource, index, -1);
+                const kpiValues: KPIValues[] = [];
+                const taskValues: string[] = [];
                 let duration: number = 0;
 
                 for (let kpiValueCounter: number = 0; kpiValueCounter < categoryRoles.length; kpiValueCounter++) {
                     let value: string = '';
-                    value = <string>categoriesdata[categoryRoles[kpiValueCounter]].values[index];
+                    value = <string>categoriesData[categoryRoles[kpiValueCounter]].values[index];
                     if (value && value !== '0') {
                         value = value ? value : '';
                     } else if (parseInt(value, 10) === 0) {
@@ -1465,19 +1496,19 @@ module powerbi.extensibility.visual {
 
                     if (kpiValueCounter === 0) {
                         Gantt.regionValueFormatter = ValueFormatter.create({
-                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
                         });
                     } else if (kpiValueCounter === 1) {
                         Gantt.metroValueFormatter = ValueFormatter.create({
-                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
                         });
                     } else if (kpiValueCounter === 2) {
                         Gantt.projectValueFormatter = ValueFormatter.create({
-                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
                         });
                     } else {
                         Gantt.trancheValueFormatter = ValueFormatter.create({
-                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
                         });
                     }
 
@@ -1485,9 +1516,9 @@ module powerbi.extensibility.visual {
                     value = (value === '' ? 'N/A' : value);
 
                     if (typeof (value) === 'object' &&
-                        categoriesdata[categoryRoles[kpiValueCounter]].values[index].toString().length > Gantt.maxTaskNameLength) {
-                        Gantt.maxTaskNameLength = categoriesdata[categoryRoles[kpiValueCounter]].values[index].toString().length < 15 ?
-                            categoriesdata[categoryRoles[kpiValueCounter]].values[index].toString().length : 14;
+                        categoriesData[categoryRoles[kpiValueCounter]].values[index].toString().length > Gantt.maxTaskNameLength) {
+                        Gantt.maxTaskNameLength = categoriesData[categoryRoles[kpiValueCounter]].values[index].toString().length < 15 ?
+                            categoriesData[categoryRoles[kpiValueCounter]].values[index].toString().length : 14;
                     }
 
                     if (value.length > Gantt.maxTaskNameLength) {
@@ -1495,13 +1526,10 @@ module powerbi.extensibility.visual {
                     }
                 }
 
-                let kpiRolesLength: number;
-                kpiRolesLength = kpiRoles.length;
+                const kpiRolesLength: number = kpiRoles.length;
                 for (let kpiValueCounter: number = 0; kpiValueCounter < kpiRolesLength; kpiValueCounter++) {
-                    let name: string;
-                    name = <string>categoriesdata[kpiRoles[kpiValueCounter]].source.displayName;
-                    let value: string;
-                    value = <string>categoriesdata[kpiRoles[kpiValueCounter]].values[index];
+                    const name: string = <string>categoriesData[kpiRoles[kpiValueCounter]].source.displayName;
+                    const value: string = <string>categoriesData[kpiRoles[kpiValueCounter]].values[index];
 
                     kpiValues.push({
                         name: name,
@@ -1524,8 +1552,7 @@ module powerbi.extensibility.visual {
                 }
 
                 if (startDate != null) {
-                    let timeDiff: number;
-                    timeDiff = endDate.getTime() - startDate.getTime();
+                    const timeDiff: number = endDate.getTime() - startDate.getTime();
                     duration = Math.ceil(timeDiff / (1000 * 3600 * 24));
                     if (0 > duration) {
                         duration = 0;
@@ -1534,60 +1561,236 @@ module powerbi.extensibility.visual {
                     }
 
                 } else if (datamin != null) {
-                    let valuediffer: number;
-                    valuediffer = datamax - datamin;
-                    duration = valuediffer;
+                    const valueDiffer: number = datamax - datamin;
+                    duration = valueDiffer;
                 }
 
                 const defaultColor: Fill = {
                     solid: {
-                        color: colors.getColor(index.toString()).value
+                        color: colorPalette.getColor(index.toString()).value
                     }
                 };
+                const categories: DataViewCategoryColumn[] = dataView.categorical.categories;
+                categories.forEach(function (datum: DataViewCategoricalColumn, iIterator: number): void {
+                    if (datum.source.roles.Legend) {
+                        legendIndex = iIterator;
+                    }
+                });
+                // tslint:disable-next-line:no-any
+                let taskColor: any;
+                let cnt: number = 0;
+                const length: number = taskValues.length;
+                // Check for mapping Legend data name with categories data for all categories based on the number of categories present
+                // if legend have the same value that is already present in the category else it will raise an error.
+                switch (length) {
+                    case 1:
+                        if (dataView.categorical.categories[1] !== undefined) {
+                            if (dataView.categorical.categories[0].source.displayName
+                                === dataView.categorical.categories[1].source.displayName) {
+                                cnt = 0;
+                            } else {
+                                errorMessage = true;
+                            }
+                        }
+                        break;
+                    case 2:
+                        if (dataView.categorical.categories[2] !== undefined) {
+                            if (dataView.categorical.categories[0].source.displayName
+                                === dataView.categorical.categories[2].source.displayName) {
+                                cnt = 0;
+                            } else if (dataView.categorical.categories[2] !== undefined &&
+                                dataView.categorical.categories[1].source.displayName
+                                === dataView.categorical.categories[2].source.displayName) {
+                                cnt = 1;
+                            } else {
+                                errorMessage = true;
+                            }
+                        }
+                        break;
+                    case 3:
+                        if (dataView.categorical.categories[3] !== undefined) {
+                            if (dataView.categorical.categories[0].source.displayName
+                                === dataView.categorical.categories[3].source.displayName) {
+                                cnt = 0;
+                            } else if (dataView.categorical.categories[3] !== undefined &&
+                                dataView.categorical.categories[1].source.displayName
+                                === dataView.categorical.categories[3].source.displayName) {
+                                cnt = 1;
+                            } else if (dataView.categorical.categories[3] !== undefined &&
+                                dataView.categorical.categories[2].source.displayName
+                                === dataView.categorical.categories[3].source.displayName) {
+                                cnt = 2;
+                            } else {
+                                errorMessage = true;
+                            }
+                        }
+                        break;
+                    case 4:
+                        if (dataView.categorical.categories[4] !== undefined) {
+                            if (dataView.categorical.categories[0].source.displayName
+                                === dataView.categorical.categories[4].source.displayName) {
+                                cnt = 0;
+                            } else if (dataView.categorical.categories[4] !== undefined &&
+                                dataView.categorical.categories[1].source.displayName
+                                === dataView.categorical.categories[4].source.displayName) {
+                                cnt = 1;
+                            } else if (dataView.categorical.categories[4] !== undefined &&
+                                dataView.categorical.categories[2].source.displayName
+                                === dataView.categorical.categories[4].source.displayName) {
+                                cnt = 2;
+                            } else if (dataView.categorical.categories[4] !== undefined &&
+                                dataView.categorical.categories[3].source.displayName
+                                === dataView.categorical.categories[4].source.displayName) {
+                                cnt = 3;
+                            } else {
+                                errorMessage = true;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
 
-                if (settings.barColor.showall) {
+                }
+                if (errorMessage) {
+                    Gantt.ganttDiv.classed('gantt_hidden', true);
+                    Gantt.errorDiv.classed('gantt_hidden', false);
+                    Gantt.errorText.text('Please select a field that is already present in "Category"');
+                }
+                for (let iIndex: number = 0; iIndex < tasks.length; iIndex++) {
+                    for (let k: number = 0; k < tasks[iIndex].name.length; k++) {
+                        if (taskValues[k] === tasks[iIndex].name[cnt]) {
+                            taskColor = tasks[iIndex].color;
+                            break;
+                        }
+                    }
+                }
+                if (taskColor !== undefined) {
+                    repeatVar = 1;
                     tasks.push({
                         id: index,
+                        repeat: repeatVar,
                         name: taskValues,
                         start: startDate,
                         end: endDate,
                         numStart: datamin,
                         numEnd: datamax,
                         resource: resource,
-                        color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
-                                                                    'barColor', 'fillColor', defaultColor).solid.color,
+                        color: settings.barColor.showall === true ? taskColor : settings.barColor.defaultColor,
                         KPIValues: kpiValues,
                         identity: null,
                         selected: false,
                         tooltipInfo: null,
                         selectionId: host.createSelectionIdBuilder()
                             .withCategory(dataView.categorical.categories[0], index)
+                            .createSelectionId(),
+                        legendSelectionid: host.createSelectionIdBuilder()
+                            .withMeasure(categories[0].values[index].toString())
                             .createSelectionId()
                     });
                 } else {
-                    tasks.push({
-                        id: index,
-                        name: taskValues,
-                        start: startDate,
-                        end: endDate,
-                        numStart: datamin,
-                        numEnd: datamax,
-                        resource: resource,
-                        color: settings.barColor.defaultColor,
-                        KPIValues: kpiValues,
-                        identity: null,
-                        selected: false,
-                        tooltipInfo: null,
-                        selectionId: host.createSelectionIdBuilder()
-                            .withCategory(dataView.categorical.categories[0], index)
-                            .createSelectionId()
-                    });
+                    repeatVar = 0;
+                    if (settings.barColor.showall) {
+                        tasks.push({
+                            id: index,
+                            repeat: repeatVar,
+                            name: taskValues,
+                            start: startDate,
+                            end: endDate,
+                            numStart: datamin,
+                            numEnd: datamax,
+                            resource: resource,
+                            color: settings.barColor.showall === true ?
+                            this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0],
+                                                                 index, 'barColor', 'fillColor', defaultColor).solid.color
+                            : settings.barColor.defaultColor,
+                            KPIValues: kpiValues,
+                            identity: null,
+                            selected: false,
+                            tooltipInfo: null,
+                            selectionId: host.createSelectionIdBuilder()
+                                .withCategory(dataView.categorical.categories[0], index)
+                                .createSelectionId(),
+                            legendSelectionid: host.createSelectionIdBuilder()
+                                .withMeasure(categories[0].values[index].toString())
+                                .createSelectionId()
+                        });
+                        uniquesColorsForLegends.push({
+                            color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
+                                                                        'barColor', 'fillColor', defaultColor).solid.color
+                        });
+                    } else {
+                        tasks.push({
+                            id: index,
+                            repeat: repeatVar,
+                            name: taskValues,
+                            start: startDate,
+                            end: endDate,
+                            numStart: datamin,
+                            numEnd: datamax,
+                            resource: resource,
+                            color: settings.barColor.defaultColor,
+                            KPIValues: kpiValues,
+                            identity: null,
+                            selected: false,
+                            tooltipInfo: null,
+                            selectionId: host.createSelectionIdBuilder()
+                                .withCategory(dataView.categorical.categories[0], index)
+                                .createSelectionId(),
+                            legendSelectionid: host.createSelectionIdBuilder()
+                                .withMeasure(categories[0].values[index].toString())
+                                .createSelectionId()
+                        });
+                        uniquesColorsForLegends.push({
+                            color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
+                                                                        'barColor', 'fillColor', defaultColor).solid.color
+                        });
+                    }
                 }
+
                 Gantt.selectionIdHash[index] = false;
                 tasks[index].tooltipInfo = Gantt.getTooltipInfo(tasks[index], formatters, dataView, index);
                 largest = index;
+                if (legendIndex !== -1) {
+                    uniqueLegend = (dataView.categorical.categories[legendIndex].values)
+                        .filter(function (e: PrimitiveValue, iIndex: number, arr: PrimitiveValue[]): boolean {
+                            return arr.lastIndexOf(e) === iIndex;
+                        });
+                }
+
+                legendsIndex = legendIndex;
+            });
+            uniqueColors = [];
+
+            let legendIndex: number = -1;
+            const categories: DataViewCategoryColumn[] = dataView.categorical.categories;
+            categories.forEach(function (datum: DataViewCategoricalColumn, iIterator: number): void {
+                if (datum.source.roles.Legend) {
+                    legendIndex = iIterator;
+                }
             });
 
+            if (legendIndex !== -1) {
+                uniqueLegend.forEach(function (d: PrimitiveValue, jIndex: number): void {
+                    legendData.dataPoints.push({
+                        label: d.toString(),  //name of the label
+                        color: uniquesColorsForLegends[jIndex].color,
+                        icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box, //type of the legend icon,
+                        selected: false,  // indicates of the legend is selected or not
+                        identity: host.createSelectionIdBuilder()
+                            .withMeasure(d.toString())
+                            .createSelectionId()  //selectionId of the legend
+                    });
+                    uniqueColors.push({
+                        name: d,
+                        color: tasks[jIndex].color
+                    });
+                });
+            }
+            if (legendsIndex !== -1) {
+                barsLegend.changeOrientation(LegendPosition.Top);
+                barsLegend.drawLegend(legendData, viewport);
+                position(d3.select('.gantt-body'), barsLegend);
+            }
             let levelofSorting: number = Gantt.sortLevel;
             Gantt.numberOfCategories = categoryRoles.length;
             let iIterator: number = 0;
@@ -1690,7 +1893,7 @@ module powerbi.extensibility.visual {
             return tasks;
         }
 
-        private adjustResizing(tasks: Task[], taskLabelwidth: number, viewModel: GanttViewModel): void {
+        private adjustResizing(task: Task[], taskLabelwidth: number, viewModel: GanttViewModel): void {
             let pressed: boolean;
             pressed = false;
             let moved: boolean;
@@ -1709,7 +1912,7 @@ module powerbi.extensibility.visual {
             let columnNumber: number;
             columnNumber = 0;
             let categoriesLength: number;
-            categoriesLength = tasks[0].name.length;
+            categoriesLength = task[0].name.length;
             const resizerClassLiteral: string = '.gantt_resizer';
 
             $(resizerClassLiteral).mousedown(function (e: JQueryMouseEventObject): void {
@@ -1719,9 +1922,8 @@ module powerbi.extensibility.visual {
                 pressed = true;
                 startX = e.pageX;
                 startWidth = this.x.animVal.value;
-                lastRectStartX = parseFloat($(headerCellClassLiteral + (tasks[0].name.length - 1)).attr('x'));
+                lastRectStartX = parseFloat($(headerCellClassLiteral + (task[0].name.length - 1)).attr('x'));
             });
-
             let columnX: string[];
             columnX = [];
             let scrollerX: string[];
@@ -1737,7 +1939,7 @@ module powerbi.extensibility.visual {
             let barLeft: string;
             barLeft = d3.select('.gantt_barPanel').style('left');
             let scroller: number;
-            for (let iIterator: number = parseInt(columnNumber + nullStringLiteral, 10); iIterator < tasks[0].name.length; iIterator++) {
+            for (let iIterator: number = parseInt(columnNumber + nullStringLiteral, 10); iIterator < task[0].name.length; iIterator++) {
                 columnX[iIterator] = d3.select(taskColumnClassLiteral + iIterator).attr('x');
                 if (iIterator !== 0) {
                     scrollerX[iIterator] = d3.select(headerCellClassLiteral + iIterator).attr('x');
@@ -1810,14 +2012,14 @@ module powerbi.extensibility.visual {
                     if (reflectChange) {
                         if (calculateWidth >= previousColumnStart) {
                             d3.select(dotLiteral + columnClass).attr('x', calculateWidth);
-                            for (let iIterator: number = scroller; iIterator < tasks[0].name.length; iIterator++) {
+                            for (let iIterator: number = scroller; iIterator < task[0].name.length; iIterator++) {
                                 scrollAdd = parseFloat(scrollerX[iIterator]) + parseFloat(xDiff.toString());
                                 d3.select(headerCellClassLiteral + iIterator).attr('x', scrollAdd);
                             }
 
                             let sum: number;
                             for (let iIterator: number = parseInt(columnNumber + nullStringLiteral, 10);
-                                iIterator < tasks[0].name.length; iIterator++) {
+                                iIterator < task[0].name.length; iIterator++) {
                                 sum = parseFloat(columnX[iIterator]) + parseFloat(xDiff.toString());
                                 d3.selectAll(taskColumnClassLiteral + iIterator).attr('x', sum);
                                 d3.selectAll(categoryIdLiteral + iIterator).attr('x', sum);
@@ -1830,7 +2032,7 @@ module powerbi.extensibility.visual {
             $(document).mouseup(function (): void {
                 if (pressed) {
                     pressed = false;
-                    thisObj.persistResizeData(tasks[0].name.length, viewModel);
+                    thisObj.persistResizeData(task[0].name.length, viewModel);
                 }
                 if (moved && columnClass) {
                     columnClass = undefined;
@@ -1991,7 +2193,10 @@ module powerbi.extensibility.visual {
          * Convert the dataView to view model
          * @param dataView The data Model
          */
-        public static converter(dataView: DataView, host: IVisualHost, colors: IColorPalette): GanttViewModel {
+        public static converter(dataView: DataView, host: IVisualHost, colors: IColorPalette,
+            // tslint:disable-next-line:no-any
+                                barsLegend: ILegend, viewport: any): GanttViewModel {
+
             if (!dataView
                 || !dataView.categorical
                 || !Gantt.isChartHasTask(dataView)) {
@@ -2017,7 +2222,8 @@ module powerbi.extensibility.visual {
             }
 
             Gantt.formatters = this.getFormatters(dataView);
-            const tasksNew: Task[] = Gantt.createTasks(dataView, host, Gantt.formatters, colors, settings);
+
+            const tasksNew: Task[] = Gantt.createTasks(dataView, host, Gantt.formatters, colors, settings, barsLegend, viewport);
 
             return {
                 dataView: dataView,
@@ -2069,6 +2275,12 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
+            // iterator = 0;
+            d3.selectAll('.legend').remove();
+            const legendLiteralRoles: string = 'Legend';
+            uniqueLegend = [];
+            uniquesColorsForLegends = [];
+            Gantt.colorsIndex = 0;
             Gantt.kpiLabelWidth = 75;
             Gantt.globalOptions = options;
             if (!options.dataViews || !options.dataViews[0]) {
@@ -2076,6 +2288,16 @@ module powerbi.extensibility.visual {
 
                 return;
             }
+            for (let index: number = 0; index < options.dataViews[0].categorical.categories.length; index++) {
+                if (options.dataViews[0].categorical.categories[index].source.roles[legendLiteralRoles] === true) {
+                    iterator = 1;
+                    break;
+                }
+            }
+            if (iterator === 1) {
+                this.barsLegend = createLegend($(this.element), false, null, true);
+            }
+
             let hasStart: boolean = false;
             let hasEnd: boolean = false;
             if (options.dataViews[0].categorical.values) {
@@ -2104,57 +2326,57 @@ module powerbi.extensibility.visual {
             Gantt.prevSortedColumn = getJSONString2;
             const thisObj: this = this;
 
-            this.viewModel = Gantt.converter(options.dataViews[0], this.host, this.colors);
-
+            this.viewModel = Gantt.converter(options.dataViews[0], this.host, this.colors, this.barsLegend, options.viewport);
+            this.barsLegend.changeOrientation(LegendPosition.Top);
             Gantt.viewModelNew = this.viewModel;
             if (!this.viewModel || !this.viewModel.tasksNew) {
                 this.clearViewport();
-                this.ganttDiv.classed('gantt_hidden', true);
-                this.errorDiv.classed('gantt_hidden', false);
+                Gantt.ganttDiv.classed('gantt_hidden', true);
+                Gantt.errorDiv.classed('gantt_hidden', false);
                 let errorStatement: string;
                 errorStatement = 'Please add data to the Category field to load the visual';
-                this.errorText.text(errorStatement);
+                Gantt.errorText.text(errorStatement);
 
                 return;
             } else if (this.viewModel.tasksNew.length === 0) {
                 this.clearViewport();
-                this.ganttDiv.classed('gantt_hidden', true);
-                this.errorDiv.classed('gantt_hidden', false);
+                Gantt.ganttDiv.classed('gantt_hidden', true);
+                Gantt.errorDiv.classed('gantt_hidden', false);
                 let errorStatement: string;
                 errorStatement = 'There is no data to display';
-                this.errorText.text(errorStatement);
+                Gantt.errorText.text(errorStatement);
 
                 return;
             } else if (!hasStart && !hasEnd) {
                 this.clearViewport();
-                this.ganttDiv.classed('gantt_hidden', true);
-                this.errorDiv.classed('gantt_hidden', false);
+                Gantt.ganttDiv.classed('gantt_hidden', true);
+                Gantt.errorDiv.classed('gantt_hidden', false);
                 let errorStatement: string;
                 errorStatement = 'Please add data to the Start and End field to load the visual';
-                this.errorText.text(errorStatement);
+                Gantt.errorText.text(errorStatement);
 
                 return;
             } else if (!hasStart) {
                 this.clearViewport();
-                this.ganttDiv.classed('gantt_hidden', true);
-                this.errorDiv.classed('gantt_hidden', false);
+                Gantt.ganttDiv.classed('gantt_hidden', true);
+                Gantt.errorDiv.classed('gantt_hidden', false);
                 let errorStatement: string;
                 errorStatement = 'Please add data to the Start field to load the visual';
-                this.errorText.text(errorStatement);
+                Gantt.errorText.text(errorStatement);
 
                 return;
             } else if (!hasEnd) {
                 this.clearViewport();
-                this.ganttDiv.classed('gantt_hidden', true);
-                this.errorDiv.classed('gantt_hidden', false);
+                Gantt.ganttDiv.classed('gantt_hidden', true);
+                Gantt.errorDiv.classed('gantt_hidden', false);
                 let errorStatement: string;
                 errorStatement = 'Please add data to the End field to load the visual';
-                this.errorText.text(errorStatement);
+                Gantt.errorText.text(errorStatement);
 
                 return;
             } else {
-                this.errorDiv.classed('gantt_hidden', true);
-                this.ganttDiv.classed('gantt_hidden', false);
+                Gantt.errorDiv.classed('gantt_hidden', true);
+                Gantt.ganttDiv.classed('gantt_hidden', false);
             }
 
             Gantt.isPhaseHighlighted = false;
@@ -3140,13 +3362,13 @@ module powerbi.extensibility.visual {
                 this.bottommilestoneDiv.style({
                     bottom: PixelConverter
                         .toString(this.viewport.height - Gantt.axisHeight - Gantt.bottomMilestoneHeight - Gantt.scrollHeight
-                        - (Gantt.currentTasksNumber * chartLineHeight + 20))
+                            - (Gantt.currentTasksNumber * chartLineHeight + 20))
                 });
 
                 this.bottomTaskDiv.style({
                     bottom: PixelConverter
                         .toString(this.viewport.height - Gantt.axisHeight - Gantt.bottomMilestoneHeight - Gantt.scrollHeight
-                        - (Gantt.currentTasksNumber * chartLineHeight + 20))
+                            - (Gantt.currentTasksNumber * chartLineHeight + 20))
                 });
 
                 thisObj.barDiv.style('height', '100%');
@@ -3408,7 +3630,8 @@ module powerbi.extensibility.visual {
                         Gantt.sortOrder = 'asc';
                     }
                     Gantt.sortLevel = iCounter;
-                    thisObj.viewModel = Gantt.converter(Gantt.globalOptions.dataViews[0], thisObj.host, thisObj.colors);
+                    thisObj.viewModel = Gantt.converter(Gantt.globalOptions.dataViews[0],
+                                                        thisObj.host, thisObj.colors, thisObj.barsLegend, thisObj.options.viewport);
 
                     for (let jCounter: number = 0; jCounter < Gantt.numberOfCategories; jCounter++) {
                         if (jCounter !== iCounter) {
@@ -3735,9 +3958,9 @@ module powerbi.extensibility.visual {
 
                 this.gridGroup.selectAll('line').style({ stroke: taskGridLinesColor });
                 this.gridGroup.selectAll('text').remove();
-                for (let i: number = 0; i < xAxisProperties.values.length; i++) {
-                    if (i % taskGridLinesInterval !== 0) {
-                        d3.select(this.gridGroup.selectAll('line')[0][i]).attr('visibility', 'hidden');
+                for (let iIndex: number = 0; iIndex < xAxisProperties.values.length; iIndex++) {
+                    if (iIndex % taskGridLinesInterval !== 0) {
+                        d3.select(this.gridGroup.selectAll('line')[0][iIndex]).attr('visibility', 'hidden');
                     }
                 }
             }
@@ -3779,6 +4002,7 @@ module powerbi.extensibility.visual {
          * @param width : number of characters to be displayed
          */
         private static getKPIValues(kpiValue: KPIValues, property: string): string {
+
             let singleTask: string = kpiValue.value ? kpiValue.value.toString() : '';
             if (property === 'text') {
                 if (singleTask.length > 8) {
@@ -3811,7 +4035,7 @@ module powerbi.extensibility.visual {
          * @param tasks All tasks array
          * @param width The task label width
          */
-        private updateTaskLabels(tasks: Task[], width: number): void {
+        private updateTaskLabels(task: Task[], width: number): void {
             let axisLabel: Selection<HTMLElement>;
             let columnHeaderColor: string;
             let columnHeaderBgColor: string;
@@ -3856,7 +4080,7 @@ module powerbi.extensibility.visual {
             taskLabelsFontSize = this.viewModel.settings.taskLabels.fontSize;
             taskLabelsFontFamily = this.viewModel.settings.taskLabels.fontFamily;
             totalKPIs = this.viewModel.kpiData.length;
-            totalCategories = tasks[0].name.length;
+            totalCategories = task[0].name.length;
             normalizer = (this.viewModel.settings.taskLabels.fontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
             kpiFontSize = 23 * Gantt.maximumNormalizedFontSize / Gantt.maximumFontSize;
             kpiFontColor = '#000';
@@ -4113,9 +4337,9 @@ module powerbi.extensibility.visual {
                                 'background-color': columnHeaderBgColor
                             })
                             .call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            100,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                100,
+                                textMeasurementService.svgEllipsis);
                     } else {
                         d3.select(categoryClassLiteral + jCount)
                             .text(Gantt.categoriesTitle[jCount])
@@ -4127,10 +4351,10 @@ module powerbi.extensibility.visual {
                                 'background-color': columnHeaderBgColor
                             })
                             .call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            kpiPanelWidth -
-                            lastRectX,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                kpiPanelWidth -
+                                lastRectX,
+                                textMeasurementService.svgEllipsis);
                     }
 
                 } else {
@@ -4190,7 +4414,7 @@ module powerbi.extensibility.visual {
                 });
 
                 let sKPITitle: string;
-                sKPITitle = this.viewModel.kpiData[jCount].name;
+                sKPITitle = tasks[0].KPIValues[jCount].name;
                 let sFirstWord: string;
                 sFirstWord = sKPITitle.substr(0, sKPITitle.indexOf(' '));
                 switch (sFirstWord) {
@@ -4346,23 +4570,23 @@ module powerbi.extensibility.visual {
                             if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 1) || lastRectX > barPanelLeft - 1) {
                                 axisLabel.text(categoryLabel)
                                     .call(
-                                    AxisHelper.LabelLayoutStrategy.clip,
-                                    100,
-                                    textMeasurementService.svgEllipsis);
+                                        AxisHelper.LabelLayoutStrategy.clip,
+                                        100,
+                                        textMeasurementService.svgEllipsis);
                             } else {
                                 axisLabel.text(categoryLabel)
                                     .call(
-                                    AxisHelper.LabelLayoutStrategy.clip,
-                                    parseInt(d3.select('.gantt_kpiPanel').style('left'), 10) - lastRectX - 10,
-                                    textMeasurementService.svgEllipsis);
+                                        AxisHelper.LabelLayoutStrategy.clip,
+                                        parseInt(d3.select('.gantt_kpiPanel').style('left'), 10) - lastRectX - 10,
+                                        textMeasurementService.svgEllipsis);
                             }
 
                         } else {
                             axisLabel.text(categoryLabel)
                                 .call(
-                                AxisHelper.LabelLayoutStrategy.clip,
-                                columnWidthsArr[jCount] - 20,
-                                textMeasurementService.svgEllipsis);
+                                    AxisHelper.LabelLayoutStrategy.clip,
+                                    columnWidthsArr[jCount] - 20,
+                                    textMeasurementService.svgEllipsis);
                         }
 
                         axisLabel.append('title').text(Gantt.getLabelValuesNew(categoryLabel, 'title', width));
@@ -4551,6 +4775,7 @@ module powerbi.extensibility.visual {
                             }).style('font-size', kpiFontSize + pxLiteral);
 
                             axisKPILabel.text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'text'));
+
                             axisKPILabel.append('title').text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'title'));
                         }
                     }
@@ -4702,9 +4927,9 @@ module powerbi.extensibility.visual {
                                 'font-size': labelnormalizer + pxLiteral,
                                 'font-family': dataLabelsFontFamily
                             }).call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
+                                textMeasurementService.svgEllipsis);
                         taskResource.append('title').text(currentLevel.resource);
                     }
                 }
@@ -4829,9 +5054,9 @@ module powerbi.extensibility.visual {
                                 'font-size': labelnormalizer + pxLiteral,
                                 'font-family': dataLabelsFontFamily
                             }).call(
-                            AxisHelper.LabelLayoutStrategy.clip,
-                            Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
-                            textMeasurementService.svgEllipsis);
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
+                                textMeasurementService.svgEllipsis);
                         taskResource.append('title').text(currentLevel.resource);
                     }
                     let selectionManager: ISelectionManager;
@@ -4938,20 +5163,20 @@ module powerbi.extensibility.visual {
                 let selectedSelID: ISelectionId[];
                 selectedSelID = [];
                 const tasksLength2: number = tasks.length;
-                for (let i: number = 0; i < tasksLength2; i++) {
+                for (let iIndex: number = 0; iIndex < tasksLength2; iIndex++) {
                     for (let j: number = tasks[0].name.length - 1; j >= 0; j--) {
-                        if (!(tasks[i].name[j])) { continue; }
+                        if (!(tasks[iIndex].name[j])) { continue; }
                         let currentcategory: string;
                         if (j === 0) {
-                            currentcategory = Gantt.regionValueFormatter.format(tasks[i].name[j]);
+                            currentcategory = Gantt.regionValueFormatter.format(tasks[iIndex].name[j]);
                         } else if (j === 1) {
-                            currentcategory = Gantt.metroValueFormatter.format(tasks[i].name[j]);
+                            currentcategory = Gantt.metroValueFormatter.format(tasks[iIndex].name[j]);
                         } else if (j === 2) {
-                            currentcategory = Gantt.projectValueFormatter.format(tasks[i].name[j]);
+                            currentcategory = Gantt.projectValueFormatter.format(tasks[iIndex].name[j]);
                         } else {
-                            currentcategory = Gantt.trancheValueFormatter.format(tasks[i].name[j]);
+                            currentcategory = Gantt.trancheValueFormatter.format(tasks[iIndex].name[j]);
                         }
-                        let k: number = i;
+                        let k: number = iIndex;
                         if (currentcategory === categoryName || currentcategory.toString() === categoryName) {
                             if (Gantt.previousSel === categoryName) {
                                 for (let m: number = 0; m < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length; m++) {
@@ -4995,10 +5220,10 @@ module powerbi.extensibility.visual {
                 }
 
                 selectedSelID = [];
-                for (let i: number = 0; i < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length; i++) {
-                    if (Gantt.selectionIdHash[i] && selectionIds[i]) {
-                        selectedSelID.push(selectionIds[i]);
-                        $(taskRowClassLiteral + i).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
+                for (let iIndex: number = 0; iIndex < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length; iIndex++) {
+                    if (Gantt.selectionIdHash[iIndex] && selectionIds[iIndex]) {
+                        selectedSelID.push(selectionIds[iIndex]);
+                        $(taskRowClassLiteral + iIndex).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
                         Gantt.isSelected = true;
                     }
                     if (selectedSelID.length === selectionIds.length || selectedSelID.length === 0) {
@@ -5200,16 +5425,15 @@ module powerbi.extensibility.visual {
                 results = '';
                 let angle: number;
                 angle = Math.PI / arms;
-                let i: number;
-                for (i = 0; i < 2 * arms; i++) {
+                for (let iIndex: number = 0; iIndex < 2 * arms; iIndex++) {
                     let r: number;
-                    r = (i % 2) === 0 ? outerRadius : innerRadius;
+                    r = (iIndex % 2) === 0 ? outerRadius : innerRadius;
                     let currX: number;
-                    currX = centerX + Math.cos(i * angle) * r;
+                    currX = centerX + Math.cos(iIndex * angle) * r;
                     let currY: number;
-                    currY = centerY + Math.sin(i * angle) * r;
+                    currY = centerY + Math.sin(iIndex * angle) * r;
 
-                    if (i === 0) {
+                    if (iIndex === 0) {
                         results = currX + commaLiteral + currY;
                     } else {
                         results += commaLiteral + spaceLiteral + currX + commaLiteral + currY;
@@ -5462,7 +5686,7 @@ module powerbi.extensibility.visual {
                     return Gantt.enumerateDisplayRatio(settings);
                 }
                 case 'barColor': {
-                    return Gantt.enumerateBarColor(settings);
+                    return Gantt.enumerateBarColor(options, settings);
                 }
                 default: {
                     return [];
@@ -5484,49 +5708,60 @@ module powerbi.extensibility.visual {
             return instances;
         }
 
-        private static enumerateBarColor(settings: IGanttSettings): VisualObjectInstance[] {
+        // tslint:disable-next-line:no-any
+        private static enumerateBarColor(options: any, settings: IGanttSettings): VisualObjectInstance[] {
             const barSettings: IBarColor = settings.barColor;
             const limiter: number = this.viewModelNew.tasksNew.length;
+            const legendLength: number = uniqueLegend.length;
             const instances: VisualObjectInstance[] = [];
-
-            if (settings.barColor.showall) {
-                instances.push({
-                    objectName: 'barColor',
-                    displayName: `Show All`,
-                    properties: {
+            let index: number = 0;
+            instances.push({
+                objectName: 'barColor',
+                displayName: `Show All`,
+                properties: {
                     showall: settings.barColor.showall
-                    },
-                    selector: null
-                });
-                for (let iterator: number  = 0; iterator < limiter; iterator++) {
-                    instances.push({
-                        objectName: 'barColor',
-                        displayName: `Bar ${iterator + 1}`,
-                        properties: {
-                        fillColor: this.viewModelNew.tasksNew[iterator].color
-                        },
-                        selector: this.viewModelNew.tasksNew[iterator].selectionId.getSelector()
-                    });
+                },
+                selector: null
+            });
+            if (settings.barColor.showall === true) {
+                if (uniqueLegend.length === 0) {
+                    for (let iIterator: number = 0; iIterator < tasks.length; iIterator++) {
+                        if (tasks[iIterator].repeat === 0) {
+                            instances.push({
+                                objectName: 'barColor',
+                                displayName: `Bars color ${index + 1}`,
+                                properties: {
+                                    fillColor: tasks[iIterator].color
+                                },
+                                selector: tasks[iIterator].selectionId.getSelector()
+                            });
+                            index++;
+                        }
+                    }
+                } else {
+                    for (let jIterator: number = 0; jIterator < tasks.length; jIterator++) {
+                        if (tasks[jIterator].repeat === 0) {
+                            instances.push({
+                                objectName: 'barColor',
+                                displayName: `${uniqueLegend[index]}`,
+                                properties: {
+                                    fillColor: tasks[jIterator].color
+                                },
+                                selector: tasks[jIterator].selectionId.getSelector()
+                            });
+                            index++;
+                        }
+                    }
                 }
             } else {
                 instances.push({
                     objectName: 'barColor',
                     displayName: `Default color`,
                     properties: {
-                    defaultColor: settings.barColor.defaultColor
+                        defaultColor: settings.barColor.defaultColor
                     },
                     selector: null
                 });
-
-                instances.push({
-                    objectName: 'barColor',
-                    displayName: `Show All`,
-                    properties: {
-                    showall: settings.barColor.showall
-                    },
-                    selector: null
-                });
-
             }
 
             return instances;
