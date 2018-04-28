@@ -1050,7 +1050,6 @@ module powerbi.extensibility.visual {
                     } else {
                         legendHeight = 0;
                     }
-                    //this.rootDiv.style('height', (height) + pxLiteral);
                     height = height - legendHeight > 0 ? height - legendHeight : 0;
                     this.svg.attr({
                         width: width,
@@ -1090,7 +1089,7 @@ module powerbi.extensibility.visual {
                     const dataSetFormatMaxValue: number = dataSetMaxLength > dataSetMinLength ? viewModel.dataMax : viewModel.dataMin;
                     const maxValue: number = yAxisFormatMaxValue.toString().length > dataSetFormatMaxValue.toString().length
                         ? yAxisFormatMaxValue : dataSetFormatMaxValue;
-                    formattedMaxMeasure = this.yAxisFormatter.format(parseFloat(maxValue.toString()) * 1.1);
+                    formattedMaxMeasure = this.yAxisFormatter.format(parseFloat(maxValue.toString()) * 1.3);
                     let measureTextProperties: TextProperties;
                     measureTextProperties = {
                         text: formattedMaxMeasure,
@@ -1144,6 +1143,7 @@ module powerbi.extensibility.visual {
                     }
 
                     if (horizontal.show) {
+                        this.rootDiv.style('overflow-y', 'auto');
                         margins.left = 30;
                         xScale = d3.scale.ordinal()
                             .domain(viewModel.dataPoints.reverse().map((d: IBarChartDataPoint) => d.category))
@@ -1801,6 +1801,7 @@ module powerbi.extensibility.visual {
                         allowInteractions = this.host.allowInteractions;
 
                     } else {
+                        this.rootDiv.style('overflow-y', 'hidden');
                         xScale = d3.scale.ordinal()
                             .domain(viewModel.dataPoints.map((d: IBarChartDataPoint) => d.category))
                             .rangeBands([margins.left, width], 0.2, 0.3);
