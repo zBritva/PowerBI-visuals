@@ -245,6 +245,8 @@ module powerbi.extensibility.visual {
         private targetColumnformatter: IValueFormatter;
         private binColumnformatter: IValueFormatter;
         private dataPaneColumns: DataViewMetadataColumn[] = [];
+        //Last Selected bar
+        private lastSelectedbar: number;
         // Add colors to this array
         private colors: string[][] = [['#330000', '#331900', '#333300', '#193300', '#003300',
             '#003319', '#003333', '#001933', '#000033', '#190033', '#330033', '#330019', '#000000'],
@@ -1647,21 +1649,64 @@ module powerbi.extensibility.visual {
                                         }
                                         // tslint:disable-next-line:no-any
                                         const selectionIds: any[] = dat.values[0][level].values.selectionId;
-                                        thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
-                                            if (d3.select(this).classed('selected')) {
-                                                d3.select(this).classed('selected', false);
-                                                thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
-                                                    opacity: 1
-                                                }));
-                                            } else {
-                                                d3.select(this).classed('selected', true);
+                                        // tslint:disable-next-line:no-any
+                                        const lastindex: any = thisObj.selectionManager;
+                                        // tslint:disable-next-line:no-any
+                                        const lastIndexLen: any = lastindex.selectedIds.length;
+                                        const isCrtlPressed: boolean = (d3.event as MouseEvent).ctrlKey;
+                                        thisObj.selectionManager.select(selectionIds, isCrtlPressed).then((ids: ISelectionId[]) => {
+                                            if (isCrtlPressed) {
+                                            if (lastIndexLen === 0 && !(d3.select(this).classed('selected'))) {
                                                 d3.selectAll('.inDiv').style({
                                                     opacity: 0.3
                                                 });
                                                 d3.select(this).style({
                                                     opacity: 1
-                                                });
+                                                })
+                                                .classed('selected', true);
+                                                thisObj.lastSelectedbar = 1;
+                                            } else if (d3.select(this).classed('selected')) {
+                                                d3.select(this).style({
+                                                    opacity: 0.3
+                                                })
+                                                .classed('selected', false);
+                                                thisObj.lastSelectedbar--;
+                                                if (thisObj.lastSelectedbar === 0) {
+                                                    d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    });
+                                                }
+                                            } else {
+                                                d3.select(this).style({
+                                                    opacity: 1
+                                                })
+                                                .classed('selected', true);
+                                                thisObj.lastSelectedbar++;
                                             }
+                                        } else {
+                                            if (d3.select(this).classed('selected')) {
+                                                d3.select(this).classed('selected', false);
+                                                thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                    opacity: 1
+                                                }));
+                                                if (!isCrtlPressed) {
+                                                    thisObj.lastSelectedbar--;
+                                                }
+                                            } else {
+                                            d3.selectAll('.inDiv').style({
+                                                opacity: 0.3
+                                            })
+                                            .classed('selected', false);
+                                            d3.select(this).style({
+                                                opacity: 1
+                                            })
+                                            .classed('selected', true);
+                                            thisObj.lastSelectedbar = 0;
+                                            if (!isCrtlPressed) {
+                                                    thisObj.lastSelectedbar++;
+                                                }
+                                        }
+                                        }
                                         });
                                         (<Event>d3.event).stopPropagation();
                                     })
@@ -1684,6 +1729,7 @@ module powerbi.extensibility.visual {
                                     thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
                                         opacity: 1
                                     }));
+                                    d3.selectAll('.inDiv').classed('selected', false);
                                 });
                                 increment++;
                             } else {
@@ -1706,20 +1752,63 @@ module powerbi.extensibility.visual {
                                         }
                                         // tslint:disable-next-line:no-any
                                         const selectionIds: any[] = datum.values[0][level].values.selectionId;
-                                        thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
-                                            if (d3.select(this).classed('selected')) {
-                                                d3.select(this).classed('selected', false);
-                                                thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
-                                                    opacity: 1
-                                                }));
+                                        // tslint:disable-next-line:no-any
+                                        const lastindex: any = thisObj.selectionManager;
+                                        // tslint:disable-next-line:no-any
+                                        const lastIndexLen: any = lastindex.selectedIds.length;
+                                        const isCrtlPressed: boolean = (d3.event as MouseEvent).ctrlKey;
+                                        thisObj.selectionManager.select(selectionIds, isCrtlPressed).then((ids: ISelectionId[]) => {
+                                            if (isCrtlPressed) {
+                                                if (lastIndexLen === 0 && !(d3.select(this).classed('selected'))) {
+                                                    d3.selectAll('.inDiv').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    d3.select(this).style({
+                                                        opacity: 1
+                                                    })
+                                                    .classed('selected', true);
+                                                    thisObj.lastSelectedbar = 1;
+                                                } else if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).style({
+                                                        opacity: 0.3
+                                                    })
+                                                    .classed('selected', false);
+                                                    thisObj.lastSelectedbar--;
+                                                    if (thisObj.lastSelectedbar === 0) {
+                                                        d3.selectAll('.inDiv').style({
+                                                            opacity: 1
+                                                        });
+                                                    }
+                                                } else {
+                                                    d3.select(this).style({
+                                                        opacity: 1
+                                                    })
+                                                    .classed('selected', true);
+                                                    thisObj.lastSelectedbar++;
+                                                }
                                             } else {
-                                                d3.select(this).classed('selected', true);
+                                                if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).classed('selected', false);
+                                                    thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    }));
+                                                    if (!isCrtlPressed) {
+                                                        thisObj.lastSelectedbar--;
+                                                    }
+                                                } else {
                                                 d3.selectAll('.inDiv').style({
                                                     opacity: 0.3
-                                                });
+                                                })
+                                                .classed('selected', false);
                                                 d3.select(this).style({
                                                     opacity: 1
-                                                });
+                                                })
+                                                .classed('selected', true);
+                                                thisObj.lastSelectedbar = 0;
+                                                if (!isCrtlPressed) {
+                                                    thisObj.lastSelectedbar++;
+                                                }
+                                            }
                                             }
                                         });
                                         (<Event>d3.event).stopPropagation();
@@ -1750,6 +1839,7 @@ module powerbi.extensibility.visual {
                                     thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
                                         opacity: 1
                                     }));
+                                    d3.selectAll('.inDiv').classed('selected', false);
                                 });
                                 increment++;
                             }
@@ -1769,21 +1859,64 @@ module powerbi.extensibility.visual {
                             .on('click', function (d: any): void {
                                 // tslint:disable-next-line:no-any
                                 const selectionIds: any[] = datum[`values`][`selectionId`];
-                                thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
-                                    if (d3.select(this).classed('selected')) {
-                                        d3.select(this).classed('selected', false);
-                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
-                                            opacity: 1
-                                        }));
-                                    } else {
-                                        d3.select(this).classed('selected', true);
+                                // tslint:disable-next-line:no-any
+                                const lastindex: any = thisObj.selectionManager;
+                                // tslint:disable-next-line:no-any
+                                const lastIndexLen: any = lastindex.selectedIds.length;
+                                const isCrtlPressed: boolean = (d3.event as MouseEvent).ctrlKey;
+                                thisObj.selectionManager.select(selectionIds, isCrtlPressed).then((ids: ISelectionId[]) => {
+                                    if (isCrtlPressed) {
+                                    if (lastIndexLen === 0 && !(d3.select(this).classed('selected'))) {
                                         d3.selectAll('.thebar').style({
                                             opacity: 0.3
                                         });
                                         d3.select(this).style({
                                             opacity: 1
-                                        });
+                                        })
+                                        .classed('selected', true);
+                                        thisObj.lastSelectedbar = 1;
+                                    } else if (d3.select(this).classed('selected')) {
+                                        d3.select(this).style({
+                                            opacity: 0.3
+                                        })
+                                        .classed('selected', false);
+                                        thisObj.lastSelectedbar--;
+                                        if (thisObj.lastSelectedbar === 0) {
+                                            d3.selectAll('.thebar').style({
+                                                opacity: 1
+                                            });
+                                        }
+                                    } else {
+                                        d3.select(this).style({
+                                            opacity: 1
+                                        })
+                                        .classed('selected', true);
+                                        thisObj.lastSelectedbar++;
                                     }
+                                } else {
+                                    if (d3.select(this).classed('selected')) {
+                                        d3.select(this).classed('selected', false);
+                                        thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
+                                            opacity: 1
+                                        }));
+                                        if (!isCrtlPressed) {
+                                            thisObj.lastSelectedbar--;
+                                        }
+                                    } else {
+                                    d3.selectAll('.thebar').style({
+                                        opacity: 0.3
+                                    })
+                                    .classed('selected', false);
+                                    d3.select(this).style({
+                                        opacity: 1
+                                    })
+                                    .classed('selected', true);
+                                    thisObj.lastSelectedbar = 0;
+                                    if (!isCrtlPressed) {
+                                        thisObj.lastSelectedbar++;
+                                    }
+                                }
+                                }
                                 });
                                 (<Event>d3.event).stopPropagation();
                             });
@@ -1797,6 +1930,7 @@ module powerbi.extensibility.visual {
                             thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
                                 opacity: 1
                             }));
+                            d3.selectAll('.thebar').classed('selected', false);
                         });
                     }
                 }).style('margin-left', `${ratio * rowWidth}px`);
@@ -2224,20 +2358,63 @@ module powerbi.extensibility.visual {
                                         }
                                         // tslint:disable-next-line:no-any
                                         const selectionIds: any[] = dat.values[0][level].values.selectionId;
-                                        thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
-                                            if (d3.select(this).classed('selected')) {
-                                                d3.select(this).classed('selected', false);
-                                                thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
-                                                    opacity: 1
-                                                }));
+                                        // tslint:disable-next-line:no-any
+                                        const lastindex: any = thisObj.selectionManager;
+                                        // tslint:disable-next-line:no-any
+                                        const lastIndexLen: any = lastindex.selectedIds.length;
+                                        const isCrtlPressed: boolean = (d3.event as MouseEvent).ctrlKey;
+                                        thisObj.selectionManager.select(selectionIds, isCrtlPressed).then((ids: ISelectionId[]) => {
+                                            if (isCrtlPressed) {
+                                                if (lastIndexLen === 0 && !(d3.select(this).classed('selected'))) {
+                                                    d3.selectAll('.inDiv').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    d3.select(this).style({
+                                                        opacity: 1
+                                                    })
+                                                    .classed('selected', true);
+                                                    thisObj.lastSelectedbar = 1;
+                                                } else if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).style({
+                                                        opacity: 0.3
+                                                    })
+                                                    .classed('selected', false);
+                                                    thisObj.lastSelectedbar--;
+                                                    if (thisObj.lastSelectedbar === 0) {
+                                                        d3.selectAll('.inDiv').style({
+                                                            opacity: 1
+                                                        });
+                                                    }
+                                                } else {
+                                                    d3.select(this).style({
+                                                        opacity: 1
+                                                    })
+                                                    .classed('selected', true);
+                                                    thisObj.lastSelectedbar++;
+                                                }
                                             } else {
-                                                d3.select(this).classed('selected', true);
+                                                if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).classed('selected', false);
+                                                    thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    }));
+                                                    if (!isCrtlPressed) {
+                                                        thisObj.lastSelectedbar--;
+                                                    }
+                                                } else {
                                                 d3.selectAll('.inDiv').style({
                                                     opacity: 0.3
-                                                });
+                                                })
+                                                .classed('selected', false);
                                                 d3.select(this).style({
                                                     opacity: 1
-                                                });
+                                                })
+                                                .classed('selected', true);
+                                                thisObj.lastSelectedbar = 0;
+                                                if (!isCrtlPressed) {
+                                                    thisObj.lastSelectedbar++;
+                                                }
+                                            }
                                             }
                                         });
                                         (<Event>d3.event).stopPropagation();
@@ -2262,6 +2439,7 @@ module powerbi.extensibility.visual {
                                     thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
                                         opacity: 1
                                     }));
+                                    d3.selectAll('.inDiv').classed('selected', false);
                                 });
                                 increment++;
                             } else {
@@ -2284,20 +2462,63 @@ module powerbi.extensibility.visual {
                                         }
                                         // tslint:disable-next-line:no-any
                                         const selectionIds: any[] = dat.values[0][level].values.selectionId;
-                                        thisObj.selectionManager.select(selectionIds).then((ids: ISelectionId[]) => {
-                                            if (d3.select(this).classed('selected')) {
-                                                d3.select(this).classed('selected', false);
-                                                thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
-                                                    opacity: 1
-                                                }));
+                                        // tslint:disable-next-line:no-any
+                                        const lastindex: any = thisObj.selectionManager;
+                                        // tslint:disable-next-line:no-any
+                                        const lastIndexLen: any = lastindex.selectedIds.length;
+                                        const isCrtlPressed: boolean = (d3.event as MouseEvent).ctrlKey;
+                                        thisObj.selectionManager.select(selectionIds, isCrtlPressed).then((ids: ISelectionId[]) => {
+                                            if (isCrtlPressed) {
+                                                if (lastIndexLen === 0 && !(d3.select(this).classed('selected'))) {
+                                                    d3.selectAll('.inDiv').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    d3.select(this).style({
+                                                        opacity: 1
+                                                    })
+                                                    .classed('selected', true);
+                                                    thisObj.lastSelectedbar = 1;
+                                                } else if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).style({
+                                                        opacity: 0.3
+                                                    })
+                                                    .classed('selected', false);
+                                                    thisObj.lastSelectedbar--;
+                                                    if (thisObj.lastSelectedbar === 0) {
+                                                        d3.selectAll('.inDiv').style({
+                                                            opacity: 1
+                                                        });
+                                                    }
+                                                } else {
+                                                    d3.select(this).style({
+                                                        opacity: 1
+                                                    })
+                                                    .classed('selected', true);
+                                                    thisObj.lastSelectedbar++;
+                                                }
                                             } else {
-                                                d3.select(this).classed('selected', true);
+                                                if (d3.select(this).classed('selected')) {
+                                                    d3.select(this).classed('selected', false);
+                                                    thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                                                        opacity: 1
+                                                    }));
+                                                    if (!isCrtlPressed) {
+                                                        thisObj.lastSelectedbar--;
+                                                    }
+                                                } else {
                                                 d3.selectAll('.inDiv').style({
                                                     opacity: 0.3
-                                                });
+                                                })
+                                                .classed('selected', false);
                                                 d3.select(this).style({
                                                     opacity: 1
-                                                });
+                                                })
+                                                .classed('selected', true);
+                                                thisObj.lastSelectedbar = 0;
+                                                if (!isCrtlPressed) {
+                                                    thisObj.lastSelectedbar++;
+                                                }
+                                            }
                                             }
                                         });
                                         (<Event>d3.event).stopPropagation();
@@ -2319,6 +2540,7 @@ module powerbi.extensibility.visual {
                                     thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
                                         opacity: 1
                                     }));
+                                    d3.selectAll('.inDiv').classed('selected', false);
                                 });
                                 increment++;
                             }
@@ -2339,21 +2561,64 @@ module powerbi.extensibility.visual {
                             .on('click', function (d: any): void {
                                 // tslint:disable-next-line:no-any
                                 const selectionIds: any[] = datum[`values`][`selectionId`];
-                                thisObj.selectionManager.select(selectionIds, true)
+                                // tslint:disable-next-line:no-any
+                                const lastindex: any = thisObj.selectionManager;
+                                // tslint:disable-next-line:no-any
+                                const lastIndexLen: any = lastindex.selectedIds.length;
+                                const isCrtlPressed: boolean = (d3.event as MouseEvent).ctrlKey;
+                                thisObj.selectionManager.select(selectionIds, isCrtlPressed)
                                     .then((ids: ISelectionId[]) => {
-                                        if (d3.select(this).classed('selected')) {
-                                            d3.select(this).classed('selected', false);
-                                            thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
-                                                opacity: 1
-                                            }));
+                                        if (isCrtlPressed) {
+                                            if (lastIndexLen === 0 && !(d3.select(this).classed('selected'))) {
+                                                d3.selectAll('.thebar').style({
+                                                    opacity: 0.3
+                                                });
+                                                d3.select(this).style({
+                                                    opacity: 1
+                                                })
+                                                .classed('selected', true);
+                                                thisObj.lastSelectedbar = 1;
+                                            } else if (d3.select(this).classed('selected')) {
+                                                d3.select(this).style({
+                                                    opacity: 0.3
+                                                })
+                                                .classed('selected', false);
+                                                thisObj.lastSelectedbar--;
+                                                if (thisObj.lastSelectedbar === 0) {
+                                                    d3.selectAll('.thebar').style({
+                                                        opacity: 1
+                                                    });
+                                                }
+                                            } else {
+                                                d3.select(this).style({
+                                                    opacity: 1
+                                                })
+                                                .classed('selected', true);
+                                                thisObj.lastSelectedbar++;
+                                            }
                                         } else {
-                                            d3.select(this).classed('selected', true);
+                                            if (d3.select(this).classed('selected')) {
+                                                d3.select(this).classed('selected', false);
+                                                thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
+                                                    opacity: 1
+                                                }));
+                                                if (!isCrtlPressed) {
+                                                    thisObj.lastSelectedbar--;
+                                                }
+                                            } else {
                                             d3.selectAll('.thebar').style({
                                                 opacity: 0.3
-                                            });
+                                            })
+                                            .classed('selected', false);
                                             d3.select(this).style({
                                                 opacity: 1
-                                            });
+                                            })
+                                            .classed('selected', true);
+                                            thisObj.lastSelectedbar = 0;
+                                            if (!isCrtlPressed) {
+                                                thisObj.lastSelectedbar++;
+                                            }
+                                        }
                                         }
                                     });
                                 (<Event>d3.event).stopPropagation();
@@ -2364,10 +2629,10 @@ module powerbi.extensibility.visual {
                                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
                         // tslint:disable-next-line:typedef
                         subDiv.on('click', function () {
-                            thisObj.selectionManager.clear().then(() => d3.selectAll('.inDiv').style({
+                            thisObj.selectionManager.clear().then(() => d3.selectAll('.thebar').style({
                                 opacity: 1
                             }));
-                            (<Event>d3.event).stopPropagation();
+                            d3.selectAll('.thebar').classed('selected', false);
                         });
                     }
                 })
