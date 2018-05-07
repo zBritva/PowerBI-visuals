@@ -3,7 +3,7 @@ module powerbi.extensibility.visual {
     import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
     import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 
-    import SelectionManager = powerbi.extensibility.ISelectionManager
+    import SelectionManager = powerbi.extensibility.ISelectionManager;
     import ClassAndSelector = powerbi.extensibility.utils.svg.CssConstants.ClassAndSelector;
     import createClassAndSelector = powerbi.extensibility.utils.svg.CssConstants.createClassAndSelector;
     import valueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
@@ -25,10 +25,10 @@ module powerbi.extensibility.visual {
     import TextProperties = powerbi.extensibility.utils.formatting.TextProperties;
     import ISelectionManager = powerbi.extensibility.ISelectionManager;
 
-    var AsterPlotVisualClassName: string = 'Bowtie';
-    export var BowtieProps = {
+    // tslint:disable-next-line:no-any
+    export let bowtieProps: any = {
         general: {
-            ArcFillColor: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'ArcFillColor' },
+            ArcFillColor: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'ArcFillColor' }
         },
         show: { objectName: 'GMODonutTitle', propertyName: 'show' },
         titleText: { objectName: 'GMODonutTitle', propertyName: 'titleText' },
@@ -40,7 +40,7 @@ module powerbi.extensibility.visual {
             color: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'color' },
             displayUnits: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'displayUnits' },
             textPrecision: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'textPrecision' },
-            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'fontSize' },
+            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'fontSize' }
         },
         Aggregatelabels: {
             color: <DataViewObjectPropertyIdentifier>{ objectName: 'Aggregatelabels', propertyName: 'color' },
@@ -49,7 +49,7 @@ module powerbi.extensibility.visual {
             fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'Aggregatelabels', propertyName: 'fontSize' },
             Indicator: <DataViewObjectPropertyIdentifier>{ objectName: 'Aggregatelabels', propertyName: 'Indicator' },
             signIndicator: <DataViewObjectPropertyIdentifier>{ objectName: 'Aggregatelabels', propertyName: 'signIndicator' },
-            Threshold: <DataViewObjectPropertyIdentifier>{ objectName: 'Aggregatelabels', propertyName: 'Threshold' },
+            Threshold: <DataViewObjectPropertyIdentifier>{ objectName: 'Aggregatelabels', propertyName: 'Threshold' }
         }
     };
 
@@ -59,23 +59,23 @@ module powerbi.extensibility.visual {
         move(options: TooltipMoveOptions): void;
         hide(options: TooltipHideOptions): void;
     }
-    export interface TooltipDataItem {
+    export interface ITooltipDataItem {
         displayName: string;
         value: string;
     }
 
-    export interface BowtieData {
-        dataPoints: BowtieDataPoint[];
+    export interface IBowtieData {
+        dataPoints: IBowtieDataPoint[];
         valueFormatter: IValueFormatter;
         legendObjectProps: DataViewObject;
-        labelSettings: any,//VisualDataLabelsSettings;
-        AggregatelabelSettings: AggregatelabelSettings;
+        labelSettings: VisualDataLabelsSettings;
+        AggregatelabelSettings: IAggregatelabelSettings;
         chartType: string;
         aggregatedSum: number;
         ArcFillColor: string;
     }
 
-    export interface BowtieDataPoint {
+    export interface IBowtieDataPoint {
         color: string;
         DestCategoryLabel: string;
         SourceCategoryLabel: string;
@@ -84,9 +84,10 @@ module powerbi.extensibility.visual {
         SourceArcWidth: number;
         DestCatArcWidth: number;
         srcValue: number;
+        selectionId: ISelectionId[];
     }
 
-    export interface AggregatelabelSettings {
+    export interface IAggregatelabelSettings {
         color: string;
         displayUnits: number;
         textPrecision: number;
@@ -99,86 +100,90 @@ module powerbi.extensibility.visual {
         public host: IVisualHost;
         private tooltipServiceWrapper: ITooltipServiceWrapper;
         private svg: d3.Selection<SVGElement>;
-        private BowtieMainContainer: d3.Selection<SVGElement>;
-        private BowtieChartAggregated: d3.Selection<SVGElement>;
-        private BowtieChartDestination: d3.Selection<SVGElement>;
-        private DestinationSVG: d3.Selection<SVGElement>;
-        private BowtieChartSVGDestination: d3.Selection<SVGElement>;
-        private BowtieChartSVGSource: d3.Selection<SVGElement>;
-        private BowtieChartSource: d3.Selection<SVGElement>;
-        private BowtieChartError: d3.Selection<SVGElement>;
+        private bowtieMainContainer: d3.Selection<SVGElement>;
+        private bowtieChartAggregated: d3.Selection<SVGElement>;
+        private bowtieChartDestination: d3.Selection<SVGElement>;
+        private bowtieChartSVGDestination: d3.Selection<SVGElement>;
+        private bowtieChartSVGSource: d3.Selection<SVGElement>;
+        private bowtieChartSource: d3.Selection<SVGElement>;
+        private bowtieChartError: d3.Selection<SVGElement>;
         private mainGroupElement: d3.Selection<SVGElement>;
-        private BowtieChartHeadings: d3.Selection<SVGElement>;
+        private bowtieChartHeadings: d3.Selection<SVGElement>;
         private centerText: d3.Selection<SVGElement>;
         private colors: IDataColorPalette;
         private selectionManager: ISelectionManager;
         private dataView: DataView;
         private dataViews: DataView[];
         private legend: ILegend;
-        private data: BowtieData;
+        private data: IBowtieData;
         private currentViewport: IViewport;
-        private convertedData: BowtieData;
+        private convertedData: IBowtieData;
         private metricName: string;
         private sourceName: string;
         private destinationName: string;
         private root: d3.Selection<SVGElement>;
         private titleSize: number = 12;
         private updateCount: number = 0;
-        private prevIndicator = false;
-        private isNegative = false;
-        private formatString = '0';
+        private prevIndicator: boolean = false;
+        private isNegative: boolean = false;
+        private formatString: string = '0';
 
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
             this.root = d3.select(options.element);
-
-            var container: d3.Selection<SVGElement> = this.BowtieMainContainer = d3.select(options.element)
+            this.selectionManager = options.host.createSelectionManager();
+            let container: d3.Selection<SVGElement>;
+            container = this.bowtieMainContainer = d3.select(options.element)
                 .append('div')
-                .classed('BowtieMainContainer', true);
+                .classed('BowtieMainContainer', true)
+                .style('cursor', 'default');
 
             container
                 .append('div')
                 .classed('Title_Div_Text', true)
-                .style({ 'width': '100%', 'display': 'inline-block' })
-                .append('div')
-                .classed('GMODonutTitleDiv', true)
-                .style({'max-width' : '80%', 'display': 'inline-block'})
-                .append('span')
-                .classed('GMODonutTitleIcon', true)
-                .style({ 'width': '2%', 'display': 'none', 'cursor': 'pointer', 'white-space':'pre' });
+                .style({ width: '100%', display: 'inline-block' })
+                .html('<div class = "GMODonutTitleDiv" style = "max-width: 80%; display: inline-block">' + '</div>'
+                + '<span class = "GMODonutTitleIcon" style = "width: 2%; display: none;">&nbsp(&#063;)</span>');
 
-            var BowtieChartError: d3.Selection<SVGElement> = this.BowtieChartError = container
+            let bowtieChartError: d3.Selection<SVGElement>;
+            bowtieChartError = this.bowtieChartError = container
                 .append('div')
                 .classed('BowtieChartError', true);
 
-            var BowtieChartHeadings: d3.Selection<SVGElement> = this.BowtieChartHeadings = container
+            let bowtieChartHeadings: d3.Selection<SVGElement>;
+            bowtieChartHeadings = this.bowtieChartHeadings = container
                 .append('div')
                 .classed('BowtieChartHeadings', true);
 
-            var BowtieChartSource: d3.Selection<SVGElement> = this.BowtieChartSource = container
+            let bowtieChartSource: d3.Selection<SVGElement>;
+            bowtieChartSource = this.bowtieChartSource = container
                 .append('div')
                 .classed('BowtieChartSource', true);
 
-            var BowtieChartSVGSource: d3.Selection<SVGElement> = this.BowtieChartSVGSource = container
+            let bowtieChartSVGSource: d3.Selection<SVGElement>;
+            bowtieChartSVGSource = this.bowtieChartSVGSource = container
                 .append('div')
                 .classed('BowtieChartSVGSource', true);
 
-            var BowtieChartAggregated: d3.Selection<SVGElement> = this.BowtieChartAggregated = container
+            let bowtieChartAggregated: d3.Selection<SVGElement>;
+            bowtieChartAggregated = this.bowtieChartAggregated = container
                 .append('div')
                 .classed('BowtieChartAggregated', true);
 
-            var BowtieChartSVGDestination: d3.Selection<SVGElement> = this.BowtieChartSVGDestination = container
+            let bowtieChartSVGDestination: d3.Selection<SVGElement>;
+            bowtieChartSVGDestination = this.bowtieChartSVGDestination = container
                 .append('div')
                 .classed('BowtieChartSVGDestination', true);
 
-            var BowtieChartDestination: d3.Selection<SVGElement> = this.BowtieChartDestination = container
+            let bowtieChartDestination: d3.Selection<SVGElement>;
+            bowtieChartDestination = this.bowtieChartDestination = container
                 .append('div')
                 .classed('BowtieChartDestination', true);
         }
 
-        private getDefaultBowtieData(): BowtieData {
-            return <BowtieData>{
+        private getDefaultBowtieData(): IBowtieData {
+            return <IBowtieData>{
                 dataPoints: [],
                 legendObjectProps: {},
                 valueFormatter: null,
@@ -186,11 +191,11 @@ module powerbi.extensibility.visual {
                 AggregatelabelSettings: this.getDefaultAggregateLabelSettings(),
                 chartType: 'HalfBowtie',
                 aggregatedSum: 0,
-                ArcFillColor: '#0099FF',
+                ArcFillColor: '#0099FF'
             };
         }
 
-        public getDefaultAggregateLabelSettings(): AggregatelabelSettings {
+        public getDefaultAggregateLabelSettings(): IAggregatelabelSettings {
             return {
                 Indicator: false,
                 color: 'black',
@@ -199,31 +204,40 @@ module powerbi.extensibility.visual {
                 fontSize: 9,
                 Threshold: 0,
                 signIndicator: false
-            }
+            };
         }
 
-        public converter(dataView: DataView, colors: IDataColorPalette, host: IVisualHost): BowtieData {
-            var asterDataResult: BowtieData = this.getDefaultBowtieData();
-            var isHalfBowtie: boolean;
-            var isFullBowtie: boolean;
-            if (!this.dataViewContainsCategory(dataView) || dataView.categorical.categories.length < 1)
+        // tslint:disable-next-line:cyclomatic-complexity
+        public converter(dataView: DataView, colors: IDataColorPalette, host: IVisualHost): IBowtieData {
+            let asterDataResult: IBowtieData;
+            asterDataResult = this.getDefaultBowtieData();
+            let isHalfBowtie: boolean;
+            let isFullBowtie: boolean;
+            if (!this.dataViewContainsCategory(dataView) || dataView.categorical.categories.length < 1) {
                 return asterDataResult;
-            else if (dataView.categorical.categories.length == 1) {
+            } else if (dataView.categorical.categories.length === 1) {
                 isHalfBowtie = true;
-            } else if (dataView.categorical.categories.length == 2) {
+            } else if (dataView.categorical.categories.length === 2) {
                 isFullBowtie = true;
             }
-
-            var catDv: DataViewCategorical = dataView && dataView.categorical;
-            var catDestination = catDv && catDv.categories && catDv.categories[0];
-            var catSource;
+            let k: number;
+            k = 0;
+            let cat: PrimitiveValue;
+            let catDv: DataViewCategorical;
+            catDv = dataView && dataView.categorical;
+            let catDestination: DataViewCategoryColumn;
+            catDestination = catDv && catDv.categories && catDv.categories[0];
+            let catSource: DataViewCategoryColumn;
             if (isFullBowtie) {
                 catSource = catDv && catDv.categories && catDv.categories[1];
             }
 
-            var catDestValues = catDestination && catDestination.values;
-            var catSourceValues = catSource ? catSource.values : null;
-            var values = catDv && catDv.values;
+            let catDestValues: PrimitiveValue[];
+            catDestValues = catDestination && catDestination.values;
+            let catSourceValues: PrimitiveValue[];
+            catSourceValues = catSource ? catSource.values : null;
+            let values: DataViewValueColumns;
+            values = catDv && catDv.values;
 
             if (values) {
                 this.formatString = values[0].source.format;
@@ -233,13 +247,12 @@ module powerbi.extensibility.visual {
             this.destinationName = catDestination && catDestination.source && catDestination.source.displayName;
             this.sourceName = catSource ? catSource.source.displayName : '';
 
-            var aggregatedSum = 0;
+            let aggregatedSum: number = 0;
             if (values && values[0]) {
-                aggregatedSum = d3.sum(values[0].values, function (d: number) {
+                aggregatedSum = d3.sum(values[0].values, function (d: number): number {
                     if (d && d > 0) {
                         return d;
-                    }
-                    else {
+                    } else {
                         return 0;
                     }
                 });
@@ -252,38 +265,49 @@ module powerbi.extensibility.visual {
 
             if (!catDestValues || catDestValues.length < 1 || !values || values.length < 1 || !asterDataResult.chartType) {
                 this.isNegative = false;
+
                 return asterDataResult;
             }
 
-            var formatter = ValueFormatter.create({ format: 'dddd\, MMMM %d\, yyyy' });
+            let formatter: IValueFormatter;
+            formatter = ValueFormatter.create({ format: 'dddd\, MMMM %d\, yyyy' });
             // Populating source and destination values and their aggregations
             // Destination
-            var arrDestination = [];
-            for (var i = 0, length = catDestValues.length; i < length; i++) {
+            let arrDestination: PrimitiveValue[];
+            arrDestination = [];
+            let i: number;
+            let length: number;
+            let category: PrimitiveValue;
+            for (i = 0, length = catDestValues.length; i < length; i++) {
                 if (values[0] && values[0].values && values[0].values.length > 0) {
-                    var category = catDestValues[i];
-                    category = category ? category : "(Blank)";
-                    var sCategory = "";
-                    var destArcWidth = 0;
-                    var destCatSum;
+                    category = catDestValues[i];
+                    category = category ? category : '(Blank)';
+                    let sCategory: string;
+                    sCategory = '';
+                    let destArcWidth: number = 0;
+                    let destCatSum: number;
                     destCatSum = 0;
-                    for (var j = 0; j < length; j++) {
-                        var value = values[0].values[j];
+                    for (let j: number = 0; j < length; j++) {
+                        // tslint:disable-next-line:no-any
+                        let value: any;
+                        value = values[0].values[j];
                         if (value < 0) {
                             this.isNegative = true;
+
                             return;
                         }
-                        var innerCat = catDestValues[j];
-                        innerCat = (innerCat ? catDestValues[j] : "(Blank)");
-                        if (innerCat == category)
+                        let innerCat: PrimitiveValue = catDestValues[j];
+                        innerCat = (innerCat ? catDestValues[j] : '(Blank)');
+                        if (innerCat === category) {
                             destCatSum += value;
+                        }
                     }
                     if (aggregatedSum > 0) {
                         destArcWidth = destCatSum / aggregatedSum;
                     }
 
-                    if (arrDestination.indexOf(category) == -1 && destCatSum != 0) {
-                        if (Date.parse(category.toString()) && (formatter.format(category) != 'dddd MMMM %d yyyy')) {
+                    if (arrDestination.indexOf(category) === -1 && destCatSum !== 0) {
+                        if (Date.parse(category.toString()) && (formatter.format(category) !== 'dddd MMMM %d yyyy')) {
                             asterDataResult.dataPoints.push({
                                 DestCategoryLabel: formatter.format(category),
                                 SourceCategoryLabel: null,
@@ -292,7 +316,8 @@ module powerbi.extensibility.visual {
                                 color: '',
                                 selector: host.createSelectionIdBuilder().withCategory(catDestination, i).createSelectionId(),
                                 value: destCatSum,
-                                srcValue: 0
+                                srcValue: 0,
+                                selectionId: []
                             });
                         } else {
                             asterDataResult.dataPoints.push({
@@ -303,48 +328,71 @@ module powerbi.extensibility.visual {
                                 color: '',
                                 selector: host.createSelectionIdBuilder().withCategory(catDestination, i).createSelectionId(),
                                 value: destCatSum,
-                                srcValue: 0
+                                srcValue: 0,
+                                selectionId: []
                             });
                         }
+                        asterDataResult.dataPoints[k].selectionId.push(asterDataResult.dataPoints[k].selector);
                         arrDestination.push(category);
+                        k++;
+                    } else if (arrDestination.indexOf(category) !== -1) {
+                        if (Date.parse(category.toString()) && (formatter.format(category) !== 'dddd MMMM %d yyyy')) {
+                            cat = formatter.format(category);
+                        } else {
+                            cat = category.toString();
+                        }
+                        asterDataResult.dataPoints.forEach(function(d: IBowtieDataPoint): void {
+                            if (d.DestCategoryLabel === cat) {
+                                d.selectionId.push(host.createSelectionIdBuilder().withCategory(catDestination, i).createSelectionId());
+                            }
+                        });
                     }
                 }
             }
 
-            if (asterDataResult.chartType == "FullBowtie") {
-                var arrSource = [];
-                for (var i = 0, srcLength = catSourceValues && catSourceValues.length; i < length; i++) {
-                    var currentValue = values[0].values[i];
-                    var category: string | number | boolean | Date = catSourceValues[i];
-                    var destArcWidth = 0;
-                    var destCatSum;
+            if (asterDataResult.chartType === 'FullBowtie') {
+                let arrSource: PrimitiveValue[];
+                arrSource = [];
+                let srcLength: number;
+                for (i = 0, srcLength = catSourceValues && catSourceValues.length; i < length; i++) {
+                    let currentValue: PrimitiveValue;
+                    currentValue = values[0].values[i];
+                    category = catSourceValues[i];
+                    let destArcWidth: number = 0;
+                    let destCatSum: number;
                     destCatSum = 0;
-                    category = category ? category : "(Blank)";
-                    for (var j = 0; j < srcLength; j++) {
-                        var value = values[0].values[j];
+                    category = category ? category : '(Blank)';
+                    for (let j: number = 0; j < srcLength; j++) {
+                        // tslint:disable-next-line:no-any
+                        let value: any;
+                        value = values[0].values[j];
                         if (value < 0) {
                             this.isNegative = true;
+
                             return;
                         }
-                        var innerCat: string | number | boolean | Date = catSourceValues[j];
-                        innerCat = (innerCat ? catSourceValues[j] : "(Blank)");
-                        if (innerCat == category)
+                        let innerCat: string | number | boolean | Date = catSourceValues[j];
+                        innerCat = (innerCat ? catSourceValues[j] : '(Blank)');
+                        if (innerCat === category) {
                             destCatSum += value;
+                        }
                     }
-                    if (aggregatedSum > 0)
+                    if (aggregatedSum > 0) {
                         destArcWidth = destCatSum / aggregatedSum;
+                    }
 
-                    if (arrSource.indexOf(category) == -1 && destCatSum != 0) {
-                        if (Date.parse(category.toString()) && (formatter.format(category) != 'dddd MMMM %d yyyy')) {
+                    if (arrSource.indexOf(category) === -1 && destCatSum !== 0) {
+                        if (Date.parse(category.toString()) && (formatter.format(category) !== 'dddd MMMM %d yyyy')) {
                             asterDataResult.dataPoints.push({
                                 DestCategoryLabel: null,
                                 SourceCategoryLabel: formatter.format(category),
                                 DestCatArcWidth: null,
                                 SourceArcWidth: destArcWidth,
                                 color: '',
-                                selector: null,
+                                selector: host.createSelectionIdBuilder().withCategory(catSource, i).createSelectionId(),
                                 value: 0,
-                                srcValue: destCatSum
+                                srcValue: destCatSum,
+                                selectionId: []
                             });
                         } else {
                             asterDataResult.dataPoints.push({
@@ -353,149 +401,219 @@ module powerbi.extensibility.visual {
                                 DestCatArcWidth: null,
                                 SourceArcWidth: destArcWidth,
                                 color: '',
-                                selector: null,
+                                selector: host.createSelectionIdBuilder().withCategory(catSource, i).createSelectionId(),
                                 value: 0,
-                                srcValue: destCatSum
+                                srcValue: destCatSum,
+                                selectionId: []
                             });
                         }
+                        asterDataResult.dataPoints[k].selectionId.push(asterDataResult.dataPoints[k].selector);
                         arrSource.push(category);
+                        k++;
+                    } else if (arrSource.indexOf(category) !== -1) {
+                        if (Date.parse(category.toString()) && (formatter.format(category) !== 'dddd MMMM %d yyyy')) {
+                            cat = formatter.format(category);
+                        } else {
+                            cat = category.toString();
+                        }
+                        asterDataResult.dataPoints.forEach(function(d: IBowtieDataPoint): void {
+                            if (d.SourceCategoryLabel === cat) {
+                                d.selectionId.push(host.createSelectionIdBuilder().withCategory(catSource, i).createSelectionId());
+                            }
+                        });
                     }
                 }
             }
+
             return asterDataResult;
         }
 
         private getLabelSettings(dataView: DataView, labelSettings: VisualDataLabelsSettings): VisualDataLabelsSettings {
-            var objects: DataViewObjects = null;
-
-            if (!dataView.metadata || !dataView.metadata.objects)
+            let objects: DataViewObjects = null;
+            if (!dataView.metadata || !dataView.metadata.objects) {
                 return labelSettings;
+            }
 
             objects = dataView.metadata.objects;
-            var asterPlotLabelsProperties = BowtieProps;
+            // tslint:disable-next-line:no-any
+            let asterPlotLabelsProperties: any;
+            asterPlotLabelsProperties = bowtieProps;
 
-            labelSettings.precision = DataViewObjects.getValue(objects, asterPlotLabelsProperties.labels.textPrecision, labelSettings.precision);
-            labelSettings.precision = labelSettings.precision < 0 ? 0 : (labelSettings.precision > 20 ? 20 : labelSettings.precision);
+            labelSettings.precision = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.labels.textPrecision, labelSettings.precision);
+            labelSettings.precision = labelSettings.precision < 0 ? 0 : (labelSettings.precision > 4 ? 4 : labelSettings.precision);
             labelSettings.fontSize = DataViewObjects.getValue(objects, asterPlotLabelsProperties.labels.fontSize, labelSettings.fontSize);
-            labelSettings.displayUnits = DataViewObjects.getValue(objects, asterPlotLabelsProperties.labels.displayUnits, labelSettings.displayUnits);
-            labelSettings.labelColor = DataViewObjects.getFillColor(objects, asterPlotLabelsProperties.labels.color, labelSettings.labelColor);
+            labelSettings.displayUnits = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.labels.displayUnits, labelSettings.displayUnits);
+            labelSettings.labelColor = DataViewObjects.getFillColor(
+                objects, asterPlotLabelsProperties.labels.color, labelSettings.labelColor);
 
             return labelSettings;
         }
 
+        private getAggregateLabelSettings(dataView: DataView): IAggregatelabelSettings {
+            let objects: DataViewObjects = null;
+            let labelSettings: IAggregatelabelSettings;
+            labelSettings = this.getDefaultAggregateLabelSettings();
 
-        private getAggregateLabelSettings(dataView: DataView): AggregatelabelSettings {
-            var objects: DataViewObjects = null;
-            var labelSettings: AggregatelabelSettings = this.getDefaultAggregateLabelSettings();
-
-            if (!dataView.metadata || !dataView.metadata.objects)
+            if (!dataView.metadata || !dataView.metadata.objects) {
                 return this.getDefaultAggregateLabelSettings();
+            }
 
             objects = dataView.metadata.objects;
-            var asterPlotLabelsProperties = BowtieProps;
+            // tslint:disable-next-line:no-any
+            let asterPlotLabelsProperties: any;
+            asterPlotLabelsProperties = bowtieProps;
 
-            labelSettings.textPrecision = DataViewObjects.getValue(objects, asterPlotLabelsProperties.Aggregatelabels.textPrecision, labelSettings.textPrecision);
-            labelSettings.textPrecision = labelSettings.textPrecision < 0 ? 0 : (labelSettings.textPrecision > 20 ? 20 : labelSettings.textPrecision);
-            labelSettings.fontSize = DataViewObjects.getValue(objects, asterPlotLabelsProperties.Aggregatelabels.fontSize, labelSettings.fontSize);
-            labelSettings.displayUnits = DataViewObjects.getValue(objects, asterPlotLabelsProperties.Aggregatelabels.displayUnits, labelSettings.displayUnits);
-            labelSettings.color = DataViewObjects.getFillColor(objects, asterPlotLabelsProperties.Aggregatelabels.color, labelSettings.color);
-            labelSettings.Indicator = DataViewObjects.getValue(objects, asterPlotLabelsProperties.Aggregatelabels.Indicator, labelSettings.Indicator);
-            labelSettings.signIndicator = DataViewObjects.getValue(objects, asterPlotLabelsProperties.Aggregatelabels.signIndicator, labelSettings.signIndicator);
-            labelSettings.Threshold = DataViewObjects.getValue(objects, asterPlotLabelsProperties.Aggregatelabels.Threshold, labelSettings.Threshold);
+            labelSettings.textPrecision = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.Aggregatelabels.textPrecision, labelSettings.textPrecision);
+            labelSettings.textPrecision = labelSettings.textPrecision < 0 ? 0 :
+                (labelSettings.textPrecision > 4 ? 4 : labelSettings.textPrecision);
+            labelSettings.fontSize = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.Aggregatelabels.fontSize, labelSettings.fontSize);
+            labelSettings.displayUnits = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.Aggregatelabels.displayUnits, labelSettings.displayUnits);
+            labelSettings.color = DataViewObjects.getFillColor(
+                objects, asterPlotLabelsProperties.Aggregatelabels.color, labelSettings.color);
+            labelSettings.Indicator = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.Aggregatelabels.Indicator, labelSettings.Indicator);
+            labelSettings.signIndicator = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.Aggregatelabels.signIndicator, labelSettings.signIndicator);
+            labelSettings.Threshold = DataViewObjects.getValue(
+                objects, asterPlotLabelsProperties.Aggregatelabels.Threshold, labelSettings.Threshold);
 
             return labelSettings;
         }
 
+        // tslint:disable-next-line:no-any
         private static getTooltipData(value: any): VisualTooltipDataItem[] {
             return [{
                 displayName: value[0].displayName.toString(),
                 value: value[0].value.toString()
             },
-                {
-                    displayName: value[1].displayName.toString(),
-                    value: value[1].value.toString()
-                }];
+            {
+                displayName: value[1].displayName.toString(),
+                value: value[1].value.toString()
+            }];
         }
 
-        private clearData(isLargeDataSet): void {
+        private clearData(isLargeDataSet: boolean): void {
             // Headings
-            this.BowtieChartHeadings.selectAll('div').remove();
+            this.bowtieChartHeadings.selectAll('div').remove();
 
             // Aggregated Sum settings
-            this.BowtieChartAggregated.select('div').remove();
-            this.BowtieChartSVGDestination.selectAll('svg').remove();
-            this.BowtieChartSVGSource.selectAll('svg').remove();
+            this.bowtieChartAggregated.select('div').remove();
+            this.bowtieChartSVGDestination.selectAll('svg').remove();
+            this.bowtieChartSVGSource.selectAll('svg').remove();
 
-            // Destination Settings 
-            this.BowtieChartDestination.selectAll('div').remove();
+            // Destination Settings
+            this.bowtieChartDestination.selectAll('div').remove();
 
-            // Source Settings 
-            this.BowtieChartSource.selectAll('div').remove();
+            // Source Settings
+            this.bowtieChartSource.selectAll('div').remove();
 
             // Show Error Message
-            this.BowtieChartError.selectAll('span').remove();
-            this.BowtieMainContainer.style('width', this.currentViewport.width + 'px');
-            this.BowtieMainContainer.style('height', this.currentViewport.height + 'px');
+            this.bowtieChartError.selectAll('span').remove();
+            this.bowtieMainContainer.style('width', PixelConverter.toString(this.currentViewport.width));
+            this.bowtieMainContainer.style('height', PixelConverter.toString(this.currentViewport.height));
 
-            var errorMessage = "";
-            var errorMessageWidth = 0;
+            let errorMessage: string;
+            errorMessage = '';
+            let errorMessageWidth: number;
+            errorMessageWidth = 0;
             if (!this.isNegative) {
-                errorMessage = "Please select non-empty 'Value', 'Source', and/or 'Destination'.";
+                errorMessage = 'Please select non-empty \'Value\', \'Source\', and/or \'Destination\'.';
                 errorMessageWidth = 335;
             } else {
-                errorMessage = "Negative values are not supported.";
+                errorMessage = 'Negative values are not supported.';
                 errorMessageWidth = 195;
             }
 
             if (isLargeDataSet) {
-                errorMessage = "Too many values. Try selecting more filters and/or increasing size of the visual.";
+                errorMessage = 'Too many values. Try selecting more filters and/or increasing size of the visual.';
                 errorMessageWidth = 565;
             }
 
-            this.BowtieChartError.append('span')
-                .text(errorMessage)
+            this.bowtieChartError.append('span')
+                .html(errorMessage)
                 .style('font-size', '12px')
-                .style({ 'display': 'block' })
+                .style({ display: 'block' })
                 .style('height', this.currentViewport.height - 20)
-                .style('line-height', this.currentViewport.height - 20 + 'px')
+                .style('line-height', PixelConverter.toString(this.currentViewport.height - 20))
                 .style('margin', '0 auto')
-                .style('width', errorMessageWidth + 'px');
+                .style('width', PixelConverter.toString(errorMessageWidth));
         }
 
-        public update(options: VisualUpdateOptions) {
+        // tslint:disable-next-line:cyclomatic-complexity
+        public update(options: VisualUpdateOptions): void {
+            let percentageLiteral: string;
+            let numberOfValues: number;
+            let numberOfValuesHeight: number;
+            let divisionHeight: number;
+            let aggregatedValue: d3.Selection<SVGElement>;
+            let fBranchHeight: number;
+            let fBranchHeight1: number;
+            let fStartY: number;
+            let fEndX: number;
+            let fEndY: number;
+            let fCurveFactor: number;
+            let svg: d3.Selection<SVGElement>;
+            let textPropertiesForLabel: TextProperties;
+            let category: string;
+            let maxValue: number;
+            let dataLength: number;
+            let displayUnit: number;
+            let aggregatedUnit: number;
+            let sum: number;
+            sum = 0;
+            let selectionManager: ISelectionManager;
+            selectionManager = this.selectionManager;
+            percentageLiteral = '%';
             this.updateCount++;
-            if (!options.dataViews || !options.dataViews[0]) return;
+            if (!options.dataViews || !options.dataViews[0]) {
+                return;
+            }
 
             this.currentViewport = {
                 height: Math.max(0, options.viewport.height),
                 width: Math.max(0, options.viewport.width)
             };
 
-            var dataView: DataView = this.dataView = options.dataViews[0];
+            let dataView: DataView;
+            dataView = this.dataView = options.dataViews[0];
             this.dataViews = options.dataViews;
-            var convertedData: BowtieData = this.data = this.converter(dataView, this.colors, this.host);
-
-            if (!convertedData || !convertedData.dataPoints || convertedData.dataPoints.length == 0) {
+            let convertedData: IBowtieData;
+            convertedData = this.data = this.converter(dataView, this.colors, this.host);
+            let destinationData: IBowtieData;
+            destinationData = this.getDefaultBowtieData();
+            let sourceData: IBowtieData;
+            sourceData = this.getDefaultBowtieData();
+            if (!convertedData || !convertedData.dataPoints || convertedData.dataPoints.length === 0) {
                 this.clearData(false);
+
                 return;
             } else {
-                this.BowtieChartError.selectAll('span').style('display', 'none');
+                this.bowtieChartError.selectAll('span').style('display', 'none');
             }
 
-            // Custom Tooltip Code            
-            var viewport = options.viewport;
-            this.root.select('.errorMessage').style({ 'display': 'none' });
-            this.root.select('.donutChartGMO').style({ 'display': '' });
-            var GMODonutTitleOnOffStatus = false
-                , titleText: string = ""
-                , tooltiptext: string = ""
-                , titlefontsize
-                , titleHeight: number
-                , titlecolor: string
-                , titlebgcolor: string;
+            // Custom Tooltip Code
+            let viewport: IViewport;
+            viewport = options.viewport;
+            this.root.select('.errorMessage').style({ display: 'none' });
+            this.root.select('.donutChartGMO').style({ display: '' });
+            let gmoDonutTitleOnOffStatus: boolean;
+            gmoDonutTitleOnOffStatus = false;
+            let titleText: string; titleText = '';
+            let tooltiptext: string;
+            tooltiptext = '';
+            // tslint:disable-next-line:no-any
+            let titlefontsize: any;
+            let titleHeight: number;
+            let titlecolor: string;
+            let titlebgcolor: string;
 
             if (this.getShowTitle(this.dataView)) {
-                GMODonutTitleOnOffStatus = true;
+                gmoDonutTitleOnOffStatus = true;
             }
             if (this.getTitleText(this.dataView)) {
                 titleText = String(this.getTitleText(this.dataView));
@@ -504,173 +622,243 @@ module powerbi.extensibility.visual {
                 tooltiptext = String(this.getTooltipText(this.dataView));
             }
             titlefontsize = this.getTitleSize(this.dataView);
-            if (!titlefontsize) titlefontsize = 12;
-            this.titleSize = titlefontsize;
-            if (GMODonutTitleOnOffStatus && (titleText || tooltiptext)) {
-                titleHeight = titlefontsize;
+            if (!titlefontsize) {
+                titlefontsize = 12;
             }
-            else { titleHeight = 0; }
+            this.titleSize = titlefontsize;
+            if (gmoDonutTitleOnOffStatus && (titleText || tooltiptext)) {
+                titleHeight = titlefontsize;
+            } else { titleHeight = 0; }
 
             if (this.getTitleFill(this.dataView)) {
                 titlecolor = this.getTitleFill(this.dataView).solid.color;
             }
             if (this.getTitleBgcolor(this.dataView)) {
                 titlebgcolor = this.getTitleBgcolor(this.dataView).solid.color;
-                if ("none" === titlebgcolor) {
-                    titlebgcolor = "#ffffff";
+                if ('none' === titlebgcolor) {
+                    titlebgcolor = '#ffffff';
                 }
             }
-            if (!GMODonutTitleOnOffStatus) {
-                this.root.select('.Title_Div_Text').style({ 'display': 'none' });
-            }
-            else {
-                this.root.select('.Title_Div_Text').style({ 'display': 'inline-block', 'background-color': titlebgcolor, 'font-size': PixelConverter.fromPointToPixel(titlefontsize) + 'px', 'color': titlecolor });
+            if (!gmoDonutTitleOnOffStatus) {
+                this.root.select('.Title_Div_Text').style({ display: 'none' });
+            } else {
+                this.root.select('.Title_Div_Text')
+                    .style({
+                        display: 'inline-block',
+                        'background-color': titlebgcolor,
+                        'font-size': PixelConverter.toString(PixelConverter.fromPointToPixel(titlefontsize)),
+                        color: titlecolor
+                    });
             }
 
             this.root.select('.GMODonutTitleDiv')
                 .text(titleText);
 
-            this.root.select('.GMODonutTitleIcon').style({ 'display': 'none' });
+            this.root.select('.GMODonutTitleIcon').style({ display: 'none' });
 
-            if ("" !== tooltiptext && (1 !== this.updateCount || "" !== titleText)) {
+            if ('' !== tooltiptext && (1 !== this.updateCount || '' !== titleText)) {
                 this.root.select('.GMODonutTitleIcon')
-                    .style({ 'display': 'inline-block' })
+                    .style({ display: 'inline-block' })
                     .attr('title', tooltiptext);
             }
-
-            var formatter = valueFormatter.create({ format: this.formatString, value: convertedData.labelSettings.displayUnits, precision: convertedData.labelSettings.precision });
-            var aggregateFormatter = valueFormatter.create({ format: this.formatString, value: convertedData.AggregatelabelSettings.displayUnits, precision: convertedData.AggregatelabelSettings.textPrecision });
-            this.data.ArcFillColor = DataViewObjects.getFillColor(this.dataView.metadata.objects, BowtieProps.general.ArcFillColor, this.data.ArcFillColor);
-
-            var heightOfTitle = 0;
-            if (this.root.select(".GMODonutTitleDiv")) {
-                heightOfTitle = isNaN(parseFloat(this.root.select(".GMODonutTitleDiv").style("height"))) ? 0 : parseFloat(this.root.select(".GMODonutTitleDiv").style("height"));
+            maxValue = <number>dataView.categorical.values[0].maxLocal;
+            dataLength = String(d3.round(maxValue, 0)).length;
+            if (dataLength > 12) {
+                displayUnit = 1e12;
+            } else if (dataLength > 9 && dataLength <= 12) {
+                displayUnit = 1e9;
+            } else if (dataLength <= 9 && dataLength > 6) {
+                displayUnit = 1e6;
+            } else if (dataLength <= 6 && dataLength >= 4) {
+                displayUnit = 1e3;
+            } else {
+                displayUnit = 10;
             }
-            var BowtieChartAggregatedWidthPercentage = 12;
-            var BowtieChartSVGDestinationWidthPercentage = 60;
-            var BowtieChartDestinationWidthPercentage = 26;
-            var fontSize = PixelConverter.fromPointToPixel(convertedData.labelSettings.fontSize) + "px";
-            var aggregateFontSize = PixelConverter.fromPointToPixel(convertedData.AggregatelabelSettings.fontSize) + "px";
-            var showHeading = true;
+            let formatter: IValueFormatter;
+            formatter = valueFormatter.create({
+                format: this.formatString,
+                value: convertedData.labelSettings.displayUnits === 0 ? displayUnit :
+                    convertedData.labelSettings.displayUnits , precision: convertedData.labelSettings.precision
+            });
+            for (let i: number = 0; i < dataView.categorical.values.length; i++ ) {
+                sum = sum + <number>dataView.categorical.values[0].values[i];
+            }
+            dataLength = String(d3.round(sum, 0)).length;
+            if (dataLength > 12) {
+                aggregatedUnit = 1e12;
+            } else if (dataLength > 9 && dataLength <= 12) {
+                aggregatedUnit = 1e9;
+            } else if (dataLength <= 9 && dataLength > 6) {
+                aggregatedUnit = 1e6;
+            } else if (dataLength <= 6 && dataLength >= 4) {
+                aggregatedUnit = 1e3;
+            } else {
+                aggregatedUnit = 10;
+            }
+            let aggregateFormatter: IValueFormatter;
+            aggregateFormatter = valueFormatter.create({
+                format: this.formatString,
+                value: convertedData.AggregatelabelSettings.displayUnits === 0 ? aggregatedUnit :
+                    convertedData.AggregatelabelSettings.displayUnits, precision: convertedData.AggregatelabelSettings.textPrecision
+            });
+            this.data.ArcFillColor = DataViewObjects.getFillColor(
+                this.dataView.metadata.objects,
+                bowtieProps.general.ArcFillColor, this.data.ArcFillColor);
 
-            if (convertedData.chartType == 'HalfBowtie') {
+            let heightOfTitle: number = 0;
+            if (this.root.select('.GMODonutTitleDiv')) {
+                heightOfTitle = isNaN(parseFloat(
+                    this.root.select('.GMODonutTitleDiv').style('height'))) ? 0 :
+                    parseFloat(this.root.select('.GMODonutTitleDiv').style('height'));
+            }
+            let bowtieChartAggregatedWidthPercentage: number = 12;
+            let bowtieChartSVGDestinationWidthPercentage: number = 60;
+            let bowtieChartDestinationWidthPercentage: number = 26;
+            let fontSize: string;
+            fontSize = PixelConverter.toString(PixelConverter.fromPointToPixel(convertedData.labelSettings.fontSize));
+            let aggregateFontSize: string;
+            aggregateFontSize = PixelConverter.toString(PixelConverter.fromPointToPixel(convertedData.AggregatelabelSettings.fontSize));
+            let showHeading: boolean = true;
+            let fStartX: number;
+            fStartX = 0;
+            if (convertedData.chartType === 'HalfBowtie') {
 
-                this.BowtieChartSource.style('display', 'none');
-                this.BowtieChartSVGSource.style('display', 'none');
-                this.BowtieMainContainer.style('width', this.currentViewport.width + 'px');
-                this.BowtieMainContainer.style('height', this.currentViewport.height + 'px');
-                this.BowtieChartAggregated.style('width', BowtieChartAggregatedWidthPercentage + '%');
-                this.BowtieChartAggregated.style('margin-right', '1%');
-                this.BowtieChartSVGDestination.style('width', BowtieChartSVGDestinationWidthPercentage + '%');
-                this.BowtieChartSVGDestination.style('margin-right', '1%');
-                this.BowtieChartDestination.style('width', BowtieChartDestinationWidthPercentage + '%');
+                this.bowtieChartSource.style('display', 'none');
+                this.bowtieChartSVGSource.style('display', 'none');
+                this.bowtieMainContainer.style('width', PixelConverter.toString(this.currentViewport.width));
+                this.bowtieMainContainer.style('height', PixelConverter.toString(this.currentViewport.height));
+                this.bowtieChartAggregated.style('width', bowtieChartAggregatedWidthPercentage + percentageLiteral);
+                this.bowtieChartAggregated.style('margin-right', '1%');
+                this.bowtieChartSVGDestination.style('width', bowtieChartSVGDestinationWidthPercentage + percentageLiteral);
+                this.bowtieChartSVGDestination.style('margin-right', '1%');
+                this.bowtieChartDestination.style('width', bowtieChartDestinationWidthPercentage + percentageLiteral);
 
                 // Chart Headings
-                var textPropertiesDestSourceName: TextProperties = {
+                let textPropertiesDestSourceName: TextProperties;
+                textPropertiesDestSourceName = {
                     text: this.destinationName,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
 
-                var textPropertiesDestSourceValue: TextProperties = {
+                let textPropertiesDestSourceValue: TextProperties;
+                textPropertiesDestSourceValue = {
                     text: this.metricName,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
 
-                this.BowtieChartHeadings.selectAll('div').remove();
-                this.BowtieChartHeadings.append('div')
-                    .style('width', (BowtieChartDestinationWidthPercentage / 2 - 1) + '%')
-                    .style('margin-right', '1%')
-                    .style('float', 'left')
-                    .style('font-size', fontSize)
-                    .attr('id', 'HalfBowtieDestSourceName')
-                    .style('margin-left', (BowtieChartSVGDestinationWidthPercentage + BowtieChartAggregatedWidthPercentage + 2) + '%')
-                    .append('span')
-                    .attr('title', this.destinationName)
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesDestSourceName, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2 - 1)) / 100));
+                this.bowtieChartHeadings.selectAll('div').remove();
 
-                this.BowtieChartHeadings.append('div')
-                    .style('width', (BowtieChartDestinationWidthPercentage / 2) + '%')
-                    .style('float', 'left')
-                    .style('font-size', fontSize)
-                    .attr('id', 'HalfBowtieDestSourceVal')
-                    .append('span')
-                    .attr('title', this.metricName)
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesDestSourceValue, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2)) / 100));
+                this.bowtieChartHeadings.append('div')
+                        .style('width', (bowtieChartDestinationWidthPercentage / 2 - 1) + percentageLiteral)
+                        .style('margin-right', '1%')
+                        .style('float', 'left')
+                        .style('font-size', fontSize)
+                        .attr('id', 'HalfBowtieDestSourceName')
+                        .style(
+                        'margin-left',
+                        (bowtieChartSVGDestinationWidthPercentage + bowtieChartAggregatedWidthPercentage + 2) + percentageLiteral)
+                        .append('span')
+                        .attr('title', this.destinationName)
+                        .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesDestSourceName,
+                            (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2 - 1)) / 100));
 
-                //updated    
-                var heightOfHeadings = 0;
-                if (this.root.select(".BowtieChartHeadings")) {
-                    heightOfHeadings = parseFloat(this.root.select(".BowtieChartHeadings").style("height"));
+                this.bowtieChartHeadings.append('div')
+                        .style('width', (bowtieChartDestinationWidthPercentage / 2) + percentageLiteral)
+                        .style('float', 'left')
+                        .style('font-size', fontSize)
+                        .attr('id', 'HalfBowtieDestSourceVal')
+                        .append('span')
+                        .attr('title', this.metricName)
+                        .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesDestSourceValue,
+                            (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2)) / 100));
+
+                //updated
+                let heightOfHeadings: number;
+                heightOfHeadings = 0;
+                if (this.root.select('.BowtieChartHeadings')) {
+                    heightOfHeadings = parseFloat(this.root.select('.BowtieChartHeadings').style('height'));
                 }
-                var numberOfValues = convertedData.dataPoints.length;
-                var avaialableHeight = this.currentViewport.height - heightOfHeadings - heightOfTitle - 15;
-                var category = convertedData.dataPoints[0].DestCategoryLabel;
 
-                var textPropertiesForLabel: TextProperties = {
+                numberOfValues = convertedData.dataPoints.length;
+                let avaialableHeight: number;
+                avaialableHeight = this.currentViewport.height - heightOfHeadings - heightOfTitle - 15;
+                category = convertedData.dataPoints[0].DestCategoryLabel;
+
+                textPropertiesForLabel = {
                     text: category,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
 
-                var numberOfValuesHeight = TextMeasurementService.measureSvgTextHeight(textPropertiesForLabel) * numberOfValues;
+                numberOfValuesHeight = TextMeasurementService.measureSvgTextHeight(textPropertiesForLabel) * numberOfValues;
                 if (numberOfValuesHeight > avaialableHeight) {
                     avaialableHeight = numberOfValuesHeight;
                     this.root.select('.BowtieMainContainer').style('overflow-y', 'auto');
-                }
-                else {
+                } else {
                     this.root.select('.BowtieMainContainer').style('overflow-y', 'hidden');
                 }
                 this.root.select('.BowtieMainContainer').style('overflow-x', 'hidden');
-                //updated  
+                //updated
 
-                var divisionHeight = avaialableHeight / numberOfValues;
+                divisionHeight = avaialableHeight / numberOfValues;
 
-                this.BowtieChartAggregated.style('height', avaialableHeight + 'px');
-                this.BowtieChartSVGDestination.style('height', avaialableHeight + 'px');
-                this.BowtieChartDestination.style('height', avaialableHeight + 'px');
+                this.bowtieChartAggregated.style('height', PixelConverter.toString(avaialableHeight));
+                this.bowtieChartSVGDestination.style('height', PixelConverter.toString(avaialableHeight));
+                this.bowtieChartDestination.style('height', PixelConverter.toString(avaialableHeight));
 
                 // Aggregated Sum settings
-                this.BowtieChartAggregated.select('div').remove();
-                this.BowtieChartSVGDestination.selectAll('svg').remove();
-                this.BowtieChartSVGSource.selectAll('svg').remove();
+                this.bowtieChartAggregated.select('div').remove();
+                this.bowtieChartSVGDestination.selectAll('svg').remove();
+                this.bowtieChartSVGSource.selectAll('svg').remove();
 
-                var textPropertiesAggregateValue: TextProperties = {
+                let textPropertiesAggregateValue: TextProperties;
+                textPropertiesAggregateValue = {
                     text: aggregateFormatter.format(convertedData.aggregatedSum),
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: aggregateFontSize
                 };
 
-                var textPropertiesMetricName: TextProperties = {
+                let textPropertiesMetricName: TextProperties;
+                textPropertiesMetricName = {
                     text: this.metricName,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: aggregateFontSize
                 };
 
-                var AggregatedSum =
-                    this.BowtieChartAggregated.append('div')
-                        .attr('id', 'divAggregatedSum')
-                        .style('float', 'right')
-                        .style('text-align', 'right');
+                let aggregatedSum: d3.Selection<SVGElement>;
 
-                AggregatedSum.append('div').append('span')
-                    .attr('title', this.metricName)
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesMetricName, (this.currentViewport.width * BowtieChartAggregatedWidthPercentage) / 100))
+                aggregatedSum =
+                        this.bowtieChartAggregated.append('div')
+                            .attr('id', 'divAggregatedSum')
+                            .style('float', 'right')
+                            .style('text-align', 'right');
 
-                var aggregatedValue = AggregatedSum.append('div');
+                aggregatedSum.append('div').append('span')
+                        .attr('title', this.metricName)
+                        .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesMetricName, (this.currentViewport.width * bowtieChartAggregatedWidthPercentage) / 100));
+
+                aggregatedValue = aggregatedSum.append('div');
                 aggregatedValue.append('span')
-                    .attr('title', aggregateFormatter.format(convertedData.aggregatedSum))
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesAggregateValue, ((this.currentViewport.width * BowtieChartAggregatedWidthPercentage) / 100) - PixelConverter.fromPointToPixel(convertedData.AggregatelabelSettings.fontSize) - 2));
-                AggregatedSum
-                    .style('font-size', aggregateFontSize)
-                    .style('color', convertedData.AggregatelabelSettings.color);
+                        .attr('title', aggregateFormatter.format(convertedData.aggregatedSum))
+                        .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesAggregateValue,
+                            ((this.currentViewport.width * bowtieChartAggregatedWidthPercentage) / 100) -
+                            PixelConverter.fromPointToPixel(convertedData.AggregatelabelSettings.fontSize) - 2));
+                aggregatedSum
+                        .style('font-size', aggregateFontSize)
+                        .style('color', convertedData.AggregatelabelSettings.color);
 
                 // Indicator logic
-                var color = 'green';
-                if (this.prevIndicator == false && convertedData.AggregatelabelSettings.Indicator) {
+                let color: string;
+                color = 'green';
+                if (this.prevIndicator === false && convertedData.AggregatelabelSettings.Indicator) {
                     convertedData.AggregatelabelSettings.signIndicator = true;
-                } else if (convertedData.AggregatelabelSettings.Indicator == false) {
+                } else if (convertedData.AggregatelabelSettings.Indicator === false) {
                     convertedData.AggregatelabelSettings.signIndicator = false;
                 }
 
@@ -690,29 +878,31 @@ module powerbi.extensibility.visual {
                         .style('margin-left', '2px')
                         .style('margin-bottom', '-1px')
                         .attr('id', 'indicator')
-                        .text(`▲`);
+                        .html('&#9650');
                 } else {
                     aggregatedValue.select('span#indicator').remove();
                 }
                 this.prevIndicator = convertedData.AggregatelabelSettings.Indicator;
 
-                var divHeight = 0;
-                if (this.root.select("#divAggregatedSum")) {
-                    divHeight = parseFloat(this.root.select("#divAggregatedSum").style("height"));
+                let divHeight: number;
+                divHeight = 0;
+                if (this.root.select('#divAggregatedSum')) {
+                    divHeight = parseFloat(this.root.select('#divAggregatedSum').style('height'));
                 }
-                AggregatedSum.style('margin-top', (avaialableHeight / 2 - divHeight / 2) + 'px');
+                aggregatedSum.style('margin-top', PixelConverter.toString(avaialableHeight / 2 - divHeight / 2));
 
-                // Destination Settings 
-                this.BowtieChartDestination.selectAll('div').remove();
-                var numberOfValues = convertedData.dataPoints.length;
-                var divisionHeight = avaialableHeight / numberOfValues;
+                // Destination Settings
+                this.bowtieChartDestination.selectAll('div').remove();
+                // let numberOfValues: number;
+                numberOfValues = convertedData.dataPoints.length;
+                // let divisionHeight;
+                divisionHeight = avaialableHeight / numberOfValues;
 
-                var fBranchHeight = avaialableHeight / 12;
-                var fBranchHeight1 = avaialableHeight / 12;
+                fBranchHeight = avaialableHeight / 12;
+                fBranchHeight1 = avaialableHeight / 12;
 
-
-                // checking for large datasets                
-                for (var iDiv = 0; iDiv < numberOfValues; iDiv++) {
+                // checking for large datasets
+                for (let iDiv: number = 0; iDiv < numberOfValues; iDiv++) {
                     if ((convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight) < 1) {
                         fBranchHeight1 = fBranchHeight1 + 0.25;
                     }
@@ -720,275 +910,375 @@ module powerbi.extensibility.visual {
 
                 if (fBranchHeight1 > avaialableHeight) {
                     this.clearData(true);
+
                     return;
                 }
 
-                var fStartX = 0;
-                var fStartY = avaialableHeight / 2 - fBranchHeight1 / 2;
-                var fEndX = (this.currentViewport.width * BowtieChartSVGDestinationWidthPercentage) / 100;
-                var fEndY = 0;
-                var fCurveFactor = 0.65;
-                var svg = this.BowtieChartSVGDestination
+                fStartX = 0;
+                fStartY = avaialableHeight / 2 - fBranchHeight1 / 2;
+                fEndX = (this.currentViewport.width * bowtieChartSVGDestinationWidthPercentage) / 100;
+                fEndY = 0;
+                fCurveFactor = 0.65;
+                svg = this.bowtieChartSVGDestination
                     .append('svg')
-                    .style('height', avaialableHeight + 'px');
+                    .style('height', PixelConverter.toString(avaialableHeight));
 
-                for (var iDiv = 0; iDiv < numberOfValues; iDiv++) {
-                    var category = convertedData.dataPoints[iDiv].DestCategoryLabel;
-                    var value = formatter.format(convertedData.dataPoints[iDiv].value);
+                for (let iDiv: number = 0; iDiv < numberOfValues; iDiv++) {
+                    category = convertedData.dataPoints[iDiv].DestCategoryLabel;
+                    let value: string;
+                    value = formatter.format(convertedData.dataPoints[iDiv].value);
 
-                    var oDiv = this.BowtieChartDestination
+                    let oDiv: d3.Selection<SVGElement>;
+                    let spanDiv: d3.Selection<SVGElement>;
+                    oDiv = this.bowtieChartDestination
                         .append('div')
-                        .style('height', divisionHeight + 'px')
+                        .classed('alignment', true)
+                        .style('line-height', PixelConverter.toString(divisionHeight))
                         .style('margin-right', '1%')
                         .style('width', '49%');
-                    var oDiv1 = this.BowtieChartDestination
+                    let oDiv1: d3.Selection<SVGElement>;
+                    let spanDiv1: d3.Selection<SVGElement>;
+                    oDiv1 = this.bowtieChartDestination
                         .append('div')
-                        .style('height', divisionHeight + 'px')
+                        .classed('alignment', true)
+                        .style('line-height', PixelConverter.toString(divisionHeight))
                         .style('width', '50%');
 
-                    var textPropertiesForLabel: TextProperties = {
+                    textPropertiesForLabel = {
                         text: category,
-                        fontFamily: "Segoe UI",
+                        fontFamily: 'Segoe UI',
                         fontSize: fontSize
                     };
 
-                    var textPropertiesForValue: TextProperties = {
+                    let textPropertiesForValue: TextProperties;
+                    textPropertiesForValue = {
                         text: value,
-                        fontFamily: "Segoe UI",
+                        fontFamily: 'Segoe UI',
                         fontSize: fontSize
                     };
                     showHeading = true;
-                    this.BowtieChartDestination.style('display', 'block');
-                    oDiv.append('span')
-                        .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesForLabel, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2 - 1)) / 100))
-                        .attr('title', convertedData.dataPoints[iDiv].DestCategoryLabel)
-                        .style('float', 'left')
-                        .style('font-size', fontSize)
-                        .style('color', convertedData.labelSettings.labelColor)
-                        .style('line-height', divisionHeight + 'px');
+                    this.bowtieChartDestination.style('display', 'block');
 
-                    oDiv1.append('span')
-                        .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesForValue, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2)) / 100))
-                        .attr('title', formatter.format(convertedData.dataPoints[iDiv].value))
-                        .style('float', 'left')
-                        .style('font-size', fontSize)
-                        .style('color', convertedData.labelSettings.labelColor)
-                        .style('line-height', divisionHeight + 'px');
+                    spanDiv = oDiv.append('span')
+                            .classed(`index${iDiv}`, true)
+                            .attr('title', convertedData.dataPoints[iDiv].DestCategoryLabel)
+                            .style('float', 'left')
+                            .style('font-size', fontSize)
+                            .style('color', convertedData.labelSettings.labelColor);
 
-                    var percentage = convertedData.dataPoints[iDiv].value / convertedData.aggregatedSum;
+                    spanDiv.append('text')
+                            .classed(`span1`, true)
+                            .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesForLabel, (this.currentViewport.width *
+                                (bowtieChartDestinationWidthPercentage / 2 - 1)) / 100))
+                                .style('cursor', 'pointer');
+
+                    spanDiv1 = oDiv1.append('span')
+                            .classed(`index${iDiv}`, true)
+                            .attr('title', formatter.format(convertedData.dataPoints[iDiv].value))
+                            .style('float', 'left')
+                            .style('font-size', fontSize)
+                            .style('color', convertedData.labelSettings.labelColor);
+
+                    spanDiv1.append('text')
+                            .classed('span2', true)
+                            .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesForValue, (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2)) / 100))
+                                .style('cursor', 'pointer');
+                    let percentage: number;
+                    percentage = convertedData.dataPoints[iDiv].value / convertedData.aggregatedSum;
                     fEndY = iDiv * (avaialableHeight / numberOfValues) + divisionHeight / 2;
-                    var fPipeArea = Math.abs(fEndX - fStartX);
-                    var height = convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight;
+                    let fPipeArea: number;
+                    fPipeArea = Math.abs(fEndX - fStartX);
+                    let height: number;
+                    height = convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight;
                     height = height < 1 ? 1 : height;
                     fStartY += (height / 2);
                     if (iDiv > 0) {
                         if ((convertedData.dataPoints[iDiv - 1].DestCatArcWidth * fBranchHeight) > 1) {
                             fStartY += ((convertedData.dataPoints[iDiv - 1].DestCatArcWidth * fBranchHeight) / 2);
-                        }
-                        else {
+                        } else {
                             fStartY += 0.5;
                         }
                     }
 
-                    var d = 'M ' + fStartX + ' ' + fStartY + ' C ' + (fStartX + (fPipeArea * fCurveFactor)) + ' ' + fStartY +
-                        ' ' + (fEndX - fPipeArea * fCurveFactor) + ' ' + fEndY + ' ' + fEndX + ' ' + fEndY;
+                    let d: string = '';
+                    d = 'M ';
+                    d += fStartX;
+                    d += ' ';
+                    d += fStartY;
+                    d += ' C ';
+                    d += (fStartX + (fPipeArea * fCurveFactor));
+                    d += ' ';
+                    d += fStartY;
+                    d += ' ';
+                    d += (fEndX - fPipeArea * fCurveFactor);
+                    d += ' ';
+                    d += fEndY;
+                    d += ' ';
+                    d += fEndX;
+                    d += ' ';
+                    d += fEndY;
 
-                    var path = svg
+                    let path: d3.Selection<SVGElement>;
+                    path = svg
                         .append('path')
+                        .classed(`index${iDiv}`, true)
                         .attr('d', d)
                         .attr('stroke', this.data.ArcFillColor)
                         .attr('fill', 'none')
-                        .attr('stroke-width', height);
+                        .attr('stroke-width', height)
+                        .style('cursor', 'pointer');
 
-                    var toolTipInfo: TooltipDataItem[] = [];
+                    let toolTipInfo: ITooltipDataItem[];
+                    toolTipInfo = [];
                     toolTipInfo.push({
                         displayName: category,
-                        value: value,
+                        value: value
                     });
 
                     path[0][0]['cust-tooltip'] = toolTipInfo;
                 }
+                d3.selectAll('path').data(convertedData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selector).then((ids: ISelectionId[]) => {
+                            d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                            d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                            d3.selectAll(`.index${i}`).style('opacity', 1);
+                        });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.selectAll('.span1').data(convertedData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selector).then((ids: ISelectionId[]) => {
+                            d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                            d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                            d3.selectAll(`.index${i}`).style('opacity', 1);
+                        });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.selectAll('.span2').data(convertedData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selector).then((ids: ISelectionId[]) => {
+                            d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                            d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                            d3.selectAll(`.index${i}`).style('opacity', 1);
+                        });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.select('html').on('click', function(): void {
+                    if (selectionManager[`selectedIds`].length) {
+                        selectionManager.clear();
+                        d3.selectAll('path').style('opacity', 1);
+                        d3.selectAll('span').style('opacity', 1);
+                    }
+                });
                 if (!showHeading) {
-                    this.BowtieChartHeadings.selectAll('div').remove();
+                    this.bowtieChartHeadings.selectAll('div').remove();
                 }
             } else {
-                BowtieChartAggregatedWidthPercentage = 9;
-                BowtieChartSVGDestinationWidthPercentage = 25;
-                BowtieChartDestinationWidthPercentage = 19;
+                bowtieChartAggregatedWidthPercentage = 9;
+                bowtieChartSVGDestinationWidthPercentage = 25;
+                bowtieChartDestinationWidthPercentage = 19;
 
-                this.BowtieChartSource.style('display', 'block');
-                this.BowtieChartSVGSource.style('display', 'block');
-                this.BowtieMainContainer.style('width', this.currentViewport.width + 'px');
-                this.BowtieMainContainer.style('height', this.currentViewport.height + 'px');
-                this.BowtieMainContainer.style('float', 'left');
-                this.BowtieChartAggregated.style('width', BowtieChartAggregatedWidthPercentage + '%');
-                this.BowtieChartAggregated.style('margin-right', '0%');
-                this.BowtieChartSVGDestination.style('width', BowtieChartSVGDestinationWidthPercentage + '%');
-                this.BowtieChartSVGDestination.style('margin-right', '1%');
-                this.BowtieChartDestination.style('width', BowtieChartDestinationWidthPercentage + '%');
-                this.BowtieChartSVGSource.style('width', BowtieChartSVGDestinationWidthPercentage + '%');
-                this.BowtieChartSVGSource.style('margin-left', '1%');
-                this.BowtieChartSource.style('width', BowtieChartDestinationWidthPercentage + '%');
-                this.BowtieChartSource.style('margin-left', '1%');
-
+                this.bowtieChartSource.style('display', 'block');
+                this.bowtieChartSVGSource.style('display', 'block');
+                this.bowtieMainContainer.style('width', PixelConverter.toString(this.currentViewport.width));
+                this.bowtieMainContainer.style('height', PixelConverter.toString(this.currentViewport.height));
+                this.bowtieMainContainer.style('float', 'left');
+                this.bowtieChartAggregated.style('width', bowtieChartAggregatedWidthPercentage + percentageLiteral);
+                this.bowtieChartAggregated.style('margin-right', '0%');
+                this.bowtieChartSVGDestination.style('width', bowtieChartSVGDestinationWidthPercentage + percentageLiteral);
+                this.bowtieChartSVGDestination.style('margin-right', '1%');
+                this.bowtieChartDestination.style('width', bowtieChartDestinationWidthPercentage + percentageLiteral);
+                this.bowtieChartSVGSource.style('width', bowtieChartSVGDestinationWidthPercentage + percentageLiteral);
+                this.bowtieChartSVGSource.style('margin-left', '1%');
+                this.bowtieChartSource.style('width', bowtieChartDestinationWidthPercentage + percentageLiteral);
+                this.bowtieChartSource.style('margin-left', '1%');
                 // Chart Headings
-                var textPropertiesDestSourceName: TextProperties = {
+                let textPropertiesDestSourceName: TextProperties;
+                textPropertiesDestSourceName = {
                     text: this.destinationName,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
 
-                var textPropertiesDestSourceValue: TextProperties = {
+                let textPropertiesDestSourceValue: TextProperties;
+                textPropertiesDestSourceValue = {
                     text: this.metricName,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
 
-                var textPropertiesSourceName: TextProperties = {
+                let textPropertiesSourceName: TextProperties;
+                textPropertiesSourceName = {
                     text: this.sourceName,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
-                this.BowtieChartHeadings.selectAll('div').remove();
-                this.BowtieChartHeadings.append('div')
-                    .style('width', (BowtieChartDestinationWidthPercentage / 2) + '%')
-                    .style('margin-left', '1%')
-                    .style('float', 'left')
-                    .style('font-size', fontSize)
-                    .attr('id', 'FullBowtieDestSourceName')
-                    .append('span')
-                    .attr('title', this.sourceName)
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesSourceName, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2)) / 100));
+                this.bowtieChartHeadings.selectAll('div').remove();
+                this.bowtieChartHeadings.append('div')
+                        .style('width', (bowtieChartDestinationWidthPercentage / 2) + percentageLiteral)
+                        .style('margin-left', '1%')
+                        .style('float', 'left')
+                        .style('font-size', fontSize)
+                        .attr('id', 'FullBowtieDestSourceName')
+                        .append('span')
+                        .attr('title', this.sourceName)
+                        .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesSourceName, (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2)) / 100));
 
-                this.BowtieChartHeadings
-                    .append('div')
-                    .style('width', (BowtieChartDestinationWidthPercentage / 2 - 1) + '%')
-                    .style('float', 'left')
-                    .style('text-align', 'right')
-                    .style('font-size', fontSize)
-                    .attr('id', 'FullBowtieDestSourceValue')
-                    .append('span')
-                    .attr('title', this.metricName)
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesDestSourceValue, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2 - 1)) / 100));
+                this.bowtieChartHeadings
+                        .append('div')
+                        .style('width', (bowtieChartDestinationWidthPercentage / 2 - 1) + percentageLiteral)
+                        .style('float', 'left')
+                        .style('text-align', 'right')
+                        .style('font-size', fontSize)
+                        .attr('id', 'FullBowtieDestSourceValue')
+                        .append('span')
+                        .attr('title', this.metricName)
+                        .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesDestSourceValue,
+                            (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2 - 1)) / 100));
 
-                var margin = BowtieChartSVGDestinationWidthPercentage * 2 + BowtieChartAggregatedWidthPercentage + 3;
-                this.BowtieChartHeadings.append('div')
-                    .style('width', (BowtieChartDestinationWidthPercentage / 2) + '%')
-                    .style('float', 'left')
-                    .style('margin-left', margin + '%')
-                    .style('font-size', fontSize)
-                    .attr('id', 'FullBowtieSourceName')
-                    .attr('title', this.destinationName)
-                    .append('span').text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesDestSourceName, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2)) / 100));
+                let margin: number;
+                margin = bowtieChartSVGDestinationWidthPercentage * 2 + bowtieChartAggregatedWidthPercentage + 3;
+                this.bowtieChartHeadings.append('div')
+                        .style('width', (bowtieChartDestinationWidthPercentage / 2) + percentageLiteral)
+                        .style('float', 'left')
+                        .style('margin-left', margin + percentageLiteral)
+                        .style('font-size', fontSize)
+                        .attr('id', 'FullBowtieSourceName')
+                        .attr('title', this.destinationName)
+                        .append('span').text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesDestSourceName, (this.currentViewport.width *
+                                (bowtieChartDestinationWidthPercentage / 2)) / 100));
 
-                this.BowtieChartHeadings.append('div')
-                    .style('width', (BowtieChartDestinationWidthPercentage / 2 - 1) + '%')
-                    .style('float', 'left')
-                    .style('font-size', fontSize)
-                    .attr('id', 'FullBowtieSourceValue')
-                    .append('span')
-                    .attr('title', this.metricName)
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesDestSourceValue, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2 - 1)) / 100));
+                this.bowtieChartHeadings.append('div')
+                        .style('width', (bowtieChartDestinationWidthPercentage / 2 - 1) + percentageLiteral)
+                        .style('float', 'left')
+                        .style('font-size', fontSize)
+                        .attr('id', 'FullBowtieSourceValue')
+                        .append('span')
+                        .attr('title', this.metricName)
+                        .text(TextMeasurementService.getTailoredTextOrDefault(
+                            textPropertiesDestSourceValue,
+                            (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2 - 1)) / 100));
 
-                var heightOfHeadings = 0;
-                if (this.root.select(".BowtieChartHeadings")) {
-                    heightOfHeadings = parseFloat(this.root.select(".BowtieChartHeadings").style("height"));
+                let heightOfHeadings: number;
+                heightOfHeadings = 0;
+                if (this.root.select('.BowtieChartHeadings')) {
+                    heightOfHeadings = parseFloat(this.root.select('.BowtieChartHeadings').style('height'));
                 }
-                var avaialableHeight = this.currentViewport.height - heightOfHeadings - heightOfTitle - 10;
-
+                let avaialableHeight: number;
+                avaialableHeight = this.currentViewport.height - heightOfHeadings - heightOfTitle - 10;
 
                 // Checking whether height is increased or not
-                var numberOfValues = 0;
-                var numberOfValuesSource = 0;
-                for (var k = 0; k < convertedData.dataPoints.length; k++) {
-                    if (convertedData.dataPoints[k].DestCategoryLabel != null)
+                numberOfValues = 0;
+                let numberOfValuesSource: number;
+                numberOfValuesSource = 0;
+                for (let k: number = 0; k < convertedData.dataPoints.length; k++) {
+                    if (convertedData.dataPoints[k].DestCategoryLabel != null) {
+                        destinationData.dataPoints.push(convertedData.dataPoints[k]);
                         numberOfValues++;
+                    }
                     if (convertedData.dataPoints[k].SourceCategoryLabel != null) {
+                        sourceData.dataPoints.push(convertedData.dataPoints[k]);
                         numberOfValuesSource++;
                     }
                 }
 
-                var category = convertedData.dataPoints[0].DestCategoryLabel;
-                var textPropertiesForLabel: TextProperties = {
+                category = convertedData.dataPoints[0].DestCategoryLabel;
+                textPropertiesForLabel = {
                     text: category,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
 
-                var numberOfValuesHeight = TextMeasurementService.measureSvgTextHeight(textPropertiesForLabel) * (numberOfValues > numberOfValuesSource ? numberOfValues : numberOfValuesSource);
+                numberOfValuesHeight = TextMeasurementService.measureSvgTextHeight(
+                    textPropertiesForLabel) * (numberOfValues > numberOfValuesSource ? numberOfValues : numberOfValuesSource);
 
                 if (numberOfValuesHeight > avaialableHeight) {
                     avaialableHeight = numberOfValuesHeight;
                     this.root.select('.BowtieMainContainer').style('overflow-y', 'auto');
-                }
-                else {
+                } else {
                     this.root.select('.BowtieMainContainer').style('overflow-y', 'hidden');
                 }
                 this.root.select('.BowtieMainContainer').style('overflow-x', 'hidden');
 
-                // Checking whether height is increased or not              
-                var divisionHeight = avaialableHeight / (convertedData.dataPoints.length - numberOfValues);
+                // Checking whether height is increased or not
+                divisionHeight = avaialableHeight / (convertedData.dataPoints.length - numberOfValues);
 
-                var category = convertedData.dataPoints[numberOfValues].SourceCategoryLabel;
-                var textPropertiesForLabel: TextProperties = {
+                category = convertedData.dataPoints[numberOfValues].SourceCategoryLabel;
+                textPropertiesForLabel = {
                     text: category,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: fontSize
                 };
 
-                this.BowtieChartAggregated.style('height', avaialableHeight + 'px');
-                this.BowtieChartSVGDestination.style('height', avaialableHeight + 'px');
-                this.BowtieChartDestination.style('height', avaialableHeight + 'px');
-                this.BowtieChartSVGSource.style('height', avaialableHeight + 'px');
-                this.BowtieChartSource.style('height', avaialableHeight + 'px');
+                this.bowtieChartAggregated.style('height', PixelConverter.toString(avaialableHeight));
+                this.bowtieChartSVGDestination.style('height', PixelConverter.toString(avaialableHeight));
+                this.bowtieChartDestination.style('height', PixelConverter.toString(avaialableHeight));
+                this.bowtieChartSVGSource.style('height', PixelConverter.toString(avaialableHeight));
+                this.bowtieChartSource.style('height', PixelConverter.toString(avaialableHeight));
 
-                // Aggregated Sum settings 
-                this.BowtieChartAggregated.select('div').remove();
-                this.BowtieChartSVGDestination.selectAll('svg').remove();
-                this.BowtieChartSVGSource.selectAll('svg').remove();
+                // Aggregated Sum settings
+                this.bowtieChartAggregated.select('div').remove();
+                this.bowtieChartSVGDestination.selectAll('svg').remove();
+                this.bowtieChartSVGSource.selectAll('svg').remove();
 
-                var textPropertiesAggregateValue: TextProperties = {
+                let textPropertiesAggregateValue: TextProperties;
+                textPropertiesAggregateValue = {
                     text: aggregateFormatter.format(convertedData.aggregatedSum),
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: aggregateFontSize
                 };
 
-                var textPropertiesMetricName: TextProperties = {
+                let textPropertiesMetricName: TextProperties;
+                textPropertiesMetricName = {
                     text: this.metricName,
-                    fontFamily: "Segoe UI",
+                    fontFamily: 'Segoe UI',
                     fontSize: aggregateFontSize
                 };
 
-                var textWidth = TextMeasurementService.measureSvgTextWidth(textPropertiesAggregateValue);
-                var AggregatedSum =
-                    this.BowtieChartAggregated.append('div')
+                let textWidth: number;
+                textWidth = TextMeasurementService.measureSvgTextWidth(textPropertiesAggregateValue);
+                let aggregatedSum: d3.Selection<SVGElement>;
+
+                aggregatedSum =
+                    this.bowtieChartAggregated.append('div')
                         .attr('id', 'divAggregatedSum')
-                        .style('width', (this.currentViewport.width * BowtieChartAggregatedWidthPercentage) / 100 + 'px')
+                        .style('width', PixelConverter.toString((this.currentViewport.width * bowtieChartAggregatedWidthPercentage) / 100))
                         .style('text-align', 'center');
-                AggregatedSum.append('div').append('span')
+                aggregatedSum.append('div').append('span')
                     .attr('title', this.metricName)
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesMetricName, (this.currentViewport.width * BowtieChartAggregatedWidthPercentage) / 100))
-                var aggregatedValue = AggregatedSum.append('div');
+                    .text(TextMeasurementService.getTailoredTextOrDefault(
+                        textPropertiesMetricName, (this.currentViewport.width * bowtieChartAggregatedWidthPercentage) / 100));
+                aggregatedValue = aggregatedSum.append('div');
 
                 aggregatedValue.append('span')
                     .attr('title', aggregateFormatter.format(convertedData.aggregatedSum))
-                    .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesAggregateValue, ((this.currentViewport.width * BowtieChartAggregatedWidthPercentage) / 100) - PixelConverter.fromPointToPixel(convertedData.AggregatelabelSettings.fontSize) - 2));
+                    .text(TextMeasurementService.getTailoredTextOrDefault(
+                        textPropertiesAggregateValue,
+                        ((this.currentViewport.width * bowtieChartAggregatedWidthPercentage) / 100) -
+                        PixelConverter.fromPointToPixel(convertedData.AggregatelabelSettings.fontSize) - 2));
 
-                AggregatedSum
+                aggregatedSum
                     .style('font-size', aggregateFontSize)
                     .style('color', convertedData.AggregatelabelSettings.color);
 
                 // Indicator logic
-                var color = 'green';
-                if (this.prevIndicator == false && convertedData.AggregatelabelSettings.Indicator) {
+                let color: string = 'green';
+                if (this.prevIndicator === false && convertedData.AggregatelabelSettings.Indicator) {
                     convertedData.AggregatelabelSettings.signIndicator = true;
-                } else if (convertedData.AggregatelabelSettings.Indicator == false) {
+                } else if (convertedData.AggregatelabelSettings.Indicator === false) {
                     convertedData.AggregatelabelSettings.signIndicator = false;
                 }
 
                 if (convertedData.AggregatelabelSettings.signIndicator) {
                     convertedData.AggregatelabelSettings.Threshold = 0;
                 }
+
                 if (convertedData.AggregatelabelSettings.Indicator) {
                     if (convertedData.AggregatelabelSettings.signIndicator) {
                         color = convertedData.aggregatedSum > 0 ? 'green' : 'red';
@@ -1001,31 +1291,32 @@ module powerbi.extensibility.visual {
                         .style('margin-left', '2px')
                         .style('margin-bottom', '-1px')
                         .attr('id', 'indicator')
-                        .text('▲');
+                        .html('&#9650');
                 } else {
                     aggregatedValue.select('span#indicator').remove();
                 }
                 this.prevIndicator = convertedData.AggregatelabelSettings.Indicator;
 
-                var divHeight = 0;
-                if (this.root.select("#divAggregatedSum")) {
-                    divHeight = parseFloat(this.root.select("#divAggregatedSum").style("height"));
+                let divHeight: number = 0;
+                if (this.root.select('#divAggregatedSum')) {
+                    divHeight = parseFloat(this.root.select('#divAggregatedSum').style('height'));
                 }
-                AggregatedSum.style('margin-top', (avaialableHeight / 2 - divHeight / 2) + 'px');
+                aggregatedSum.style('margin-top', PixelConverter.toString((avaialableHeight / 2 - divHeight / 2)));
 
                 // Destination Settings
-                this.BowtieChartDestination.selectAll('div').remove();
-                var numberOfValues = 0;
-                for (var k = 0; k < convertedData.dataPoints.length; k++) {
-                    if (convertedData.dataPoints[k].DestCategoryLabel != null)
+                this.bowtieChartDestination.selectAll('div').remove();
+                numberOfValues = 0;
+                for (let k: number = 0; k < convertedData.dataPoints.length; k++) {
+                    if (convertedData.dataPoints[k].DestCategoryLabel != null) {
                         numberOfValues++;
+                    }
                 }
-                var divisionHeight = avaialableHeight / numberOfValues;
-                var fBranchHeight = avaialableHeight / 12;
-                var fBranchHeight1 = avaialableHeight / 12;
+                divisionHeight = avaialableHeight / numberOfValues;
+                fBranchHeight = avaialableHeight / 12;
+                fBranchHeight1 = avaialableHeight / 12;
 
-                // checking for large datasets                
-                for (var iDiv = 0; iDiv < numberOfValues; iDiv++) {
+                // checking for large datasets
+                for (let iDiv: number = 0; iDiv < numberOfValues; iDiv++) {
                     if ((convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight) < 1) {
                         fBranchHeight1 = fBranchHeight1 + 0.25;
                     }
@@ -1033,100 +1324,198 @@ module powerbi.extensibility.visual {
 
                 if (fBranchHeight1 > avaialableHeight) {
                     this.clearData(true);
+
                     return;
                 }
 
-                var fStartX = 0;
-                var fStartY = avaialableHeight / 2 - fBranchHeight1 / 2;
-                var fEndX = (this.currentViewport.width * BowtieChartSVGDestinationWidthPercentage) / 100;
-                var fEndY = 0;
-                var fCurveFactor = 0.65;
-                var svg = this.BowtieChartSVGDestination
+                fStartX = 0;
+                fStartY = avaialableHeight / 2 - fBranchHeight1 / 2;
+                fEndX = (this.currentViewport.width * bowtieChartSVGDestinationWidthPercentage) / 100;
+                fEndY = 0;
+                fCurveFactor = 0.65;
+                svg = this.bowtieChartSVGDestination
                     .append('svg')
-                    .style('height', avaialableHeight + 'px');
+                    .style('height', PixelConverter.toString(avaialableHeight));
 
-                for (var iDiv = 0; iDiv < numberOfValues; iDiv++) {
-                    var category = convertedData.dataPoints[iDiv].DestCategoryLabel;
-                    var value = formatter.format(convertedData.dataPoints[iDiv].value);
-                    var oDiv = this.BowtieChartDestination
+                for (let iDiv: number = 0; iDiv < numberOfValues; iDiv++) {
+                    category = convertedData.dataPoints[iDiv].DestCategoryLabel;
+                    let value: string;
+                    value = formatter.format(convertedData.dataPoints[iDiv].value);
+                    let oDiv: d3.Selection<SVGElement>;
+                    let spanDiv: d3.Selection<SVGElement>;
+                    oDiv = this.bowtieChartDestination
                         .append('div')
-                        .style('height', divisionHeight + 'px')
+                        .classed('alignment', true)
+                        .style('line-height', PixelConverter.toString(divisionHeight))
                         .style('width', '50%')
                         .style('margin-right', '1%');
 
-                    var oDiv1 = this.BowtieChartDestination
+                    let oDiv1: d3.Selection<SVGElement>;
+                    let spanDiv1: d3.Selection<SVGElement>;
+                    oDiv1 = this.bowtieChartDestination
                         .append('div')
-                        .style('height', divisionHeight + 'px')
+                        .classed('alignment', true)
+                        .style('line-height', PixelConverter.toString(divisionHeight))
                         .style('width', '49%');
 
-                    var textPropertiesForLabel: TextProperties = {
+                    textPropertiesForLabel = {
                         text: convertedData.dataPoints[iDiv].DestCategoryLabel,
-                        fontFamily: "Segoe UI",
+                        fontFamily: 'Segoe UI',
                         fontSize: fontSize
                     };
 
-                    var textPropertiesForValue: TextProperties = {
+                    let textPropertiesForValue: TextProperties;
+                    textPropertiesForValue = {
                         text: formatter.format(convertedData.dataPoints[iDiv].value),
-                        fontFamily: "Segoe UI",
+                        fontFamily: 'Segoe UI',
                         fontSize: fontSize
                     };
 
-                    this.BowtieChartDestination.style('display', 'block');
-                    oDiv.append('span')
-                        .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesForLabel, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2)) / 100))
-                        .attr('title', convertedData.dataPoints[iDiv].DestCategoryLabel)
-                        .style('float', 'left')
-                        .style('font-size', fontSize)
-                        .style('color', convertedData.labelSettings.labelColor)
-                        .style('line-height', divisionHeight + 'px');
+                    this.bowtieChartDestination.style('display', 'block');
 
-                    oDiv1.append('span')
-                        .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesForValue, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2 - 1)) / 100))
-                        .attr('title', formatter.format(convertedData.dataPoints[iDiv].value))
-                        .style('float', 'left')
-                        .style('font-size', fontSize)
-                        .style('color', convertedData.labelSettings.labelColor)
-                        .style('line-height', divisionHeight + 'px');
+                    spanDiv = oDiv.append('span')
+                            .classed(`index${iDiv}`, true)
+                            .attr('title', convertedData.dataPoints[iDiv].DestCategoryLabel)
+                            .style('float', 'left')
+                            .style('font-size', fontSize)
+                            .style('color', convertedData.labelSettings.labelColor);
 
-                    var percentage = convertedData.dataPoints[iDiv].value / convertedData.aggregatedSum;
+                    spanDiv.append('text')
+                            .classed('destinationSpan1', true)
+                            .classed(`index${iDiv}`, true)
+                            .text(TextMeasurementService.getTailoredTextOrDefault(
+                                textPropertiesForLabel, (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2)) / 100))
+                            .style('cursor', 'pointer');
+
+                    spanDiv1 = oDiv1.append('span')
+                            .classed(`index${iDiv}`, true)
+                            .attr('title', formatter.format(convertedData.dataPoints[iDiv].value))
+                            .style('float', 'left')
+                            .style('font-size', fontSize)
+                            .style('color', convertedData.labelSettings.labelColor);
+
+                    spanDiv1.append('text')
+                            .classed('destinationSpan2', true)
+                            .classed(`index${iDiv}`, true)
+                            .text(TextMeasurementService.getTailoredTextOrDefault(
+                                textPropertiesForValue, (this.currentViewport.width *
+                                     (bowtieChartDestinationWidthPercentage / 2 - 1)) / 100))
+                            .style('cursor', 'pointer');
+                    let percentage: number;
+                    percentage = convertedData.dataPoints[iDiv].value / convertedData.aggregatedSum;
                     fEndY = iDiv * (avaialableHeight / numberOfValues) + divisionHeight / 2;
-                    var fPipeArea = Math.abs(fEndX - fStartX);
-                    var height = convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight > 1 ? convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight : 1;
+                    let fPipeArea: number;
+                    fPipeArea = Math.abs(fEndX - fStartX);
+                    let height: number;
+                    height = convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight > 1 ?
+                        convertedData.dataPoints[iDiv].DestCatArcWidth * fBranchHeight : 1;
                     fStartY += (height / 2);
                     if (iDiv > 0) {
                         if ((convertedData.dataPoints[iDiv - 1].DestCatArcWidth * fBranchHeight) > 1) {
                             fStartY += ((convertedData.dataPoints[iDiv - 1].DestCatArcWidth * fBranchHeight) / 2);
-                        }
-                        else {
+                        } else {
                             fStartY += 0.5;
                         }
                     }
-                    var d = 'M ' + fStartX + ' ' + fStartY + ' C ' + (fStartX + (fPipeArea * fCurveFactor)) + ' ' + fStartY +
-                        ' ' + (fEndX - fPipeArea * fCurveFactor) + ' ' + fEndY + ' ' + fEndX + ' ' + fEndY;
+                    let d: string;
+                    d = 'M ';
+                    d += fStartX;
+                    d += ' ';
+                    d += fStartY;
+                    d += ' C ';
+                    d += (fStartX + (fPipeArea * fCurveFactor));
+                    d += ' ';
+                    d += fStartY;
+                    d += ' ';
+                    d += (fEndX - fPipeArea * fCurveFactor);
+                    d += ' ';
+                    d += fEndY;
+                    d += ' ';
+                    d += fEndX;
+                    d += ' ';
+                    d += fEndY;
 
-                    var path = svg
+                    let path: d3.Selection<SVGElement>;
+                    path = svg
                         .append('path')
+                        .classed('destination', true)
+                        .classed(`index${iDiv}`, true)
                         .attr('d', d)
                         .attr('stroke', this.data.ArcFillColor)
                         .attr('fill', 'none')
-                        .attr('stroke-width', height);
+                        .attr('stroke-width', height)
+                        .style('cursor', 'pointer');
 
-                    var toolTipInfo: TooltipDataItem[] = [];
+                    let toolTipInfo: ITooltipDataItem[];
+                    toolTipInfo = [];
                     toolTipInfo.push({
                         displayName: category,
-                        value: value,
+                        value: value
                     });
 
                     path[0][0]['cust-tooltip'] = toolTipInfo;
                 }
-
-                // Source Settings               
-                this.BowtieChartSource.selectAll('div').remove();
+                d3.selectAll('.destination').data(destinationData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                            if (d3.select(this).classed('selected')) {
+                                d3.selectAll('path').style('opacity', 1);
+                                d3.selectAll('span').style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                selectionManager.clear();
+                            } else {
+                                d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll(`.index${i}`).style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                d3.selectAll(`.index${i}`).classed('selected', true);
+                            }
+                            });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.selectAll('.destinationSpan1').data(destinationData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                            if (d3.select(this).classed('selected')) {
+                                d3.selectAll('path').style('opacity', 1);
+                                d3.selectAll('span').style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                selectionManager.clear();
+                            } else {
+                                d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll(`.index${i}`).style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                d3.selectAll(`.index${i}`).classed('selected', true);
+                            }
+                            });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.selectAll('.destinationSpan2').data(destinationData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                            if (d3.select(this).classed('selected')) {
+                                d3.selectAll('path').style('opacity', 1);
+                                d3.selectAll('span').style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                selectionManager.clear();
+                            } else {
+                                d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll(`.index${i}`).style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                d3.selectAll(`.index${i}`).classed('selected', true);
+                            }
+                            });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                // Source Settings
+                this.bowtieChartSource.selectAll('div').remove();
                 fBranchHeight = avaialableHeight / 12;
                 fBranchHeight1 = avaialableHeight / 12;
 
-                // checking for large datasets                
-                for (var iDiv = numberOfValues; iDiv < (convertedData.dataPoints.length); iDiv++) {
+                // checking for large datasets
+                for (let iDiv: number = numberOfValues; iDiv < (convertedData.dataPoints.length); iDiv++) {
                     if ((convertedData.dataPoints[iDiv].SourceArcWidth * fBranchHeight) < 1) {
                         fBranchHeight1 = fBranchHeight1 + 0.25;
                     }
@@ -1134,107 +1523,216 @@ module powerbi.extensibility.visual {
 
                 if (fBranchHeight1 > avaialableHeight) {
                     this.clearData(true);
+
                     return;
                 }
 
-                var fStartX = 0;
-                var fStartY = 0;
-                var fEndX = (this.currentViewport.width * BowtieChartSVGDestinationWidthPercentage) / 100;
-                var fEndY = avaialableHeight / 2 - fBranchHeight1 / 2;
-                var fCurveFactor = 0.25;
+                fStartX = 0;
+                fStartY = 0;
+                fEndX = (this.currentViewport.width * bowtieChartSVGDestinationWidthPercentage) / 100;
+                fEndY = avaialableHeight / 2 - fBranchHeight1 / 2;
+                fCurveFactor = 0.25;
 
-                var divisionHeight = avaialableHeight / (convertedData.dataPoints.length - numberOfValues);
-                var svg = this.BowtieChartSVGSource
+                divisionHeight = avaialableHeight / (convertedData.dataPoints.length - numberOfValues);
+                svg = this.bowtieChartSVGSource
                     .append('svg')
-                    .style('height', avaialableHeight + 'px');
+                    .style('height', PixelConverter.toString(avaialableHeight));
 
-                for (var iDiv = numberOfValues; iDiv < (convertedData.dataPoints.length); iDiv++) {
-                    var category = convertedData.dataPoints[iDiv].SourceCategoryLabel;
-                    var value = formatter.format(convertedData.dataPoints[iDiv].srcValue);
-                    var oDiv = this.BowtieChartSource
+                for (let iDiv: number = numberOfValues; iDiv < (convertedData.dataPoints.length); iDiv++) {
+                    category = convertedData.dataPoints[iDiv].SourceCategoryLabel;
+                    let value: string;
+                    value = formatter.format(convertedData.dataPoints[iDiv].srcValue);
+                    let oDiv: d3.Selection<SVGElement>;
+                    let spanDiv: d3.Selection<SVGElement>;
+                    oDiv = this.bowtieChartSource
                         .append('div')
-                        .style('height', divisionHeight + 'px')
+                        .classed('alignment', true)
+                        .style('line-height', PixelConverter.toString(divisionHeight))
                         .style('width', '50%')
                         .style('margin-right', '1%');
 
-                    var oDiv1 = this.BowtieChartSource
+                    let oDiv1: d3.Selection<SVGElement>;
+                    let spanDiv1: d3.Selection<SVGElement>;
+                    oDiv1 = this.bowtieChartSource
                         .append('div')
-                        .style('height', divisionHeight + 'px')
+                        .classed('alignment', true)
+                        .style('line-height', PixelConverter.toString(divisionHeight))
                         .style('width', '49%');
 
-                    var textPropertiesForLabel: TextProperties = {
+                    textPropertiesForLabel = {
                         text: category,
-                        fontFamily: "Segoe UI",
+                        fontFamily: 'Segoe UI',
                         fontSize: fontSize
                     };
 
-                    var textPropertiesForValue: TextProperties = {
+                    let textPropertiesForValue: TextProperties;
+                    textPropertiesForValue = {
                         text: value,
-                        fontFamily: "Segoe UI",
+                        fontFamily: 'Segoe UI',
                         fontSize: fontSize
                     };
 
-                    this.BowtieChartSource.style('display', 'block');
-                    oDiv.append('span')
-                        .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesForLabel, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2)) / 100))
-                        .attr('title', convertedData.dataPoints[iDiv].SourceCategoryLabel)
-                        .style('float', 'left')
-                        .style('font-size', fontSize)
-                        .style('color', convertedData.labelSettings.labelColor)
-                        .style('line-height', divisionHeight + 'px');
+                    this.bowtieChartSource.style('display', 'block');
 
-                    oDiv1.append('span')
-                        .text(TextMeasurementService.getTailoredTextOrDefault(textPropertiesForValue, (this.currentViewport.width * (BowtieChartDestinationWidthPercentage / 2 - 1)) / 100))
-                        .attr('title', formatter.format(convertedData.dataPoints[iDiv].srcValue))
-                        .style('float', 'right')
-                        .style('font-size', fontSize)
-                        .style('color', convertedData.labelSettings.labelColor)
-                        .style('line-height', divisionHeight + 'px');
+                    spanDiv = oDiv.append('span')
+                            .classed(`indexClass${iDiv - numberOfValues}`, true)
+                            .attr('title', convertedData.dataPoints[iDiv].SourceCategoryLabel)
+                            .style('float', 'left')
+                            .style('font-size', fontSize)
+                            .style('color', convertedData.labelSettings.labelColor);
 
+                    spanDiv.append('text')
+                            .classed('sourceSpan1', true)
+                            .classed(`indexClass${iDiv - numberOfValues}`, true)
+                            .text(TextMeasurementService.getTailoredTextOrDefault(
+                                textPropertiesForLabel, (this.currentViewport.width * (bowtieChartDestinationWidthPercentage / 2)) / 100))
+                            .style('cursor', 'pointer');
+
+                    spanDiv1 = oDiv1.append('span')
+                            .classed(`indexClass${iDiv - numberOfValues}`, true)
+                            .attr('title', formatter.format(convertedData.dataPoints[iDiv].srcValue))
+                            .style('float', 'left')
+                            .style('font-size', fontSize)
+                            .style('color', convertedData.labelSettings.labelColor);
+
+                    spanDiv1.append('text')
+                            .classed('sourceSpan2', true)
+                            .classed(`indexClass${iDiv - numberOfValues}`, true)
+                            .text(TextMeasurementService.getTailoredTextOrDefault(
+                                textPropertiesForValue, (this.currentViewport.width *
+                                     (bowtieChartDestinationWidthPercentage / 2 - 1)) / 100))
+                            .style('cursor', 'pointer');
 
                     // Code for SVG Path
-                    var percentage = convertedData.dataPoints[iDiv].srcValue / convertedData.aggregatedSum;
+                    let percentage: number;
+                    percentage = convertedData.dataPoints[iDiv].srcValue / convertedData.aggregatedSum;
                     fStartY = ((iDiv - numberOfValues) * divisionHeight) + divisionHeight / 2;
-                    var fPipeArea = Math.abs(fStartX - fEndX);
+                    let fPipeArea: number;
+                    fPipeArea = Math.abs(fStartX - fEndX);
 
-                    var height = (convertedData.dataPoints[iDiv].SourceArcWidth * fBranchHeight);
+                    let height: number = (convertedData.dataPoints[iDiv].SourceArcWidth * fBranchHeight);
                     height = height > 1 ? height : 1;
                     fEndY += (height / 2);
 
                     if (iDiv > numberOfValues) {
                         if ((convertedData.dataPoints[iDiv - 1].SourceArcWidth * fBranchHeight) > 1) {
                             fEndY += ((convertedData.dataPoints[iDiv - 1].SourceArcWidth * fBranchHeight) / 2);
-                        }
-                        else {
+                        } else {
                             fEndY += 0.5;
                         }
                     }
-                    var d = 'M ' + fStartX + ' ' + fStartY + ' C ' + (fEndX - (fPipeArea * fCurveFactor)) + ' ' + fStartY +
-                        ' ' + (fStartX + (fPipeArea * fCurveFactor)) + ' ' + fEndY + ' ' + fEndX + ' ' + fEndY;
+                    let d: string = '';
+                    d = 'M ';
+                    d += fStartX;
+                    d += ' ';
+                    d += fStartY;
+                    d += ' C ';
+                    d += (fEndX - (fPipeArea * fCurveFactor));
+                    d += ' ';
+                    d += fStartY;
+                    d += ' ';
+                    d += (fStartX + (fPipeArea * fCurveFactor));
+                    d += ' ';
+                    d += fEndY;
+                    d += ' ';
+                    d += fEndX;
+                    d += ' ';
+                    d += fEndY;
 
-                    var path = svg
+                    let path: d3.Selection<SVGElement>;
+                    path = svg
                         .append('path')
+                        .classed(`indexClass${iDiv - numberOfValues}`, true)
+                        .classed('source', true)
                         .attr('d', d)
                         .attr('stroke', this.data.ArcFillColor)
                         .attr('fill', 'none')
-                        .attr('stroke-width', height);
+                        .attr('stroke-width', height)
+                        .style('cursor', 'pointer');
 
-                    var toolTipInfo: TooltipDataItem[] = [];
+                    let toolTipInfo: ITooltipDataItem[];
+                    toolTipInfo = [];
                     toolTipInfo.push({
                         displayName: category,
-                        value: value,
+                        value: value
                     });
 
                     path[0][0]['cust-tooltip'] = toolTipInfo;
                 }
+                d3.selectAll('.source').data(sourceData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                            if (d3.select(this).classed('selected')) {
+                                d3.selectAll('path').style('opacity', 1);
+                                d3.selectAll('span').style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                selectionManager.clear();
+                            } else {
+                                d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll(`.indexClass${i}`).style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                d3.selectAll(`.indexClass${i}`).classed('selected', true);
+                            }
+                            });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.selectAll('.sourceSpan1').data(sourceData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                            if (d3.select(this).classed('selected')) {
+                                d3.selectAll('path').style('opacity', 1);
+                                d3.selectAll('span').style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                selectionManager.clear();
+                            } else {
+                                d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll(`.indexClass${i}`).style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                d3.selectAll(`.indexClass${i}`).classed('selected', true);
+                            }
+                            });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.selectAll('.sourceSpan2').data(sourceData.dataPoints)
+                    .on('click', function(d: IBowtieDataPoint, i: number): void {
+                        selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
+                            if (d3.select(this).classed('selected')) {
+                                d3.selectAll('path').style('opacity', 1);
+                                d3.selectAll('span').style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                selectionManager.clear();
+                            } else {
+                                d3.selectAll('path').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll('span').style('opacity', ids.length > 0 ? 0.5 : 1);
+                                d3.selectAll(`.indexClass${i}`).style('opacity', 1);
+                                d3.selectAll('.selected').classed('selected', false);
+                                d3.selectAll(`.indexClass${i}`).classed('selected', true);
+                            }
+                            });
+                        (<Event>d3.event).stopPropagation();
+                    });
+                d3.select('html').on('click', function(): void {
+                    if (selectionManager[`selectedIds`].length) {
+                        selectionManager.clear();
+                        d3.selectAll('path').style('opacity', 1);
+                        d3.selectAll('span').style('opacity', 1);
+                    }
+                });
             }
 
             // Adding the tooltip for each path
-            this.tooltipServiceWrapper.addTooltip(d3.selectAll('svg>*'), (tooltipEvent: TooltipEventArgs<number>) => {
-                return tooltipEvent.context['cust-tooltip'];
-            }, (tooltipEvent: TooltipEventArgs<number>) => null, true);
+            this.tooltipServiceWrapper.addTooltip(
+                d3.selectAll('svg>*'), (
+                    tooltipEvent: TooltipEventArgs<number>) => {
+                    return tooltipEvent.context['cust-tooltip'];
+                },
+                (
+                    tooltipEvent: TooltipEventArgs<number>) => null,
+                true);
         }
-        private dataViewContainsCategory(dataView: DataView) {
+        private dataViewContainsCategory(dataView: DataView): DataViewCategoryColumn {
             return dataView &&
                 dataView.categorical &&
                 dataView.categorical.categories &&
@@ -1243,40 +1741,54 @@ module powerbi.extensibility.visual {
 
         // This function returns on/off status of the funnel title properties
         private getShowTitle(dataView: DataView): IDataLabelSettings {
+            const gmoDonutTitle: string = 'GMODonutTitle';
+            const showLiteral: string = 'show';
             if (dataView && dataView.metadata && dataView.metadata.objects) {
                 if (dataView.metadata.objects && dataView.metadata.objects.hasOwnProperty('GMODonutTitle')) {
-                    var showTitle = dataView.metadata.objects['GMODonutTitle'];
+                    const showTitle: DataViewObject = dataView.metadata.objects[gmoDonutTitle];
                     if (dataView.metadata.objects && showTitle.hasOwnProperty('show')) {
-                        return <IDataLabelSettings>showTitle['show'];
+                        return <IDataLabelSettings>showTitle[showLiteral];
                     }
                 } else {
-                    return<IDataLabelSettings>true;
+                    return <IDataLabelSettings>true;
                 }
             }
+
             return <IDataLabelSettings>true;
         }
 
         /* This function returns the title text given for the title in the format window */
-        private getTitleText(dataView: DataView): String {
-            var returnTitleValues: string, returnTitleLegend: string, returnTitleDetails: string, returnTitle: string, tempTitle: string;
-            returnTitleValues = "";
-            returnTitleLegend = "";
-            returnTitleDetails = "";
-            returnTitle = "";
-            tempTitle = "";
+        // tslint:disable-next-line:no-any
+        private getTitleText(dataView: DataView): string {
+            let returnTitleValues: string;
+            let returnTitleLegend: string;
+            let returnTitleDetails: string;
+            let returnTitle: string;
+            let tempTitle: string;
+            let gmoDonutTitle: string;
+            let titleTextLiteral: string;
+
+            gmoDonutTitle = 'GMODonutTitle';
+            titleTextLiteral = 'titleText';
+            returnTitleValues = '';
+            returnTitleLegend = '';
+            returnTitleDetails = '';
+            returnTitle = '';
+            tempTitle = '';
             if (dataView && dataView.metadata && dataView.metadata.objects) {
                 if (dataView.metadata.objects.hasOwnProperty('GMODonutTitle')) {
-                    var titletext = dataView.metadata.objects['GMODonutTitle'];
+                    const titletext: DataViewObject = dataView.metadata.objects[gmoDonutTitle];
                     if (titletext && titletext.hasOwnProperty('titleText')) {
-                        return titletext['titleText'].toString();
+                        return titletext[titleTextLiteral].toString();
                     }
                 }
             }
 
-            var iLength = 0;
+            let iLength: number = 0;
             if (dataView && dataView.categorical && dataView.categorical.values) {
-                for (var iLength = 0; iLength < dataView.categorical.values.length; iLength++) {
-                    if (dataView.categorical.values[iLength].source && dataView.categorical.values[iLength].source.roles && dataView.categorical.values[iLength].source.roles.hasOwnProperty('Value')) {
+                for (iLength = 0; iLength < dataView.categorical.values.length; iLength++) {
+                    if (dataView.categorical.values[iLength].source && dataView.categorical.values[iLength].source.roles &&
+                        dataView.categorical.values[iLength].source.roles.hasOwnProperty('Value')) {
                         if (dataView.categorical.values[iLength].source.displayName) {
                             returnTitleValues = dataView.categorical.values[iLength].source.displayName;
                             break;
@@ -1284,24 +1796,22 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
-            if (dataView && dataView.categorical && dataView.categorical.categories) {
-                returnTitleLegend = dataView.categorical.categories[0].source.displayName;
-            }
 
-            if (dataView && dataView.categorical && dataView.categorical.categories && dataView.categorical.categories[1]) {
-                returnTitleDetails = dataView.categorical.categories[1].source.displayName;
-            }
+            returnTitleLegend = this.getLegendTitle(dataView);
 
-            if ("" !== returnTitleValues) {
-                tempTitle = " by ";
+            returnTitleDetails = this.getTitleDetails(dataView);
+
+            if ('' !== returnTitleValues) {
+                tempTitle = ' by ';
             }
-            if ("" !== returnTitleLegend && "" !== returnTitleDetails) {
-                tempTitle = tempTitle + returnTitleLegend + " and " + returnTitleDetails;
-            }
-            else if ("" === returnTitleLegend && "" === returnTitleDetails) {
-                tempTitle = "";
-            }
-            else {
+            if ('' !== returnTitleLegend && '' !== returnTitleDetails) {
+                tempTitle = tempTitle;
+                tempTitle += returnTitleLegend;
+                tempTitle += ' and ';
+                tempTitle += returnTitleDetails;
+            } else if ('' === returnTitleLegend && '' === returnTitleDetails) {
+                tempTitle = '';
+            } else {
                 // means one in empty and other is non empty
                 tempTitle = tempTitle + returnTitleLegend + returnTitleDetails;
             }
@@ -1311,63 +1821,112 @@ module powerbi.extensibility.visual {
             return returnTitle;
         }
 
+        private getTitleDetails(dataView: DataView): string {
+            let returnTitleDetails: string;
+            returnTitleDetails = '';
+            if (dataView && dataView.categorical && dataView.categorical.categories && dataView.categorical.categories[1]) {
+                returnTitleDetails = dataView.categorical.categories[1].source.displayName;
+            }
+
+            return returnTitleDetails;
+        }
+
+        private getLegendTitle(dataView: DataView): string {
+            let legendTitle: string;
+            legendTitle = '';
+            if (dataView && dataView.categorical && dataView.categorical.categories) {
+                legendTitle = dataView.categorical.categories[0].source.displayName;
+            }
+
+            return legendTitle;
+        }
+
         // This function returns the tool tip text given for the tooltip in the format window
         private getTooltipText(dataView: DataView): IDataLabelSettings {
+            let gmoDonutTitle: string;
+            let tooltipTextLiteral: string;
+            gmoDonutTitle = 'GMODonutTitle';
+            tooltipTextLiteral = 'tooltipText';
+
             if (dataView && dataView.metadata && dataView.metadata.objects) {
                 if (dataView.metadata.objects && dataView.metadata.objects.hasOwnProperty('GMODonutTitle')) {
-                    var tooltiptext = dataView.metadata.objects['GMODonutTitle'];
+                    const tooltiptext: DataViewObject = dataView.metadata.objects[gmoDonutTitle];
                     if (tooltiptext && tooltiptext.hasOwnProperty('tooltipText')) {
-                        return <IDataLabelSettings>tooltiptext['tooltipText'];
+                        return <IDataLabelSettings>tooltiptext[tooltipTextLiteral];
                     }
                 } else {
                     return <IDataLabelSettings>'Your tooltip text goes here';
                 }
             }
+
             return <IDataLabelSettings>'Your tooltip text goes here';
         }
 
         // This function returns the font colot selected for the title in the format window
         private getTitleFill(dataView: DataView): Fill {
+            let gmoDonutTitle: string;
+            let fill1Literal: string;
+            gmoDonutTitle = 'GMODonutTitle';
+            fill1Literal = 'fill1';
+
             if (dataView && dataView.metadata && dataView.metadata.objects) {
                 if (dataView.metadata.objects && dataView.metadata.objects.hasOwnProperty('GMODonutTitle')) {
-                    var FTitle = dataView.metadata.objects['GMODonutTitle'];
-                    if (FTitle && FTitle.hasOwnProperty('fill1')) {
-                        return <Fill>FTitle['fill1'];
+                    const fTitle: DataViewObject = dataView.metadata.objects[gmoDonutTitle];
+                    if (fTitle && fTitle.hasOwnProperty('fill1')) {
+                        return <Fill>fTitle[fill1Literal];
                     }
                 } else {
-                    return dataView && dataView.metadata && DataViewObjects.getValue(dataView.metadata.objects, BowtieProps.titleFill, { solid: { color: '#333333' } });
+                    return dataView && dataView.metadata && DataViewObjects.getValue(
+                        dataView.metadata.objects, bowtieProps.titleFill, { solid: { color: '#333333' } });
                 }
             }
-            return dataView && dataView.metadata && DataViewObjects.getValue(dataView.metadata.objects, BowtieProps.titleFill, { solid: { color: '#333333' } });
+
+            return dataView && dataView.metadata && DataViewObjects.getValue(
+                dataView.metadata.objects, bowtieProps.titleFill, { solid: { color: '#333333' } });
         }
 
         // This function returns the background color selected for the title in the format window
         private getTitleBgcolor(dataView: DataView): Fill {
+            let gmoDonutTitle: string;
+            let backgroundColorLiteral: string;
+            gmoDonutTitle = 'GMODonutTitle';
+            backgroundColorLiteral = 'backgroundColor';
+
             if (dataView && dataView.metadata && dataView.metadata.objects) {
                 if (dataView.metadata.objects && dataView.metadata.objects.hasOwnProperty('GMODonutTitle')) {
-                    var FTitle = dataView.metadata.objects['GMODonutTitle'];
-                    if (FTitle && FTitle.hasOwnProperty('backgroundColor')) {
-                        return <Fill>FTitle['backgroundColor'];
+                    const fTitle: DataViewObject = dataView.metadata.objects[gmoDonutTitle];
+                    if (fTitle && fTitle.hasOwnProperty('backgroundColor')) {
+                        return <Fill>fTitle[backgroundColorLiteral];
                     }
                 } else {
-                    return dataView && dataView.metadata && DataViewObjects.getValue(dataView.metadata.objects, BowtieProps.titleBackgroundColor, { solid: { color: 'none' } });
+                    return dataView && dataView.metadata && DataViewObjects.getValue(
+                        dataView.metadata.objects, bowtieProps.titleBackgroundColor, { solid: { color: 'none' } });
                 }
             }
-            return dataView && dataView.metadata && DataViewObjects.getValue(dataView.metadata.objects, BowtieProps.titleBackgroundColor, { solid: { color: 'none' } });
+
+            return dataView && dataView.metadata && DataViewObjects.getValue(
+                dataView.metadata.objects, bowtieProps.titleBackgroundColor, { solid: { color: 'none' } });
         }
 
         // This function returns the funnel title font size selected for the title in the format window
-        private getTitleSize(dataView: DataView) {
+        // tslint:disable-next-line:no-any
+        private getTitleSize(dataView: DataView): number {
+            let gmoDonutTitle: string;
+            let fontSizeLiteral: string;
+            gmoDonutTitle = 'GMODonutTitle';
+            fontSizeLiteral = 'fontSize';
+
             if (dataView && dataView.metadata && dataView.metadata.objects) {
                 if (dataView.metadata.objects && dataView.metadata.objects.hasOwnProperty('GMODonutTitle')) {
-                    var FTitle = dataView.metadata.objects['GMODonutTitle'];
-                    if (FTitle && FTitle.hasOwnProperty('fontSize')) {
-                        return FTitle['fontSize'];
+                    const fTitle: DataViewObject = dataView.metadata.objects[gmoDonutTitle];
+                    if (fTitle && fTitle.hasOwnProperty('fontSize')) {
+                        return parseInt(fTitle[fontSizeLiteral].toString(), 10);
                     }
                 } else {
                     return 9;
                 }
             }
+
             return 9;
         }
 
@@ -1375,7 +1934,8 @@ module powerbi.extensibility.visual {
         // Usually it is a bind pass of what the property pane gave you, but sometimes you may want to do
         // validation and return other values/defaults
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
-            var enumeration: VisualObjectInstance[] = [];
+            let enumeration: VisualObjectInstance[];
+            enumeration = [];
             switch (options.objectName) {
                 case 'general':
                     enumeration.push({
@@ -1383,7 +1943,7 @@ module powerbi.extensibility.visual {
                         displayName: 'General',
                         selector: null,
                         properties: {
-                            ArcFillColor: this.data.ArcFillColor,
+                            ArcFillColor: this.data.ArcFillColor
                         }
                     });
                     break;
@@ -1398,7 +1958,7 @@ module powerbi.extensibility.visual {
                             tooltipText: this.getTooltipText(this.dataViews[0]),
                             fill1: this.getTitleFill(this.dataViews[0]),
                             backgroundColor: this.getTitleBgcolor(this.dataViews[0]),
-                            fontSize: this.getTitleSize(this.dataViews[0]),
+                            fontSize: this.getTitleSize(this.dataViews[0])
                         }
                     });
                     break;
@@ -1427,11 +1987,14 @@ module powerbi.extensibility.visual {
                             fontSize: this.data.AggregatelabelSettings.fontSize,
                             Indicator: this.data.AggregatelabelSettings.Indicator,
                             signIndicator: this.data.AggregatelabelSettings.signIndicator,
-                            Threshold: this.data.AggregatelabelSettings.Threshold,
+                            Threshold: this.data.AggregatelabelSettings.Threshold
                         }
                     });
                     break;
+                default:
+                    break;
             }
+
             return enumeration;
         }
     }
