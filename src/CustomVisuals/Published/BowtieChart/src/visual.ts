@@ -143,8 +143,12 @@ module powerbi.extensibility.visual {
                 .append('div')
                 .classed('Title_Div_Text', true)
                 .style({ width: '100%', display: 'inline-block' })
-                .html('<div class = "GMODonutTitleDiv" style = "max-width: 80%; display: inline-block">' + '</div>'
-                + '<span class = "GMODonutTitleIcon" style = "width: 2%; display: none;">&nbsp(&#063;)</span>');
+                .append('div')
+                .classed('GMODonutTitleDiv', true)
+                .style({'max-width' : '80%', display: 'inline-block'})
+                .append('span')
+                .classed('GMODonutTitleIcon', true)
+                .style({ width: '2%', display: 'none', cursor: 'pointer', 'white-space': 'pre' });
 
             let bowtieChartError: d3.Selection<SVGElement>;
             bowtieChartError = this.bowtieChartError = container
@@ -535,7 +539,7 @@ module powerbi.extensibility.visual {
             }
 
             this.bowtieChartError.append('span')
-                .html(errorMessage)
+                .text(errorMessage)
                 .style('font-size', '12px')
                 .style({ display: 'block' })
                 .style('height', this.currentViewport.height - 20)
@@ -878,7 +882,7 @@ module powerbi.extensibility.visual {
                         .style('margin-left', '2px')
                         .style('margin-bottom', '-1px')
                         .attr('id', 'indicator')
-                        .html('&#9650');
+                        .text('▲');
                 } else {
                     aggregatedValue.select('span#indicator').remove();
                 }
@@ -1291,7 +1295,7 @@ module powerbi.extensibility.visual {
                         .style('margin-left', '2px')
                         .style('margin-bottom', '-1px')
                         .attr('id', 'indicator')
-                        .html('&#9650');
+                        .text('▲');
                 } else {
                     aggregatedValue.select('span#indicator').remove();
                 }
