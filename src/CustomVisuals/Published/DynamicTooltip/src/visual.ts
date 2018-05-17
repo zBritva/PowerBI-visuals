@@ -30,12 +30,16 @@ module powerbi.extensibility.visual {
         /** Gets the value of the given object/property pair. */
         export function getValue<T>(objects: DataViewObjects, propertyId: DataViewObjectPropertyIdentifier, defaultValue?: T): T {
 
-            if (!objects)
+            if (!objects) {
                 return defaultValue;
+            }
 
-            let objectOrMap = objects[propertyId.objectName];
+            let objectOrMap: DataViewObject;
+            objectOrMap = objects[propertyId.objectName];
 
-            let object = <DataViewObject>objectOrMap;
+            let object: DataViewObject;
+            object = <DataViewObject>objectOrMap;
+
             return DataViewObject.getValue(object, propertyId.propertyName, defaultValue);
         }
     }
@@ -44,36 +48,51 @@ module powerbi.extensibility.visual {
 
         export function getValue<T>(object: DataViewObject, propertyName: string, defaultValue?: T): T {
 
-            if (!object)
+            if (!object) {
                 return defaultValue;
+            }
 
-            let propertyValue = <T>object[propertyName];
-            if (propertyValue === undefined)
+            let propertyValue: T;
+            propertyValue = <T>object[propertyName];
+            if (propertyValue === undefined) {
                 return defaultValue;
+            }
 
             return propertyValue;
         }
     }
 
-    export interface tooltip {
+    export interface Itooltip {
         text: string;
         header: string;
         imageurl: string;
-    };
+    }
 
-    export interface measureSettings {
+    export interface ImeasureSettings {
         show: boolean;
         textPrecision: number;
         displayUnits: number;
     }
 
-    export let visualProperties = {
-        tooltip: {
+    export let visualProperties : {
+        Itooltip: {
+            text: DataViewObjectPropertyIdentifier;
+            header: DataViewObjectPropertyIdentifier;
+            imageurl: DataViewObjectPropertyIdentifier;
+        };
+        ImeasureSettings: {
+            show: DataViewObjectPropertyIdentifier;
+            textPrecision: DataViewObjectPropertyIdentifier;
+            displayUnits: DataViewObjectPropertyIdentifier;
+        };
+    }
+     = {
+        Itooltip: {
             text: <DataViewObjectPropertyIdentifier>{ objectName: 'tooltip', propertyName: 'text' },
             header: <DataViewObjectPropertyIdentifier>{ objectName: 'tooltip', propertyName: 'header' },
-            imageurl: <DataViewObjectPropertyIdentifier>{ objectName: 'tooltip', propertyName: 'imageurl' },
+            imageurl: <DataViewObjectPropertyIdentifier>{ objectName: 'tooltip', propertyName: 'imageurl' }
         },
-        measureSettings: {
+        ImeasureSettings: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'measuretooltip', propertyName: 'show' },
             textPrecision: <DataViewObjectPropertyIdentifier>{ objectName: 'measuretooltip', propertyName: 'textPrecision' },
             displayUnits: <DataViewObjectPropertyIdentifier>{ objectName: 'measuretooltip', propertyName: 'displayUnits' }
@@ -81,6 +100,7 @@ module powerbi.extensibility.visual {
     };
 
     export class Visual implements IVisual {
+
         private target: HTMLElement;
         private updateCount: number;
         private tooltipServiceWrapper: ITooltipServiceWrapper;
@@ -90,7 +110,7 @@ module powerbi.extensibility.visual {
         private tooltipText: string;
         private header: string;
         private opacity: number;
-        private dataViews;
+        private dataViews : DataView;
         private imageurl: string;
         private showMeasure: boolean;
         private textPrecision: number;
@@ -100,25 +120,30 @@ module powerbi.extensibility.visual {
             this.host = options.host;
             this.target = options.element;
             this.updateCount = 0;
+
             this.root = d3.select(options.element);
-            this.imageurl = "https://genericvisual.blob.core.windows.net/images/Tooltip.svg";
-            this.image = this.root.append("div").classed("dynamicTooltip_div", true)
-                .append("img").classed('dynamicTooltip_img', true)
-                .attr("src", this.imageurl);
+            this.imageurl = 'https://genericvisual.blob.core.windows.net/images/Tooltip.svg';
+            this.image = this.root.append('div').classed('dynamicTooltip_div', true)
+                .append('img').classed('dynamicTooltip_img', true)
+                .attr('src', this.imageurl);
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
-            this.tooltipText = "Tooltip text here";
-            this.header = "Tooltip header text here";
+            this.tooltipText = 'Tooltip text here';
+            this.header = 'Tooltip header text here';
             this.showMeasure = false;
             this.textPrecision = 0;
             this.displayUnits = 0;
         }
 
-        public update(options: VisualUpdateOptions) {
+        public update(options: VisualUpdateOptions) : void {
 
-            let textSetting: tooltip = this.getDefaultTextSettings();
-            let img = d3.select('img');
+            let textSetting: Itooltip;
+            textSetting = this.getDefaultTextSettings();
+            // tslint:disable-next-line:no-any
+            let img: d3.Selection<any>;
+            img = d3.select('img');
 
-            let minVal = Math.min(options.viewport.width, options.viewport.height); // Take minimum value of width and height
+            let minVal: number;
+            minVal = Math.min(options.viewport.width, options.viewport.height); // Take minimum value of width and height
             if (options.viewport.width > options.viewport.height) {
                 $('.dynamicTooltip_div').addClass('dt_horizontallyCenter');
                 $('.dynamicTooltip_img').removeClass('dt_verticallyCenter');
@@ -126,8 +151,10 @@ module powerbi.extensibility.visual {
                 $('.dynamicTooltip_div').removeClass('dt_horizontallyCenter');
                 $('.dynamicTooltip_img').addClass('dt_verticallyCenter');
 
-                let topPx = options.viewport.height / 2 - minVal / 2;
-                let topPos = topPx > 0 ? topPx + 'px' : '0px';
+                let topPx: number;
+                topPx = options.viewport.height / 2 - minVal / 2;
+                let topPos: string;
+                topPos = topPx > 0 ? `${topPx}px` : '0px';
                 this.image.style({
                     top: topPos
                 });
@@ -137,103 +164,158 @@ module powerbi.extensibility.visual {
             }
 
             this.image.style({
-                width: minVal + 'px',
-                height: minVal + 'px'
+                width: `${minVal}px`,
+                height: `${minVal}px`
             });
 
-            let dataViews = options.dataViews;
+            let dataViews: DataView[];
+            dataViews = options.dataViews;
             if (dataViews && dataViews[0] && dataViews[0].metadata) {
 
-                let dataView = this.dataViews = options.dataViews[0];
-                let imagePatt = new RegExp('^https?://(?:[a-z0-9\-]+\.)+[a-z]{2,6}(?:/[^/#?]+)+\.(?:jpg|gif|png|svg)$');
+                let dataView: DataView;
+                dataView = this.dataViews = options.dataViews[0];
+                let imagePatt: RegExp;
+                imagePatt = new RegExp('^https?://(?:[a-z0-9\-]+\.)+[a-z]{2,6}(?:/[^/#?]+)+\.(?:jpg|gif|png|svg)$');
                 let selectedImage: string;
                 let validImage: boolean;
-                let tooltipSettings: tooltip = this.getToolTipSettings(dataView);
-                let measureSettings: measureSettings = this.getMeasureSettings(dataView);
+                let tooltipSettings: Itooltip;
+                tooltipSettings = this.getToolTipSettings(dataView);
+                let measureSettings: ImeasureSettings;
+                measureSettings = this.getMeasureSettings(dataView);
 
                 this.tooltipText = tooltipSettings.text;
                 this.header = tooltipSettings.header;
                 if (measureSettings.show) {
                     if (dataViews[0].categorical && dataViews[0].categorical.values && dataViews[0].categorical.values[0]) {
                         this.header = dataViews[0].categorical.values[0].source.displayName;
-                        this.tooltipText = dataViews[0].categorical.values[0].values.toString() != "" ? dataViews[0].categorical.values[0].values.toString() : tooltipSettings.text;
-                        let decimalPlaces = measureSettings.textPrecision;
-                        let displayUnits = measureSettings.displayUnits;
-                        let formatter = valueFormatter.create({ format: dataViews[0].categorical.values[0].source.format, value: displayUnits, precision: decimalPlaces });
-                        let formattedData = formatter.format(this.tooltipText);
+                        this.tooltipText = dataViews[0].categorical.values[0].values
+                            .toString() !== '' ? dataViews[0].categorical.values[0].values.toString() : tooltipSettings.text;
+                        let decimalPlaces: number;
+
+                        decimalPlaces = measureSettings.textPrecision;
+
+                        let displayUnits: number;
+
+                        displayUnits = measureSettings.displayUnits;
+
+                        let formatter: utils.formatting.IValueFormatter;
+                        if ((String((dataViews[0].categorical.values[0].source.format)) === 'undefined') ||
+                         (String((dataViews[0].categorical.values[0].source.format)) === 'dd MMMM yyyy') ) {
+                            formatter = valueFormatter.create({
+                                format: dataViews[0].categorical.values[0].source.format
+                            });
+                         } else {
+                        formatter = valueFormatter.create({
+                            format: dataViews[0].categorical.values[0].source.format,
+                            value: displayUnits, precision: decimalPlaces
+                        });
+                    }
+                        let formattedData: string;
+                        formattedData = formatter.format(this.tooltipText);
                         this.tooltipText = formattedData;
+
                     }
                 }
                 selectedImage = tooltipSettings.imageurl;
                 validImage = imagePatt.test(selectedImage);
-                this.image = validImage ? img.attr("src", selectedImage) : img.attr("src", textSetting.imageurl);
-                let objects = dataViews[0].metadata.objects;
+                this.image = validImage ? img.attr('src', selectedImage) : img.attr('src', textSetting.imageurl);
+                let objects: DataViewObjects;
+                objects = dataViews[0].metadata.objects;
             }
 
-            if (this.tooltipText !== "") {
+            if (this.tooltipText !== '') {
                 this.tooltipServiceWrapper.addTooltip(this.root,
-                    (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(this.tooltipText, this.header),
-                    (tooltipEvent: TooltipEventArgs<number>) => null);
+                                                      (tooltipEvent: TooltipEventArgs<number>) =>
+                        this.getTooltipData(this.tooltipText, this.header),
+                                                      (tooltipEvent: TooltipEventArgs<number>) => null);
             }
         }
 
-        public getDefaultTextSettings(): tooltip {
+        public getDefaultTextSettings(): Itooltip {
             return {
-                text: "sample",
-                header: "text",
-                imageurl: "https://genericvisual.blob.core.windows.net/images/Tooltip.svg"
-            }
+                text: 'sample',
+                header: 'text',
+                imageurl: 'https://genericvisual.blob.core.windows.net/images/Tooltip.svg'
+            };
         }
-        public getToolTipSettings(dataView: DataView): tooltip {
+        public getToolTipSettings(dataView: DataView): Itooltip {
             let objects: DataViewObjects = null;
-            let textSetting: tooltip = this.getDefaultTextSettings();
+            let textSetting: Itooltip;
+            textSetting = this.getDefaultTextSettings();
 
-            if (!dataView.metadata || !dataView.metadata.objects)
+            if (!dataView.metadata || !dataView.metadata.objects) {
                 return textSetting;
+            }
             objects = dataView.metadata.objects;
-            let textProperties = visualProperties;
-            textSetting.text = DataViewObjects.getValue(objects, textProperties.tooltip.text, textSetting.text);
-            textSetting.header = DataViewObjects.getValue(objects, textProperties.tooltip.header, textSetting.header);
-            textSetting.imageurl = DataViewObjects.getValue(objects, textProperties.tooltip.imageurl, textSetting.imageurl);
+            let textProperties: {
+                Itooltip: {
+                    text: DataViewObjectPropertyIdentifier;
+                    header: DataViewObjectPropertyIdentifier;
+                    imageurl: DataViewObjectPropertyIdentifier;
+                };
+                ImeasureSettings: {
+                    show: DataViewObjectPropertyIdentifier;
+                    textPrecision: DataViewObjectPropertyIdentifier;
+                    displayUnits: DataViewObjectPropertyIdentifier;
+                };
+            };
+            textProperties = visualProperties;
+            textSetting.text = DataViewObjects.getValue(objects, textProperties.Itooltip.text, textSetting.text);
+            textSetting.header = DataViewObjects.getValue(objects, textProperties.Itooltip.header, textSetting.header);
+            textSetting.imageurl = DataViewObjects.getValue(objects, textProperties.Itooltip.imageurl, textSetting.imageurl);
 
             return textSetting;
         }
 
-        public getDefaultMeasureSettings(): measureSettings {
+        public getDefaultMeasureSettings(): ImeasureSettings {
             return {
                 show: false,
                 textPrecision: 0,
                 displayUnits: 0
-            }
+            };
         }
-        public getMeasureSettings(dataView: DataView): measureSettings {
+        public getMeasureSettings(dataView: DataView): ImeasureSettings {
             let objects: DataViewObjects = null;
-            let settings: measureSettings = this.getDefaultMeasureSettings();
+            let settings: ImeasureSettings;
+            settings = this.getDefaultMeasureSettings();
 
-            if (!dataView.metadata || !dataView.metadata.objects)
+            if (!dataView.metadata || !dataView.metadata.objects) {
                 return settings;
+            }
 
             objects = dataView.metadata.objects;
-            let properties = visualProperties;
-            settings.show = DataViewObjects.getValue(objects, properties.measureSettings.show, settings.show);
-            settings.displayUnits = DataViewObjects.getValue(objects, properties.measureSettings.displayUnits, settings.displayUnits);
-            settings.textPrecision = DataViewObjects.getValue(objects, properties.measureSettings.textPrecision, settings.textPrecision);
+            let properties: {
+                Itooltip: {
+                    text: DataViewObjectPropertyIdentifier;
+                    header: DataViewObjectPropertyIdentifier;
+                    imageurl: DataViewObjectPropertyIdentifier;
+                };
+                ImeasureSettings: {
+                    show: DataViewObjectPropertyIdentifier;
+                    textPrecision: DataViewObjectPropertyIdentifier;
+                    displayUnits: DataViewObjectPropertyIdentifier;
+                };
+            };
+            properties
+                = visualProperties;
+            settings.show = DataViewObjects.getValue(objects, properties.ImeasureSettings.show, settings.show);
+            settings.displayUnits = DataViewObjects.getValue(objects, properties.ImeasureSettings.displayUnits, settings.displayUnits);
+            settings.textPrecision = DataViewObjects
+                .getValue(objects, properties.ImeasureSettings.textPrecision, settings.textPrecision) > 4 ? 4 : (DataViewObjects
+                    .getValue(objects, properties.ImeasureSettings.textPrecision, settings.textPrecision) < 0 ? 0 : (DataViewObjects
+                        .getValue(objects, properties.ImeasureSettings.textPrecision, settings.textPrecision)));
+
             return settings;
         }
-
-        private getTooltipData(tooltip: string, header: string): VisualTooltipDataItem[] {
-            return [{
-                displayName: "",
-                value: tooltip,
-                header: header
-            }];
-        }
-
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
-            let tooltipSetting: tooltip = this.getToolTipSettings(this.dataViews);
-            let measureSettings: measureSettings = this.getMeasureSettings(this.dataViews);
-            let objectName = options.objectName;
-            let objectEnumeration: VisualObjectInstance[] = [];
+            let tooltipSetting: Itooltip;
+            tooltipSetting = this.getToolTipSettings(this.dataViews);
+            let measuredSettings: ImeasureSettings;
+            measuredSettings = this.getMeasureSettings(this.dataViews);
+            let objectName: string;
+            objectName = options.objectName;
+            let objectEnumeration: VisualObjectInstance[];
+            objectEnumeration = [];
 
             switch (objectName) {
                 case 'tooltip':
@@ -254,14 +336,26 @@ module powerbi.extensibility.visual {
                         displayName: 'Measure Tooltip',
                         selector: null,
                         properties: {
-                            show: measureSettings.show,
-                            textPrecision: measureSettings.textPrecision,
-                            displayUnits: measureSettings.displayUnits
+                            show: measuredSettings.show,
+                            textPrecision: measuredSettings.textPrecision,
+                            displayUnits: measuredSettings.displayUnits
                         }
                     });
                     break;
-            };
+                default:
+                    break;
+            }
+
             return objectEnumeration;
         }
+
+        private getTooltipData(tooltip: string, header: string): VisualTooltipDataItem[] {
+            return [{
+                displayName: '',
+                value: tooltip,
+                header: header
+            }];
+        }
+
     }
 }
