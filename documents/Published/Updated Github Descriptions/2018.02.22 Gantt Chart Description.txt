@@ -9,7 +9,7 @@ With Gantt Chart by MAQ  Software, project managers can monitor project IDs, sta
 Key features:
 •	Hierarchical view with expand / collapse option for parent levels.
 •	Color bars based on category.
-• Task details on grid with hierarchy.
+•	Task details on grid with hierarchy.
 •	Showcase the task status as of the current date.
 •	Sort data based on any parameter of grid.
 •	Display tooltips for column headers, category labels, KPI indicators, data labels, and bars.
