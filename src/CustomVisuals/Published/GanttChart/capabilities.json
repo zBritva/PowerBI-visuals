@@ -6,6 +6,11 @@
       "kind": "Grouping"
     },
     {
+      "name": "Legend",
+      "displayName": "Legend",
+      "kind": "Grouping"
+    },
+    {
       "name": "StartDate",
       "displayName": "Start",
       "kind": "Measure"
@@ -39,6 +44,10 @@
             "min": 0,
             "max": 4
           },
+          "Legend": {
+            "min": 0,
+            "max": 1
+          },
           "StartDate": {
             "min": 0,
             "max": 1
@@ -67,6 +76,11 @@
             {
               "for": {
                 "in": "Category"
+              }
+            },
+            {
+              "for": {
+                "in": "Legend"
               }
             },
             {

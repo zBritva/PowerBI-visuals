@@ -128,6 +128,10 @@ module powerbi.extensibility.visual {
         underlineStyle: boolean;
     }
 
+    export interface IErrorMessageSettings {
+        nullValue: string;
+    }
+
     export let questTextProperties: {
         textSettings: {
             color: DataViewObjectPropertyIdentifier;
@@ -152,6 +156,9 @@ module powerbi.extensibility.visual {
             boldStyle: DataViewObjectPropertyIdentifier;
             italicStyle: DataViewObjectPropertyIdentifier;
             underlineStyle: DataViewObjectPropertyIdentifier;
+        };
+        errorMessageSettings: {
+            nullValue: DataViewObjectPropertyIdentifier;
         }
     };
 
@@ -179,6 +186,9 @@ module powerbi.extensibility.visual {
             boldStyle: <DataViewObjectPropertyIdentifier>{ objectName: 'Settings', propertyName: 'boldStyle' },
             italicStyle: <DataViewObjectPropertyIdentifier>{ objectName: 'Settings', propertyName: 'italicStyle' },
             underlineStyle: <DataViewObjectPropertyIdentifier>{ objectName: 'Settings', propertyName: 'underlineStyle' }
+        },
+        errorMessageSettings: {
+            nullValue: <DataViewObjectPropertyIdentifier>{ objectName: 'ErrorMessage', propertyName: 'nullValue' }
         }
     };
 
@@ -296,6 +306,7 @@ module powerbi.extensibility.visual {
             const dataView: DataView = this.dataViews = options.dataViews[0];
             let valueLength: number = 0;
             const textSettings: ItextSettings = this.getTextSettings(dataView);
+            const errorMessageSettings: IErrorMessageSettings = this.getErrorMessages(dataView);
             this.dynamicSettings = this.getDynamicTextSettings(dataView);
             this.staticTextSettings = this.getStaticTextSettings(dataView);
             const svgwidth: number = options.viewport.width;
@@ -342,7 +353,7 @@ module powerbi.extensibility.visual {
                     .style('font-family', 'Segoe UI Semibold')
                     .style('color', '#777777');
             } else if (valueLength === 0) {
-                const errMsg: string = 'Query contains null value';
+                const errMsg: string = errorMessageSettings.nullValue;
                 const original: d3.Selection<HTMLElement> = this.target.append('div')
                     .classed('tw_value errormsg', true)
                     .text(errMsg)
@@ -445,6 +456,28 @@ module powerbi.extensibility.visual {
             return textSetting;
         }
 
+        public getDefaultErrorMessages(): IErrorMessageSettings {
+            return {
+                nullValue: 'Query contains null value'
+            };
+        }
+
+        public getErrorMessages(dataView: DataView): IErrorMessageSettings {
+            let objects: DataViewObjects = null;
+            const errorMessageSetting: IErrorMessageSettings = this.getDefaultErrorMessages();
+
+            if (!dataView || !dataView.metadata || !dataView.metadata.objects) {
+                return errorMessageSetting;
+            }
+            objects = dataView.metadata.objects;
+
+            errorMessageSetting.nullValue = DataViewObjects.getValue(objects,
+                                                                     questTextProperties.errorMessageSettings.nullValue,
+                                                                     errorMessageSetting.nullValue);
+
+            return errorMessageSetting;
+        }
+
         public getDefaultStaticTextSettings(): IStaticTextSettings {
             return {
                 showColon: true,
@@ -520,6 +553,7 @@ module powerbi.extensibility.visual {
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
             const textSetting: ItextSettings = this.getTextSettings(this.dataViews);
+            const errorMessageSettings: IErrorMessageSettings = this.getErrorMessages(this.dataViews);
             const objectName: string = options.objectName;
             const objectEnumeration: VisualObjectInstance[] = [];
 
@@ -566,6 +600,17 @@ module powerbi.extensibility.visual {
                         }
                     });
                     break;
+
+                case 'ErrorMessage':
+                    objectEnumeration.push({
+                    objectName: objectName,
+                    selector: null,
+                    properties: {
+                            nullValue: errorMessageSettings.nullValue
+                        }
+                     });
+                    break;
+
                 default:
                     break;
             }
