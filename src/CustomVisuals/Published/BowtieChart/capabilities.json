@@ -66,7 +66,7 @@
 			"displayName": "General",
 			"properties": {
 				"ArcFillColor": {
-					"displayName": "Arc Fill Color",
+					"displayName": "Arc fill color",
 					"type": {
 						"fill": {
 							"solid": {
@@ -78,7 +78,7 @@
 			}
 		},
 		"GMODonutTitle": {
-			"displayName": "Bowtie Title",
+			"displayName": "Bowtie title",
 			"properties": {
 				"show": {
 					"displayName": "Show",
@@ -87,7 +87,7 @@
 					}
 				},
 				"titleText": {
-					"displayName": "Title Text",
+					"displayName": "Title text",
 					"description": "The name of the visual",
 					"type": {
 						"text": true
@@ -105,7 +105,7 @@
 					}
 				},
 				"fontSize": {
-					"displayName": "Text Size",
+					"displayName": "Text size",
 					"description": "Font size for the title",
 					"type": {
 						"formatting": {
@@ -125,7 +125,7 @@
 					}
 				},
 				"tooltipText": {
-					"displayName": "Tooltip Text",
+					"displayName": "Tooltip text",
 					"description": "Tooltip text for the title",
 					"type": {
 						"text": true
@@ -134,7 +134,7 @@
 			}
 		},
 		"labels": {
-			"displayName": "Data Labels",
+			"displayName": "Data labels",
 			"properties": {
 				"color": {
 					"displayName": "Color",
@@ -147,7 +147,7 @@
 					}
 				},
 				"displayUnits": {
-					"displayName": "Display Units",
+					"displayName": "Display units",
 					"description": "Select the type of decimal units",
 					"type": {
 						"formatting": {
@@ -156,7 +156,7 @@
 					}
 				},
 				"textPrecision": {
-					"displayName": "Decimal Places",
+					"displayName": "Decimal places",
 					"description": "Enter the precision value",
 					"type": {
 						"numeric": true
@@ -164,7 +164,7 @@
 					"suppressFormatPainterCopy": true
 				},
 				"fontSize": {
-					"displayName": "Text Size",
+					"displayName": "Text size",
 					"description": "Font size for labels",
 					"type": {
 						"formatting": {
@@ -175,8 +175,8 @@
 			}
 		},
 		"Aggregatelabels": {
-			"displayName": "Summary Label Settings",
-			"description": "Summary Label Settings",
+			"displayName": "Summary label settings",
+			"description": "Summary label settings",
 			"properties": {
 				"color": {
 					"displayName": "Color",
@@ -189,7 +189,7 @@
 					}
 				},
 				"displayUnits": {
-					"displayName": "Display Units",
+					"displayName": "Display units",
 					"description": "Select the type of decimal units",
 					"type": {
 						"formatting": {
@@ -198,7 +198,7 @@
 					}
 				},
 				"textPrecision": {
-					"displayName": "Decimal Places",
+					"displayName": "Decimal places",
 					"description": "Enter the precision value",
 					"type": {
 						"numeric": true
@@ -206,7 +206,7 @@
 					"suppressFormatPainterCopy": true
 				},
 				"fontSize": {
-					"displayName": "Text Size",
+					"displayName": "Text size",
 					"description": "Font size for labels",
 					"type": {
 						"formatting": {
@@ -220,7 +220,7 @@
 					}
 				},
 				"signIndicator": {
-					"displayName": "Sign Indicator",
+					"displayName": "Sign indicator",
 					"description": "Indicator based on sign",
 					"type": {
 						"bool": true

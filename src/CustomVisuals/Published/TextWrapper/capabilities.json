@@ -386,6 +386,17 @@
                 }
              
             }
+        },
+        "ErrorMessage":{
+            "displayName": "Error message",
+            "properties":{
+                "nullValue":{                    
+                    "displayName": "Custom message",
+                    "type":{
+                        "text": true   
+                    }
+                } 
+            }
         }
     }
 }

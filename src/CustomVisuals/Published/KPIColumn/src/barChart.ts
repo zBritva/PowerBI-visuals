@@ -1050,7 +1050,6 @@ module powerbi.extensibility.visual {
                     } else {
                         legendHeight = 0;
                     }
-                    this.rootDiv.style('height', (height) + pxLiteral);
                     height = height - legendHeight > 0 ? height - legendHeight : 0;
                     this.svg.attr({
                         width: width,
@@ -1144,6 +1143,7 @@ module powerbi.extensibility.visual {
                     }
 
                     if (horizontal.show) {
+                        this.rootDiv.style('overflow-y', 'auto');
                         margins.left = 30;
                         xScale = d3.scale.ordinal()
                             .domain(viewModel.dataPoints.reverse().map((d: IBarChartDataPoint) => d.category))
@@ -1801,13 +1801,7 @@ module powerbi.extensibility.visual {
                         allowInteractions = this.host.allowInteractions;
 
                     } else {
-                        if (height + margins.bottom - marginForWidth < minHeightForHorizontal) {
-                            height = minHeightForHorizontal - margins.bottom + marginForWidth;
-                        }
-                        this.rootDiv.select('.baseDiv').style('height',
-                                                              (height + margins.bottom - marginForWidth - widthForScroll) + pxLiteral);
-                        this.rootDiv.select('.barChart').style('height',
-                                                               (height + margins.bottom - marginForWidth - widthForScroll) + pxLiteral);
+                        this.rootDiv.style('overflow-y', 'hidden');
                         xScale = d3.scale.ordinal()
                             .domain(viewModel.dataPoints.map((d: IBarChartDataPoint) => d.category))
                             .rangeBands([margins.left, width], 0.2, 0.3);
@@ -1819,19 +1813,18 @@ module powerbi.extensibility.visual {
                             margins.left += marginForyAxis;
                         }
 
-                        minVisibleBarWidth = 40;
+                        minVisibleBarWidth = 17;
                         if (barWidths < minVisibleBarWidth) {
                             dynamicWidth = width + (viewModel.dataPoints.length * (minVisibleBarWidth - barWidths)) - widthForScroll;
                             xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
                             this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
                             this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
                         } else {
-                            dynamicWidth = width - widthForScroll;
+                            dynamicWidth = width;
                             xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
                             this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
                             this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
                         }
-                        height = height - marginForyAxis;
                         yScale = d3.scale.linear()
                             .domain([(<number>yAxisConfig.start), <number>yAxisConfig.end * 1.1])
                             .range([(<number>height), horizontalEndRange]);
@@ -2035,7 +2028,7 @@ module powerbi.extensibility.visual {
                                         .classed('yAxisGrid', true).attr({
                                             x1: 0,
                                             y1: yCoordinate,
-                                            x2: dynamicWidth - marginForGridLines,
+                                            x2: dynamicWidth,
                                             y2: yCoordinate
                                         });
                                 }
@@ -2539,8 +2532,10 @@ module powerbi.extensibility.visual {
             if (yAxisSetting.start > this.yMin) {
                 yAxisSetting.start = this.yMin;
             }
-            if (yAxisSetting.start > this.yMin) {
-                yAxisSetting.start = this.yMin;
+            if (this.yMin > 0) {
+                if (yAxisSetting.start < 0) {
+                yAxisSetting.start = 0;
+                }
             }
             if (yAxisSetting.end < this.yMax) {
                 yAxisSetting.end = this.yMax;
