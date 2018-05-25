@@ -285,10 +285,7 @@ module powerbi.extensibility.visual {
             this.root = d3.select(options.element).style('cursor', 'default');
             this.style = options.element.style;
             // tslint:disable-next-line:no-any
-            // let cPalette: any;
             horizontalFunnelProps.cPalette = options.host.colorPalette;
-            // cPalette = options.host.colorPalette;
-            // this.colors = cPalette.colors;
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
             this.selectionManager = options.host.createSelectionManager();
         }
