@@ -4,7 +4,7 @@
     "displayName": "Horizontal Funnel By MAQ Software",
     "guid": "HorizontalFunnel1449177164235",
     "visualClassName": "HorizontalFunnel",
-    "version": "3.2.1",
+    "version": "3.2.2",
     "description": "Allows you to visualize customizable primary measure as colored bars.",
     "supportUrl": "https://github.com/maqsoftware/PowerBI-visuals/issues",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals/"

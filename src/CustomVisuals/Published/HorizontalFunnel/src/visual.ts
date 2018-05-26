@@ -49,7 +49,6 @@ module powerbi.extensibility.visual {
     import ITooltipServiceWrapper = powerbi.extensibility.utils.tooltip.ITooltipServiceWrapper;
     //color
     import IDataColorPalette = powerbi.extensibility.IColorPalette;
-    import ColorHelper = powerbi.extensibility.utils.color.ColorHelper;
     import ISelectionIdBuilder = powerbi.visuals.ISelectionIdBuilder;
     import IDataLabelSettings = powerbi.extensibility.utils.chart.dataLabel.IDataLabelSettings;
     //label
@@ -270,7 +269,6 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         private style: any; // IVisualStyle;
         private colors: IDataColorPalette;
-        private colorHelper: ColorHelper;
         private cardFormatSetting: ICardFormatSetting;
         private durationAnimations: number = 200;
         private selectionManager: SelectionManager;
@@ -279,15 +277,15 @@ module powerbi.extensibility.visual {
         private tooltipInfoValue: string;
         // tslint:disable-next-line:no-any
         private viewModel: any = undefined;
+        // tslint:disable-next-line:no-any
+        private static cPalette: any;
 
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.root = d3.select(options.element).style('cursor', 'default');
             this.style = options.element.style;
             // tslint:disable-next-line:no-any
-            let cPalette: any;
-            cPalette = options.host.colorPalette;
-            this.colors = cPalette.colors;
+            horizontalFunnelProps.cPalette = options.host.colorPalette;
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
             this.selectionManager = options.host.createSelectionManager();
         }
@@ -589,8 +587,6 @@ module powerbi.extensibility.visual {
                             objectName: 'general',
                             propertyName: 'formatString'
                         };
-                        let colorHelper: ColorHelper;
-                        colorHelper = new ColorHelper(colors, horizontalFunnelProps.dataPoint.fill);
                         if (categories && series && categories.length > 0 && series.length > 0) {
                             let categorySourceFormatString: string;
                             categorySourceFormatString = ValueFormatter.getFormatString(cat.source, formatStringProp);
@@ -687,12 +683,17 @@ module powerbi.extensibility.visual {
                                         }
                                         // tslint:disable-next-line:no-any
                                         let color : any;
+                                        //checks whether any of the color is changed from format pane
                                         if (objects && dataPointObject
                                             && dataPointObject.dataPoint &&
                                             dataPointObject.dataPoint.fill && dataPointObject.dataPoint.fill.solid.color) {
                                             color = { value: dataPointObject.dataPoint.fill.solid.color };
                                         } else {
-                                            color = colors[unLoop];
+                                            let currentElement: string;
+                                            // tslint:disable-next-line:no-any
+                                            const colorPlt: any = colorPalette;
+                                            currentElement = categoryColumn.values[iLoop].toString();
+                                            color = colorPlt.colorPalette[currentElement];
                                         }
                                         unsortindex = unLoop;
                                         let categorySelectionId : SelectionId;
@@ -838,7 +839,6 @@ module powerbi.extensibility.visual {
                     defaultDataPointColor = DataViewObjects.getFillColor(objects, horizontalFunnelProps.dataPoint.defaultColor);
                     labelSettings.displayUnits = DataViewObjects.getValue(
                         objects, cardProps.labels.labelDisplayUnits, labelSettings.displayUnits);
-                    this.colorHelper = new ColorHelper(this.colors, horizontalFunnelProps.dataPoint.fill, this.defaultDataPointColor);
                     let labelsObj: DataLabelObject;
                     labelsObj = <DataLabelObject>dataView.metadata.objects[labelString];
                     dataLabelUtils.updateLabelSettingsFromLabelsObject(labelsObj, labelSettings);
@@ -859,7 +859,8 @@ module powerbi.extensibility.visual {
             this.defaultDataPointColor = defaultDataPointColor;
             viewport = options.viewport;
             this.root.selectAll('div').remove();
-            dataPoints = HorizontalFunnel.converter(dataView, this.colors, sortSettings.sortBy, sortSettings.orderBy, this.host);
+            dataPoints = HorizontalFunnel.converter(dataView, horizontalFunnelProps.cPalette,
+                                                    sortSettings.sortBy, sortSettings.orderBy, this.host);
             this.viewModel = dataPoints[0];
             catLength = this.viewModel.categories.length;
             parentWidth = viewport.width;
@@ -1902,7 +1903,7 @@ module powerbi.extensibility.visual {
                     enumeration.push({
                         objectName: 'dataPoint',
                         displayName: data[i].value,
-                        selector: ColorHelper.normalizeSelector(data[i].identity.getSelector()),
+                        selector: data[i].identity.getSelector(),
                         properties: {
                             fill: { solid: { color: data[i].color.value } }
                         }
