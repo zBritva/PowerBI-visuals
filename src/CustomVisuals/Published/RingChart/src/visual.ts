@@ -1,5 +1,5 @@
 module powerbi.extensibility.visual {
-
+    import ISelectionId = powerbi.visuals.ISelectionId;
     import IColorPalette = powerbi.extensibility.IColorPalette;
     import ValueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
     import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
@@ -106,19 +106,22 @@ module powerbi.extensibility.visual {
         value: string;
         formatter: string;
     }
-    interface IDonutChartViewModel {
+    interface IRingChartViewModel {
         legendData: LegendData;
-        dataPoints: IDonutChartDataPoint[];
+        dataPoints: IRingChartDataPoint[];
+        dataPoints2: IRingChartDataPoint[];
         dataMax: number;
-        settings: IDonutChartSettings;
+        settings: IRingChartSettings;
         primaryMeasureSum: number;
+        primaryMeasureSum2: number;
         secondaryMeasureSum: number;
+        secondaryMeasureSum2: number;
         primaryKPISum: number;
         secondaryKPISum: number;
         isLegendAvailable: boolean;
         isPrimaryMeasureAvailable: boolean;
     }
-    interface IDonutChartDataPoint {
+    interface IRingChartDataPoint {
         value: PrimitiveValue;
         secondaryValue: PrimitiveValue;
         primaryKPIValue: PrimitiveValue;
@@ -129,9 +132,10 @@ module powerbi.extensibility.visual {
         color: string;
         selectionId: powerbi.visuals.ISelectionId;
         tooltipData: ITooltipDataPoints[];
+        selected: boolean;
     }
 
-    interface IDonutChartSettings {
+    interface IRingChartSettings {
         generalView: {
             opacity: number;
         };
@@ -188,7 +192,7 @@ module powerbi.extensibility.visual {
         downArrow: string;
     }
 
-    export interface IDonutTitle {
+    export interface IRingTitle {
         show: boolean;
         titleText: string;
         fill1: string;
@@ -200,7 +204,10 @@ module powerbi.extensibility.visual {
     export interface IAnimation {
         show: boolean;
     }
-
+    export interface IArcPosition {
+        position: string;
+        patternFill: boolean;
+    }
     export interface INodataText {
         textMessage: string;
     }
@@ -209,7 +216,11 @@ module powerbi.extensibility.visual {
         animation: {
             show: DataViewObjectPropertyIdentifier;
         };
-        donutTitle: {
+        arcPosition: {
+            position: DataViewObjectPropertyIdentifier;
+            patternFill: DataViewObjectPropertyIdentifier;
+        };
+        ringTitle: {
             backgroundColor: DataViewObjectPropertyIdentifier;
             fill1: DataViewObjectPropertyIdentifier;
             fontSize: DataViewObjectPropertyIdentifier;
@@ -270,13 +281,17 @@ module powerbi.extensibility.visual {
         animation: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'animation', propertyName: 'show' }
         },
-        donutTitle: {
-            backgroundColor: <DataViewObjectPropertyIdentifier>{ objectName: 'GMODonutTitle', propertyName: 'backgroundColor' },
-            fill1: <DataViewObjectPropertyIdentifier>{ objectName: 'GMODonutTitle', propertyName: 'fill1' },
-            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'GMODonutTitle', propertyName: 'fontSize' },
-            show: <DataViewObjectPropertyIdentifier>{ objectName: 'GMODonutTitle', propertyName: 'show' },
-            titleText: <DataViewObjectPropertyIdentifier>{ objectName: 'GMODonutTitle', propertyName: 'titleText' },
-            tooltipText: <DataViewObjectPropertyIdentifier>{ objectName: 'GMODonutTitle', propertyName: 'tooltipText' }
+        arcPosition: {
+            position: <DataViewObjectPropertyIdentifier>{ objectName: 'negativeArcSettings', propertyName: 'arcPosition'},
+            patternFill: <DataViewObjectPropertyIdentifier>{ objectName: 'negativeArcSettings', propertyName: 'patternFill'}
+        },
+        ringTitle: {
+            backgroundColor: <DataViewObjectPropertyIdentifier>{ objectName: 'RingTitle', propertyName: 'backgroundColor' },
+            fill1: <DataViewObjectPropertyIdentifier>{ objectName: 'RingTitle', propertyName: 'fill1' },
+            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'RingTitle', propertyName: 'fontSize' },
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'RingTitle', propertyName: 'show' },
+            titleText: <DataViewObjectPropertyIdentifier>{ objectName: 'RingTitle', propertyName: 'titleText' },
+            tooltipText: <DataViewObjectPropertyIdentifier>{ objectName: 'RingTitle', propertyName: 'tooltipText' }
         },
         indicators: {
             downArrow: <DataViewObjectPropertyIdentifier>{ objectName: 'Indicators', propertyName: 'downArrow' },
@@ -337,17 +352,18 @@ module powerbi.extensibility.visual {
     /* tslint:disable:no-any */
     const d3: any = (<any>window).d3;
     /* tslint:enable:no-any */
-    export class DonutChart implements IVisual {
+    export class RingChart implements IVisual {
         public groupLegends: d3.Selection<SVGElement>;
         public dataView: DataView;
         private svg: d3.Selection<SVGElement>;
         private host: IVisualHost;
         private selectionManager: ISelectionManager;
-        private donutChartContainer: d3.Selection<SVGElement>;
-        private donutContainer: d3.Selection<SVGElement>;
+        private ringChartContainer: d3.Selection<SVGElement>;
+        private ringContainer: d3.Selection<SVGElement>;
         private xAxis: d3.Selection<SVGElement>;
-        private donutDataPoints: IDonutChartDataPoint[];
-        private donutChartSettings: IDonutChartSettings;
+        private ringDataPoints: IRingChartDataPoint[];
+        private ringDataPoints2: IRingChartDataPoint[];
+        private ringChartSettings: IRingChartSettings;
         private tooltipServiceWrapper: ITooltipServiceWrapper;
         private locale: string;
         private dataViews: DataView;
@@ -360,10 +376,16 @@ module powerbi.extensibility.visual {
         private labelFontFamily: string;
         private primaryMeasurePercent: boolean;
         private isSMExists: boolean;
+        private arcsSelection:  d3.selection.Update<IRingChartDataPoint>;
 
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
+
+            this.selectionManager.registerOnSelectCallback(() => {
+                this.syncSelectionState(this.arcsSelection, this.selectionManager.getSelectionIds() as ISelectionId[]);
+            });
+
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
             this.rootElement = d3.select(options.element);
             let svg: d3.Selection<SVGElement>;
@@ -372,11 +394,11 @@ module powerbi.extensibility.visual {
                     cursor: 'default'
                 })
                 .append('svg')
-                .classed('ring_donutChart', true);
+                .classed('ring_ringChart', true);
 
             this.locale = options.host.locale;
             this.rootElement.append('div')
-                .classed('ring_donutTitle', true).style('top', 0);
+                .classed('ring_ringTitle', true).style('top', 0);
 
             // tslint:disable-next-line:no-any
             let oElement: any;
@@ -393,27 +415,30 @@ module powerbi.extensibility.visual {
 
         }
 
-        public visualTransform(options: VisualUpdateOptions, host: IVisualHost): IDonutChartViewModel {
+        public visualTransform(options: VisualUpdateOptions, host: IVisualHost): IRingChartViewModel {
             let dataViews: DataView[];
             dataViews = options.dataViews;
-            let defaultSettings: IDonutChartSettings;
+            let defaultSettings: IRingChartSettings;
             defaultSettings = {
                 generalView: {
                     opacity: 100
                 }
             };
-            let viewModel: IDonutChartViewModel;
+            let viewModel: IRingChartViewModel;
             viewModel = {
                 dataMax: 0,
                 dataPoints: [],
+                dataPoints2: [],
                 isLegendAvailable: false,
                 isPrimaryMeasureAvailable: false,
                 legendData: null,
                 primaryKPISum: null,
                 primaryMeasureSum: null,
+                primaryMeasureSum2: null,
                 secondaryKPISum: null,
                 secondaryMeasureSum: null,
-                settings: <IDonutChartSettings>{}
+                secondaryMeasureSum2: null,
+                settings: <IRingChartSettings>{}
             };
 
             if (!dataViews
@@ -431,12 +456,15 @@ module powerbi.extensibility.visual {
             let dataValue: DataViewValueColumn;
             dataValue = categorical.values[0];
 
-            let donutChartDataPoints: IDonutChartDataPoint[];
-            donutChartDataPoints = [];
+            let ringChartDataPoints: IRingChartDataPoint[];
+            ringChartDataPoints = [];
+            let ringChartDataPoints2: IRingChartDataPoint[];
+            ringChartDataPoints2 = [];
             let dataMax: number;
             let primaryMeasureSum: number = 0;
             let secondaryMeasureSum: number = 0;
-
+            let primaryMeasureSum2: number = 0;
+            let secondaryMeasureSum2: number = 0;
             let primarykpiSum: number = 0;
             let secondarykpiSum: number = 0;
 
@@ -444,8 +472,8 @@ module powerbi.extensibility.visual {
             colorPalette = host.colorPalette;
             let objects: DataViewObjects;
             objects = dataViews[0].metadata.objects;
-            let donutChartSettings: IDonutChartSettings;
-            donutChartSettings = {
+            let ringChartSettings: IRingChartSettings;
+            ringChartSettings = {
                 generalView: {
                     opacity: getValue<number>(objects, 'generalView', 'opacity', defaultSettings.generalView.opacity)
                 }
@@ -477,8 +505,8 @@ module powerbi.extensibility.visual {
                     }
                 };
 
-                let donutDataPoint: IDonutChartDataPoint;
-                donutDataPoint = {
+                let ringDataPoint: IRingChartDataPoint;
+                ringDataPoint = {
                     category: '',
                     color: '',
                     primaryKPIValue: '',
@@ -488,50 +516,78 @@ module powerbi.extensibility.visual {
                     secondaryValue: '',
                     selectionId: null,
                     tooltipData: [],
-                    value: ''
+                    value: '',
+                    selected: false
+                };
+                let ringDataPoint2: IRingChartDataPoint;
+                ringDataPoint2 = {
+                    category: '',
+                    color: '',
+                    primaryKPIValue: '',
+                    primaryName: '',
+                    secondaryKPIValue: '',
+                    secondaryName: '',
+                    secondaryValue: '',
+                    selectionId: null,
+                    tooltipData: [],
+                    value: '',
+                    selected: false
                 };
                 for (let cat1: number = 0; cat1 < dataViews[0].categorical.categories.length; cat1++) {
                     let dataView: DataView;
                     dataView = dataViews[0];
                     if (dataView.categorical.categories[cat1].source.roles.hasOwnProperty('Category')) {
-                        donutDataPoint.category = dataView.categorical.categories[cat1].values[i] ?
+                        ringDataPoint.category = dataView.categorical.categories[cat1].values[i] ?
                             (dataView.categorical.categories[cat1].values[i].toString()) : '';
                     }
                     let tooltipDataPoint: ITooltipDataPoints;
                     tooltipDataPoint = {
                         formatter: '',
                         name: dataView.categorical.categories[cat1].source.displayName,
-                        value: dataView.categorical.categories[cat1].values[i] ?
+                        value: dataView.categorical.categories[cat1].values[i] !== null ?
                             (dataView.categorical.categories[cat1].values[i].toString()) : ''
                     };
-                    donutDataPoint.tooltipData.push(tooltipDataPoint);
+                    ringDataPoint.tooltipData.push(tooltipDataPoint);
+                    ringDataPoint2.tooltipData.push(tooltipDataPoint);
                 }
 
                 for (let k: number = 0; k < dataViews[0].categorical.values.length; k++) {
                     let dataView: DataView;
                     dataView = dataViews[0];
-                    let dataVal: PrimitiveValue = dataView.categorical.values[k].values[i];
-                    dataVal = dataVal < 0 ? 0 : dataVal;
+                    let dataVal: PrimitiveValue;
+                    dataVal = dataView.categorical.values[k].values[i];
+                    let dataVal2: PrimitiveValue;
+                    dataVal2 = dataView.categorical.values[k].values[i];
                     let colName: string;
                     colName = dataView.categorical.values[k].source.displayName ?
                         dataView.categorical.values[k].source.displayName.toString() : '';
                     if (dataView.categorical.values[k].source.roles.hasOwnProperty('Y')) {
-                        donutDataPoint.primaryName = colName;
-                        donutDataPoint.value = dataVal;
-                        primaryMeasureSum += parseFloat(dataVal ? dataVal.toString() : '0');
+                        ringDataPoint.primaryName = colName;
+                        ringDataPoint.value = dataVal;
+                        ringDataPoint2.primaryName = colName;
+                        primaryMeasureSum += parseFloat(dataVal2 ? dataVal2.toString() : '0');
+                        ringDataPoint2.value = dataVal2;
+                        dataVal2 = dataVal2 < 0 ? Math.abs(<number>dataVal2) : dataVal2;
+                        primaryMeasureSum2 += parseFloat(dataVal2 ? dataVal2.toString() : '0');
                     }
                     if (dataView.categorical.values[k].source.roles.hasOwnProperty('SecondaryMeasure')) {
-                        donutDataPoint.secondaryName = colName;
-                        donutDataPoint.secondaryValue = dataVal;
-                        secondaryMeasureSum += parseFloat(dataVal ? dataVal.toString() : '0');
+                        ringDataPoint.secondaryName = colName;
+                        ringDataPoint.secondaryValue = dataVal;
+                        ringDataPoint2.secondaryName = colName;
+                        ringDataPoint2.secondaryValue = dataVal2;
+                        secondaryMeasureSum += parseFloat(dataVal2 ? dataVal2.toString() : '0');
+                        dataVal2 = dataVal2 < 0 ? Math.abs(<number>dataVal2) : dataVal2;
+                        secondaryMeasureSum2 += parseFloat(dataVal2 ? dataVal2.toString() : '0');
                         this.isSMExists = true;
                     }
                     if (dataView.categorical.values[k].source.roles.hasOwnProperty('PrimaryKPI')) {
-                        donutDataPoint.primaryKPIValue = dataVal;
+                        ringDataPoint.primaryKPIValue = dataVal;
+                        ringDataPoint2.primaryKPIValue = dataVal;
                         primarykpiSum += parseFloat(dataVal ? dataVal.toString() : '0');
                     }
                     if (dataView.categorical.values[k].source.roles.hasOwnProperty('SecondaryKPI')) {
-                        donutDataPoint.secondaryKPIValue = dataVal;
+                        ringDataPoint.secondaryKPIValue = dataVal;
+                        ringDataPoint2.secondaryKPIValue = dataVal;
                         secondarykpiSum += parseFloat(dataVal ? dataVal.toString() : '0');
                     }
                     let tooltipDataPoint: ITooltipDataPoints;
@@ -539,33 +595,43 @@ module powerbi.extensibility.visual {
                         formatter: dataView.categorical.values[k].source.format ?
                             dataView.categorical.values[k].source.format : ValueFormatter.DefaultNumericFormat,
                         name: colName,
-                        value: dataVal ? dataVal.toString() : '(Blank)'
+                        value: dataVal !== null ? dataVal.toString() : ''
                     };
-                    donutDataPoint.tooltipData.push(tooltipDataPoint);
+                    ringDataPoint.tooltipData.push(tooltipDataPoint);
+                    ringDataPoint2.tooltipData.push(tooltipDataPoint);
                 }
-                donutDataPoint.color = getCategoricalObjectValue<Fill>(category, i, 'dataPoint', 'fill', defaultColor).solid.color;
-                donutDataPoint.selectionId = host.createSelectionIdBuilder()
+                ringDataPoint.color = getCategoricalObjectValue<Fill>(category, i, 'dataPoint', 'fill', defaultColor).solid.color;
+                ringDataPoint.selectionId = host.createSelectionIdBuilder()
                     .withCategory(category, i)
                     .createSelectionId();
-
-                donutChartDataPoints.push(donutDataPoint);
+                ringDataPoint2.color = getCategoricalObjectValue<Fill>(category, i, 'dataPoint', 'fill', defaultColor).solid.color;
+                ringDataPoint2.selectionId = host.createSelectionIdBuilder()
+                    .withCategory(category, i)
+                    .createSelectionId();
+                ringDataPoint.selected = false;
+                ringDataPoint2.selected = false;
+                ringChartDataPoints.push(ringDataPoint);
+                ringChartDataPoints2.push(ringDataPoint2);
             }
             dataMax = <number>dataValue.maxLocal;
 
             return {
                 dataMax: dataMax,
-                dataPoints: donutChartDataPoints,
+                dataPoints: ringChartDataPoints,
+                dataPoints2: ringChartDataPoints2,
                 isLegendAvailable: isLegendAvailable,
                 isPrimaryMeasureAvailable: isPrimaryMeasureAvailable,
-                legendData: this.getLegendData(dataViews[0], donutChartDataPoints, host),
+                legendData: this.getLegendData(dataViews[0], ringChartDataPoints, host),
                 primaryKPISum: primarykpiSum,
                 primaryMeasureSum: primaryMeasureSum,
+                primaryMeasureSum2: primaryMeasureSum2,
                 secondaryKPISum: secondarykpiSum,
                 secondaryMeasureSum: secondaryMeasureSum,
-                settings: donutChartSettings
+                secondaryMeasureSum2: secondaryMeasureSum2,
+                settings: ringChartSettings
             };
         }
-        public getLegendData(dataView: DataView, donutChartDataPoints: IDonutChartDataPoint[], host: IVisualHost): LegendData {
+        public getLegendData(dataView: DataView, ringChartDataPoints: IRingChartDataPoint[], host: IVisualHost): LegendData {
 
             let legendSettings: ILegendConfig;
             legendSettings = this.getLegendSettings(dataView);
@@ -577,42 +643,42 @@ module powerbi.extensibility.visual {
                 title: legendSettings.legendName
             };
 
-            if (donutChartDataPoints && donutChartDataPoints[0] && donutChartDataPoints[0].primaryName) {
-                legendData.primaryTitle = donutChartDataPoints[0].primaryName;
+            if (ringChartDataPoints && ringChartDataPoints[0] && ringChartDataPoints[0].primaryName) {
+                legendData.primaryTitle = ringChartDataPoints[0].primaryName;
             }
 
-            if (donutChartDataPoints && donutChartDataPoints[0] && donutChartDataPoints[0].secondaryName) {
-                legendData.secondaryTitle = donutChartDataPoints[0].secondaryName;
+            if (ringChartDataPoints && ringChartDataPoints[0] && ringChartDataPoints[0].secondaryName) {
+                legendData.secondaryTitle = ringChartDataPoints[0].secondaryName;
             }
 
-            for (let i: number = 0; i < donutChartDataPoints.length; ++i) {
+            for (let i: number = 0; i < ringChartDataPoints.length; ++i) {
                 if (dataView && dataView.categorical && dataView.categorical.categories && dataView.categorical.categories[0]) {
                     if (legendData.secondaryTitle) {
                         legendData.dataPoints.push({
-                            color: donutChartDataPoints[i].color,
+                            color: ringChartDataPoints[i].color,
                             icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box,
                             identity: host.createSelectionIdBuilder().withCategory(
                                 (dataView.categorical.categories[0]), i).createSelectionId(),
-                            label: donutChartDataPoints[i].category === '' ? '(Blank)' : donutChartDataPoints[i].category,
-                            measure: donutChartDataPoints[i].value,
-                            secondaryMeasure: donutChartDataPoints[i].secondaryValue,
+                            label: ringChartDataPoints[i].category === '' ? '(Blank)' : ringChartDataPoints[i].category,
+                            measure: ringChartDataPoints[i].value,
+                            secondaryMeasure: ringChartDataPoints[i].secondaryValue,
                             selected: false
 
                         });
                     } else {
                         legendData.dataPoints.push({
-                            color: donutChartDataPoints[i].color,
+                            color: ringChartDataPoints[i].color,
                             icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box,
                             identity: host.createSelectionIdBuilder().withCategory(
                                 dataView.categorical.categories[0], i).createSelectionId(),
-                            label: donutChartDataPoints[i].category,
-                            measure: donutChartDataPoints[i].value,
+                            label: ringChartDataPoints[i].category,
+                            measure: ringChartDataPoints[i].value,
                             selected: false
 
                         });
                     }
                 }
-                legendValues[i] = donutChartDataPoints[i].category;
+                legendValues[i] = ringChartDataPoints[i].category;
             }
 
             return legendData;
@@ -624,11 +690,12 @@ module powerbi.extensibility.visual {
             THIS = this;
             this.isSMExists = false;
 
-            let viewModel: IDonutChartViewModel;
+            let viewModel: IRingChartViewModel;
             viewModel = this.visualTransform(options, this.host);
-            this.donutChartSettings = viewModel.settings;
+            this.ringChartSettings = viewModel.settings;
 
-            this.donutDataPoints = viewModel.dataPoints;
+            this.ringDataPoints = viewModel.dataPoints;
+            this.ringDataPoints2 = viewModel.dataPoints2;
             let lablesettings: IDetailLables;
             lablesettings = this.getDetailLable(this.dataViews);
             this.svg.selectAll('*').remove();
@@ -640,13 +707,14 @@ module powerbi.extensibility.visual {
             this.rootElement
                 .selectAll('.ring_legend #legendGroup .navArrow')
                 .remove();
-            this.rootElement.selectAll('.ring_donutTitle .ring_donutTitleDiv').remove();
+            this.rootElement.selectAll('.ring_ringTitle .ring_ringTitleDiv').remove();
 
             let noDataMessage: INodataText;
             noDataMessage = this.getNoDataText(this.dataViews);
             let errorMsg: string;
             errorMsg = noDataMessage.textMessage;
-
+            let arcPosition: IArcPosition;
+            arcPosition = this.getArcPosition(this.dataViews);
             if (!viewModel || !viewModel.isLegendAvailable || !viewModel.isPrimaryMeasureAvailable) {
                 const message: string = 'Please select "Primary Measure" and "Legend" values';
                 this.rootElement
@@ -674,48 +742,48 @@ module powerbi.extensibility.visual {
             legendSettings = this.getLegendSettings(this.dataViews);
             let summaryLabelSettings: ISummaryLabels;
             summaryLabelSettings = this.getSummaryLabels(this.dataViews);
-            let donutTitleSettings: IDonutTitle;
-            donutTitleSettings = this.getDonutTitle(this.dataViews);
+            let ringTitleSettings: IRingTitle;
+            ringTitleSettings = this.getRingTitle(this.dataViews);
 
-            let donutWidth: number = options.viewport.width;
-            let donutHeight: number = options.viewport.height;
+            let ringWidth: number = options.viewport.width;
+            let ringHeight: number = options.viewport.height;
 
-            let donutTitleHeight: number = 0;
-            if (donutTitleSettings.show) {
-                this.rootElement.select('.ring_donutTitle').style({
+            let ringTitleHeight: number = 0;
+            if (ringTitleSettings.show) {
+                this.rootElement.select('.ring_ringTitle').style({
                     display: 'block',
                     position: 'absolute'
                 });
                 let textProperties: TextProperties;
                 textProperties = {
                     fontFamily: THIS.defaultFontFamily,
-                    fontSize: PixelConverter.fromPoint(donutTitleSettings.fontSize),
-                    text: donutTitleSettings.titleText
+                    fontSize: PixelConverter.fromPoint(ringTitleSettings.fontSize),
+                    text: ringTitleSettings.titleText
                 };
                 let finalText: string;
-                finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, donutWidth - 70);
+                finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, ringWidth - 70);
                 let titleDiv: d3.Selection<SVGElement>;
-                titleDiv = this.rootElement.select('.ring_donutTitle')
+                titleDiv = this.rootElement.select('.ring_ringTitle')
                     .append('div')
-                    .classed('ring_donutTitleDiv', true)
+                    .classed('ring_ringTitleDiv', true)
                     .style({
-                        'background-color': donutTitleSettings.backgroundColor,
-                        color: donutTitleSettings.fill1,
-                        'font-size': PixelConverter.fromPoint(donutTitleSettings.fontSize)
+                        'background-color': ringTitleSettings.backgroundColor,
+                        color: ringTitleSettings.fill1,
+                        'font-size': PixelConverter.fromPoint(ringTitleSettings.fontSize)
                     })
                     .text(finalText);
 
-                if (donutTitleSettings.tooltipText.trim() !== '') {
+                if (ringTitleSettings.tooltipText.trim() !== '') {
                     titleDiv
                         .append('span')
                         .text(' (?)')
-                        .attr('title', donutTitleSettings.tooltipText);
+                        .attr('title', ringTitleSettings.tooltipText);
                 }
-                donutTitleHeight = parseFloat($('.ring_donutTitle').css('height'));
-                donutHeight = donutHeight - donutTitleHeight;
+                ringTitleHeight = parseFloat($('.ring_ringTitle').css('height'));
+                ringHeight = ringHeight - ringTitleHeight;
             }
             this.currentViewport = {
-                height: Math.max(0, options.viewport.height - donutTitleHeight),
+                height: Math.max(0, options.viewport.height - ringTitleHeight),
                 width: Math.max(0, options.viewport.width)
             };
 
@@ -724,7 +792,7 @@ module powerbi.extensibility.visual {
 
             if (legendSettings.show) {
                 this.rootElement.select('.ring_legend').style({
-                    top: `${donutTitleHeight}px`
+                    top: `${ringTitleHeight}px`
                 });
                 this.renderLegend(viewModel, this.dataViews);
 
@@ -733,31 +801,31 @@ module powerbi.extensibility.visual {
                 let legendPos: string;
                 legendPos = LegendPosition[this.legend.getOrientation()].toLowerCase();
                 if (legendPos === 'top' || legendPos === 'topcenter') {
-                    donutHeight = donutHeight - legendHeight <= 0 ? 0 : donutHeight - legendHeight;
-                    this.svg.style('margin-top', `${legendHeight + donutTitleHeight}px`);
+                    ringHeight = ringHeight - legendHeight <= 0 ? 0 : ringHeight - legendHeight;
+                    this.svg.style('margin-top', `${legendHeight + ringTitleHeight}px`);
                 } else if (legendPos === 'bottom' || legendPos === 'bottomcenter') {
-                    donutHeight = donutHeight - legendHeight <= 0 ? 0 : donutHeight - legendHeight;
-                    this.svg.style('margin-top', `${donutTitleHeight}px`);
+                    ringHeight = ringHeight - legendHeight <= 0 ? 0 : ringHeight - legendHeight;
+                    this.svg.style('margin-top', `${ringTitleHeight}px`);
                 } else if (legendPos === 'left' || legendPos === 'leftcenter' || legendPos === 'right' || legendPos === 'rightcenter') {
-                    donutWidth = donutWidth - legendWidth <= 0 ? 0 : donutWidth - legendWidth;
-                    this.svg.style('margin-top', `${donutTitleHeight}px`);
+                    ringWidth = ringWidth - legendWidth <= 0 ? 0 : ringWidth - legendWidth;
+                    this.svg.style('margin-top', `${ringTitleHeight}px`);
                 } else {
-                    this.svg.style('margin-top', `${donutTitleHeight}px`);
+                    this.svg.style('margin-top', `${ringTitleHeight}px`);
                 }
             } else {
-                const x: string = `${donutTitleHeight}px`;
+                const x: string = `${ringTitleHeight}px`;
                 this.svg.style('margin-top', x);
                 this.svg.style('margin-left', 0);
                 this.svg.style('margin-right', 0);
             }
 
             this.svg.attr({
-                height: donutHeight,
-                width: donutWidth
+                height: ringHeight,
+                width: ringWidth
             });
 
             let radius: number;
-            radius = Math.min(donutWidth, donutHeight) / 2;
+            radius = Math.min(ringWidth, ringHeight) / 2;
 
             let outerMultiplier: number = 0.85;
             let innerMultiplier: number = 0.55;
@@ -778,27 +846,56 @@ module powerbi.extensibility.visual {
             pie = d3.layout.pie()
                 .sort(null)
                 // tslint:disable-next-line:no-any
-                .value(function (d: any): any { return d.value; });
+                .value(function (d: any): any { return Math.abs(d.value); });
 
             let svg: d3.Selection<SVGElement>;
-            svg = d3.select('.ring_donutChart').append('svg')
-                .attr('width', donutWidth)
-                .attr('height', donutHeight)
+            svg = d3.select('.ring_ringChart').append('svg')
+                .attr('width', ringWidth)
+                .attr('height', ringHeight)
                 .append('g')
-                .attr('transform', `translate(${donutWidth / 2},${donutHeight / 2})`);
+                .attr('transform', `translate(${ringWidth / 2},${ringHeight / 2})`);
 
             // tslint:disable-next-line:no-any
             let g: any;
             g = svg.selectAll('.ring_arc')
-                .data(pie(viewModel.dataPoints))
+                .data(pie(viewModel.dataPoints2))
                 .enter().append('g')
-                .attr('class', 'ring_arc');
-
-            g.append('path')
+                .attr('class', 'ring_arc')
+                // tslint:disable-next-line:no-any
+                .attr('id', function (d: any, iterator: number): string {
+                    return `path${iterator}`;
+                });
+            // tslint:disable-next-line:no-any
+            svg.selectAll('g').append('path')
                 .attr('d', arc)
                 // tslint:disable-next-line:no-any
-                .style('fill', function (d: any): string { return d.data.color; });
+                .style('fill', function (d: any, iterator: number): string {
+                    if (arcPosition.patternFill && viewModel.dataPoints[iterator].value < 0) {
+                        // tslint:disable-next-line:no-any
+                        let patternFill: any;
+                        patternFill = svg.selectAll(`#path${iterator}`)
+                            .append('pattern')
+                            .attr('id', `circle${iterator}`)
+                            .attr({
+                                width: 10,
+                                height: 5,
+                                patternUnits: 'userSpaceOnUse'
+                            })
+                            .style('stroke', d.data.color)
+                            .style('stroke-width', 5);
+                        patternFill.append('line').attr({
+                            x1: 0,
+                            y1: 0,
+                            x2: 10,
+                            y2: 0,
+                            fill: '#FFFFFF'
+                        });
 
+                        return `url(#circle${iterator})`;
+                    }
+
+                    return d.data.color;
+                });
             // tslint:disable-next-line:no-any
             let outerArc: any;
             outerArc = d3.svg.arc()
@@ -807,7 +904,41 @@ module powerbi.extensibility.visual {
 
             // tslint:disable-next-line:no-any
             function midAngle(d: any): any { return d.startAngle + ((d.endAngle - d.startAngle)) / 2; }
+            // prop out feature for negative values
+            let donutArc: d3.Selection<SVGElement>;
+            donutArc = this.svg.selectAll('.ring_arc path');
+            donutArc.attr('id', function (d: SVGElement, iterator: number): string {
+                if ( viewModel.dataPoints[iterator].value < 0 && arcPosition.position === `normal`) {
+                    d3.select(this)
+                    .transition()
+                    .duration(100)
+                    .attr('d', d3.svg.arc()
+                        .innerRadius(radius * innerMultiplier)
+                         .outerRadius(radius * outerMultiplier));
 
+                    return 'negativeValue';
+                } else if ( viewModel.dataPoints[iterator].value < 0 && arcPosition.position === `popOut`) {
+                    d3.select(this)
+                    .transition()
+                    .duration(100)
+                    .attr('d', d3.svg.arc()
+                        .innerRadius(radius * innerMultiplier * 1.05)
+                         .outerRadius(radius * outerMultiplier * 1.05));
+
+                    return 'negativeValue';
+                } else if ( viewModel.dataPoints[iterator].value < 0 && arcPosition.position === `dropIn`) {
+                    d3.select(this)
+                    .transition()
+                    .duration(100)
+                    .attr('d', d3.svg.arc()
+                        .innerRadius(radius * innerMultiplier * 0.93)
+                         .outerRadius(radius * outerMultiplier * 0.93));
+
+                    return 'negativeValue';
+                } else {
+                    return 'positiveValue';
+                }
+                });
             if (lablesettings.show) {
                 // tslint:disable-next-line:no-any
                 let enteringLabels: any;
@@ -974,8 +1105,8 @@ module powerbi.extensibility.visual {
                         let finalText: string;
                         if (position === 1) {
                             textEnd = pos[0] + widthOfText;
-                            if (textEnd > donutWidth / 2) {
-                                finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, donutWidth / 2 - pos[0]);
+                            if (textEnd > ringWidth / 2) {
+                                finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, ringWidth / 2 - pos[0]);
                                 if (finalText.length < 4) {
                                     return '';
                                 }
@@ -984,8 +1115,8 @@ module powerbi.extensibility.visual {
                             }
                         } else if (position === -1) {
                             textEnd = pos[0] + (-1 * widthOfText);
-                            if (textEnd < (-1 * donutWidth / 2)) {
-                                finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, pos[0] + donutWidth / 2);
+                            if (textEnd < (-1 * ringWidth / 2)) {
+                                finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, pos[0] + ringWidth / 2);
                                 if (finalText.length < 4) {
                                     return '';
                                 }
@@ -1011,8 +1142,8 @@ module powerbi.extensibility.visual {
                             if (position === 1) {
                                 let textEnd1: number;
                                 textEnd1 = pos[0] + widthOfText1;
-                                if (textEnd1 > donutWidth / 2) {
-                                    finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, donutWidth / 2 - pos[0]);
+                                if (textEnd1 > ringWidth / 2) {
+                                    finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, ringWidth / 2 - pos[0]);
                                     if (finalText.length < 4) {
                                         return '';
                                     }
@@ -1022,8 +1153,8 @@ module powerbi.extensibility.visual {
                             } else if (position === -1) {
                                 let textEnd1: number;
                                 textEnd1 = pos[0] + (-1 * widthOfText1);
-                                if (textEnd1 < (-1 * donutWidth / 2)) {
-                                    finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, pos[0] + donutWidth / 2);
+                                if (textEnd1 < (-1 * ringWidth / 2)) {
+                                    finalText = textMeasurementService.getTailoredTextOrDefault(textProperties, pos[0] + ringWidth / 2);
                                     if (finalText.length < 4) {
                                         return '';
                                     }
@@ -1036,10 +1167,10 @@ module powerbi.extensibility.visual {
                         return finalText;
                     })
                     .style(
-                    // tslint:disable-next-line:no-any
-                    'text-anchor', function (d: any): string {
-                        return (midAngle(d)) < Math.PI ? 'start' : 'end';
-                    })
+                        // tslint:disable-next-line:no-any
+                        'text-anchor', function (d: any): string {
+                            return (midAngle(d)) < Math.PI ? 'start' : 'end';
+                        })
                     .style('fill', labelcolor)
                     .style('font-size', labeltextsize)
                     .style('font-family', this.defaultFontFamily)
@@ -1092,7 +1223,7 @@ module powerbi.extensibility.visual {
 
                 // Logic to add second row labels
                 let dataLabels: d3.Selection<SVGElement>;
-                dataLabels = this.svg.selectAll('.ring_donutChart g.ring_labelName text');
+                dataLabels = this.svg.selectAll('.ring_ringChart g.ring_labelName text');
                 // tslint:disable-next-line:no-any
                 let dataLabelsArr: any;
                 dataLabelsArr = dataLabels && dataLabels[0] ? dataLabels[0] : [];
@@ -1222,9 +1353,9 @@ module powerbi.extensibility.visual {
                                 let finalText: string;
                                 if (position === 1) {
                                     textEnd = pos[0] + widthOfText;
-                                    if (textEnd > donutWidth / 2) {
+                                    if (textEnd > ringWidth / 2) {
                                         finalText = textMeasurementService
-                                            .getTailoredTextOrDefault(textProperties, donutWidth / 2 - pos[0]);
+                                            .getTailoredTextOrDefault(textProperties, ringWidth / 2 - pos[0]);
                                         if (finalText.length < 4) {
                                             return '';
                                         }
@@ -1233,9 +1364,9 @@ module powerbi.extensibility.visual {
                                     }
                                 } else if (position === -1) {
                                     textEnd = pos[0] + (-1 * widthOfText);
-                                    if (textEnd < (-1 * donutWidth / 2)) {
+                                    if (textEnd < (-1 * ringWidth / 2)) {
                                         finalText = textMeasurementService.
-                                            getTailoredTextOrDefault(textProperties, pos[0] + donutWidth / 2);
+                                            getTailoredTextOrDefault(textProperties, pos[0] + ringWidth / 2);
                                         if (finalText.length < 4) {
                                             return '';
                                         }
@@ -1247,10 +1378,10 @@ module powerbi.extensibility.visual {
                                 return finalText;
                             })
                             .style(
-                            // tslint:disable-next-line:no-any
-                            'text-anchor', function (d: any): string {
-                                return (midAngle(d)) < Math.PI ? 'start' : 'end';
-                            })
+                                // tslint:disable-next-line:no-any
+                                'text-anchor', function (d: any): string {
+                                    return (midAngle(d)) < Math.PI ? 'start' : 'end';
+                                })
                             .style('fill', labelcolor2)
                             .style('font-size', labeltextsize2)
                             .style('font-family', this.defaultFontFamily)
@@ -1377,7 +1508,7 @@ module powerbi.extensibility.visual {
                         Math.abs(parseFloat($(`#ring_secondRowLabel_${i}`).attr('y'))) + 3 : 0;
                     // 0.2em is the dy value. On conversion to px it will be 3px
                     let visualHeight: number;
-                    visualHeight = donutHeight / 2 * 0.9; // 0.9 is the random value for adjusting labels cropping issue
+                    visualHeight = ringHeight / 2 * 0.9; // 0.9 is the random value for adjusting labels cropping issue
                     if (labelYPos > parseFloat(visualHeight.toString())
                         || (secondLabelYPos > parseFloat(visualHeight.toString()))
                         && document.getElementById(`ring_secondRowLabel_${i}`)
@@ -1392,14 +1523,16 @@ module powerbi.extensibility.visual {
             }
 
             this.drawSummaryDiv(radius, options, viewModel, legendHeight, legendWidth, summaryLabelSettings, this.dataViews);
-            let arcs: d3.selection.Update<IDonutChartDataPoint>;
+            let arcs: d3.selection.Update<IRingChartDataPoint>;
             arcs = this.svg.selectAll('.ring_arc').data(viewModel.dataPoints);
+
+            this.arcsSelection = this.svg.selectAll('.ring_arc').data(viewModel.dataPoints);
 
             this.tooltipServiceWrapper
                 .addTooltip(
-                this.svg.selectAll('.ring_arc'),
-                (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                (tooltipEvent: TooltipEventArgs<number>) => null
+                    this.svg.selectAll('.ring_arc'),
+                    (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
+                    (tooltipEvent: TooltipEventArgs<number>) => null
                 );
 
             let selectionManager: ISelectionManager;
@@ -1407,7 +1540,7 @@ module powerbi.extensibility.visual {
 
             // This must be an anonymous function instead of a lambda because
             // d3 uses 'this' as the reference to the element that was clicked.
-            arcs.on('click', function (d: IDonutChartDataPoint): void {
+            arcs.on('click', function (d: IRingChartDataPoint): void {
                 // tslint:disable-next-line:no-any
                 selectionManager.select(d.selectionId).then((ids: any[]) => {
                     // tslint:disable-next-line:no-any
@@ -1423,10 +1556,10 @@ module powerbi.extensibility.visual {
                         }
                     }
                     // tslint:disable-next-line:no-any
-                    let legend: any;
-                    legend = THIS.rootElement.selectAll('.ring_legend .legendItem');
+                    let legendSelection: any;
+                    legendSelection = THIS.rootElement.selectAll('.ring_legend .legendItem');
                     // tslint:disable-next-line:no-any
-                    legend.attr('fill-opacity', (d1: any) => {
+                    legendSelection.attr('fill-opacity', (d1: any) => {
                         return CompareIds(d1);
                     });
 
@@ -1454,30 +1587,47 @@ module powerbi.extensibility.visual {
             let animationSettings: IAnimation;
             animationSettings = this.getAnimation(this.dataViews);
             if (animationSettings.show) {
-                let donutArcPath: d3.Selection<SVGElement>;
-                donutArcPath = this.svg.selectAll('.ring_arc path');
-                donutArcPath.on('mouseover', function (): void {
+                let ringArcPath: d3.Selection<SVGElement>;
+                ringArcPath = this.svg.selectAll('.ring_arc path');
+                ringArcPath.on('mouseover', function (): void {
                     d3.select(this)
                         .transition()
                         .duration(100)
                         .attr('d', d3.svg.arc()
-                            .innerRadius(radius * innerMultiplier * 1.08)
-                            .outerRadius(radius * outerMultiplier * 1.08));
+                            .innerRadius(radius * innerMultiplier * 1.10)
+                            .outerRadius(radius * outerMultiplier * 1.10));
                 });
-                donutArcPath.on('mouseout', function (): void {
-                    d3.select(this)
-                        .transition()
-                        .duration(100)
-                        .attr('d', d3.svg.arc()
-                            .innerRadius(radius * innerMultiplier)
-                            .outerRadius(radius * outerMultiplier));
+                ringArcPath.on('mouseout', function (d: SVGElement, iterator: number): void {
+                    if ( viewModel.dataPoints[iterator].value < 0 && arcPosition.position === 'popOut') {
+                        d3.select(this)
+                            .transition()
+                            .duration(100)
+                            .attr('d', d3.svg.arc()
+                                .innerRadius(radius * innerMultiplier * 1.05)
+                                .outerRadius(radius * outerMultiplier * 1.05));
+                    } else if ( viewModel.dataPoints[iterator].value < 0 && arcPosition.position === 'dropIn') {
+                        d3.select(this)
+                            .transition()
+                            .duration(100)
+                            .attr('d', d3.svg.arc()
+                                .innerRadius(radius * innerMultiplier * 0.93)
+                                .outerRadius(radius * outerMultiplier * 0.93));
+                    } else {
+                        d3.select(this)
+                            .transition()
+                            .duration(100)
+                            .attr('d', d3.svg.arc()
+                                .innerRadius(radius * innerMultiplier)
+                                .outerRadius(radius * outerMultiplier));
+                    }
                 });
             }
+            this.syncSelectionState(this.arcsSelection, this.selectionManager.getSelectionIds() as ISelectionId[]);
         }
 
         public drawSummaryDiv(
             radius: number, options: VisualUpdateOptions,
-            viewModel: IDonutChartViewModel, legendHeight: number,
+            viewModel: IRingChartViewModel, legendHeight: number,
             legendWidth: number, summaryLabelSettings: ISummaryLabels,
             dataViews: DataView): void {
             if (summaryLabelSettings.show) {
@@ -1486,8 +1636,8 @@ module powerbi.extensibility.visual {
                     pmIndicator = this.getPrimaryIndicator(dataViews);
                     let smIndicator: ISecondaryIndicator;
                     smIndicator = this.getSecondaryIndicator(dataViews);
-                    let donutTitleSettings: IDonutTitle;
-                    donutTitleSettings = this.getDonutTitle(this.dataViews);
+                    let ringTitleSettings: IRingTitle;
+                    ringTitleSettings = this.getRingTitle(this.dataViews);
                     let secondarySummarySettings: ISecondarySummaryLabels;
                     secondarySummarySettings = this.getSecondarySummaryLabels(this.dataViews);
                     this.rootElement.select('.ring_SummarizedDiv').style({ display: 'block' });
@@ -1529,41 +1679,41 @@ module powerbi.extensibility.visual {
                         format: options.dataViews[0].categorical.values[0].source.format ?
                             options.dataViews[0].categorical.values[0].source.format : ValueFormatter.DefaultNumericFormat
                     });
-                    let donutTitleHeight: number = 0;
-                    if (donutTitleSettings.show) {
-                        donutTitleHeight = parseFloat($('.ring_donutTitle').css('height'));
+                    let ringTitleHeight: number = 0;
+                    if (ringTitleSettings.show) {
+                        ringTitleHeight = parseFloat($('.ring_ringTitle').css('height'));
                     }
                     let position: string;
                     position = 'position';
                     if (!this.legendObjectProperties) {
                         x = halfViewPortWidth - (innerRadius / Math.SQRT2);
                         y = halfViewPortHeight - (innerRadius / Math.SQRT2) +
-                            parseInt(legendHeight.toString(), 10) / 2 + parseInt(donutTitleHeight.toString(), 10) / 2;
+                            parseInt(legendHeight.toString(), 10) / 2 + parseInt(ringTitleHeight.toString(), 10) / 2;
                     } else if (this.legendObjectProperties.hasOwnProperty('show')
                         && (this.legendObjectProperties[position] === 'Top'
                             || this.legendObjectProperties[position] === 'TopCenter')) {
                         x = halfViewPortWidth - (innerRadius / Math.SQRT2);
                         y = halfViewPortHeight - (innerRadius / Math.SQRT2)
-                            + parseInt(legendHeight.toString(), 10) / 2 + parseInt(donutTitleHeight.toString(), 10) / 2;
+                            + parseInt(legendHeight.toString(), 10) / 2 + parseInt(ringTitleHeight.toString(), 10) / 2;
                     } else if (this.legendObjectProperties.hasOwnProperty('show')
                         && (this.legendObjectProperties[position] === 'Bottom'
                             || this.legendObjectProperties[position] === 'BottomCenter')) {
                         x = halfViewPortWidth - (innerRadius / Math.SQRT2);
                         y = halfViewPortHeight - (innerRadius / Math.SQRT2)
-                            - parseInt(legendHeight.toString(), 10) / 2 + parseInt(donutTitleHeight.toString(), 10) / 2;
+                            - parseInt(legendHeight.toString(), 10) / 2 + parseInt(ringTitleHeight.toString(), 10) / 2;
                     } else if (this.legendObjectProperties.hasOwnProperty('show')
                         && (this.legendObjectProperties[position] === 'Left'
                             || this.legendObjectProperties[position] === 'LeftCenter')) {
                         x = halfViewPortWidth - (innerRadius / Math.SQRT2) + parseInt(legendWidth.toString(), 10) / 2;
-                        y = halfViewPortHeight - (innerRadius / Math.SQRT2) + parseInt(donutTitleHeight.toString(), 10) / 2;
+                        y = halfViewPortHeight - (innerRadius / Math.SQRT2) + parseInt(ringTitleHeight.toString(), 10) / 2;
                     } else if (this.legendObjectProperties.hasOwnProperty('show')
                         && (this.legendObjectProperties[position] === 'Right'
                             || this.legendObjectProperties[position] === 'RightCenter')) {
                         x = halfViewPortWidth - (innerRadius / Math.SQRT2) - parseInt(legendWidth.toString(), 10) / 2;
-                        y = halfViewPortHeight - (innerRadius / Math.SQRT2) + parseInt(donutTitleHeight.toString(), 10) / 2;
+                        y = halfViewPortHeight - (innerRadius / Math.SQRT2) + parseInt(ringTitleHeight.toString(), 10) / 2;
                     } else {
                         x = halfViewPortWidth - (innerRadius / Math.SQRT2);
-                        y = halfViewPortHeight - (innerRadius / Math.SQRT2) + parseInt(donutTitleHeight.toString(), 10) / 2;
+                        y = halfViewPortHeight - (innerRadius / Math.SQRT2) + parseInt(ringTitleHeight.toString(), 10) / 2;
                     }
 
                     let widthBox: number;
@@ -1883,6 +2033,45 @@ module powerbi.extensibility.visual {
             }
         }
 
+        public syncSelectionState(
+            selection: d3.Selection<IRingChartDataPoint>,
+            selectionIds: ISelectionId[]
+        ): void {
+            if (!selection || !selectionIds) {
+
+                return;
+            }
+
+            if (!selectionIds.length) {
+                selection.attr('fill-opacity', null);
+
+                return;
+            }
+
+            const self: this = this;
+
+            selection.each(function (barDataPoint: IRingChartDataPoint): void {
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
+
+                d3.select(this).attr(
+                    'fill-opacity',
+                    isSelected
+                        ? 1
+                        : 0.5
+                );
+            });
+        }
+
+        public isSelectionIdInArray(selectionIds: ISelectionId[], selectionId: ISelectionId): boolean {
+            if (!selectionIds || !selectionId) {
+                return false;
+            }
+
+            return selectionIds.some((currentSelectionId: ISelectionId) => {
+                return currentSelectionId.includes(selectionId);
+            });
+        }
+
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
             let objectName: string;
             objectName = options.objectName;
@@ -1894,14 +2083,16 @@ module powerbi.extensibility.visual {
             detaillabelprop = this.getDetailLable(this.dataViews);
             let summaryLabels: ISummaryLabels;
             summaryLabels = this.getSummaryLabels(this.dataViews);
+            let arcPosition: IArcPosition;
+            arcPosition = this.getArcPosition(this.dataViews);
             let secondarySummaryLabels: ISecondarySummaryLabels;
             secondarySummaryLabels = this.getSecondarySummaryLabels(this.dataViews);
             let pmIndicator: IPrimaryIndicator;
             pmIndicator = this.getPrimaryIndicator(this.dataViews);
             let smIndicator: ISecondaryIndicator;
             smIndicator = this.getSecondaryIndicator(this.dataViews);
-            let donutTitle: IDonutTitle;
-            donutTitle = this.getDonutTitle(this.dataViews);
+            let ringTitle: IRingTitle;
+            ringTitle = this.getRingTitle(this.dataViews);
             let animationProps: IAnimation;
             animationProps = this.getAnimation(this.dataViews);
             let noDataProps: INodataText;
@@ -1918,16 +2109,16 @@ module powerbi.extensibility.visual {
                             position: LegendPosition[this.legend.getOrientation()],
                             showTitle: powerbi.extensibility.utils.dataview.DataViewObject
                                 .getValue(
-                                this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.showTitle, true
+                                    this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.showTitle, true
                                 ),
                             titleText: legendConfigs.legendName,
                             labelColor: powerbi.extensibility.utils.dataview.DataViewObject
                                 .getValue(
-                                this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.labelColor, null
+                                    this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.labelColor, null
                                 ),
                             fontSize: powerbi.extensibility.utils.dataview.DataViewObject
                                 .getValue(
-                                this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.fontSize, 8
+                                    this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.fontSize, 8
                                 ),
                             detailedLegend: legendConfigs.primaryMeasure,
                             labelDisplayUnits: legendConfigs.displayUnits,
@@ -1936,18 +2127,18 @@ module powerbi.extensibility.visual {
                     });
                     break;
                 case 'dataPoint':
-                    for (const donutDataPoint of this.donutDataPoints) {
+                    for (const ringDataPoint of this.ringDataPoints) {
                         objectEnumeration.push({
                             objectName: objectName,
-                            displayName: donutDataPoint.category,
+                            displayName: ringDataPoint.category,
                             properties: {
                                 fill: {
                                     solid: {
-                                        color: donutDataPoint.color
+                                        color: ringDataPoint.color
                                     }
                                 }
                             },
-                            selector: donutDataPoint.selectionId.getSelector()
+                            selector: ringDataPoint.selectionId.getSelector()
                         });
                     }
                     break;
@@ -1963,6 +2154,16 @@ module powerbi.extensibility.visual {
                             labelStyle: detaillabelprop.labelStyle
                         },
                         selector: null
+                    });
+                    break;
+                case 'negativeArcSettings':
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        selector: null,
+                        properties: {
+                            arcPosition: arcPosition.position,
+                            patternFill: arcPosition.patternFill
+                        }
                     });
                     break;
                 case 'summaryLabels':
@@ -1993,16 +2194,16 @@ module powerbi.extensibility.visual {
                         });
                     }
                     break;
-                case 'GMODonutTitle':
+                case 'RingTitle':
                     objectEnumeration.push({
                         objectName: objectName,
                         properties: {
-                            show: donutTitle.show,
-                            titleText: donutTitle.titleText,
-                            fill1: donutTitle.fill1,
-                            fontSize: donutTitle.fontSize,
-                            backgroundColor: donutTitle.backgroundColor,
-                            tooltipText: donutTitle.tooltipText
+                            show: ringTitle.show,
+                            titleText: ringTitle.titleText,
+                            fill1: ringTitle.fill1,
+                            fontSize: ringTitle.fontSize,
+                            backgroundColor: ringTitle.backgroundColor,
+                            tooltipText: ringTitle.tooltipText
                         },
                         selector: null
                     });
@@ -2112,7 +2313,7 @@ module powerbi.extensibility.visual {
             });
         }
 
-        private renderLegend(viewModel: IDonutChartViewModel, dataViews: DataView): void {
+        private renderLegend(viewModel: IRingChartViewModel, dataViews: DataView): void {
             let legendSettings: ILegendConfig;
             legendSettings = this.getLegendSettings(dataViews);
             let pmIndicatorSettings: IPrimaryIndicator;
@@ -2642,7 +2843,7 @@ module powerbi.extensibility.visual {
             return secIndicatorSettings;
         }
 
-        private getDefaultDonutTitle(dataView: DataView): IDonutTitle {
+        private getDefaultRingTitle(dataView: DataView): IRingTitle {
             let titleText: string = '';
             if (dataView && dataView.categorical) {
                 if (dataView.categorical.values && dataView.categorical.values[0] && dataView.categorical.values[0].values) {
@@ -2664,26 +2865,26 @@ module powerbi.extensibility.visual {
                 tooltipText: 'Your tooltip text goes here'
             };
         }
-        private getDonutTitle(dataView: DataView): IDonutTitle {
+        private getRingTitle(dataView: DataView): IRingTitle {
             let objects: DataViewObjects = null;
-            let donutTitleSettings: IDonutTitle;
-            donutTitleSettings = this.getDefaultDonutTitle(dataView);
+            let ringTitleSettings: IRingTitle;
+            ringTitleSettings = this.getDefaultRingTitle(dataView);
             if (!dataView.metadata || !dataView.metadata.objects) {
-                return donutTitleSettings;
+                return ringTitleSettings;
             }
             objects = dataView.metadata.objects;
-            donutTitleSettings.show = DataViewObjects.getValue(objects, chartProperties.donutTitle.show, donutTitleSettings.show);
-            donutTitleSettings.titleText = DataViewObjects.getValue(
-                objects, chartProperties.donutTitle.titleText, donutTitleSettings.titleText);
-            donutTitleSettings.fill1 = DataViewObjects.getFillColor(objects, chartProperties.donutTitle.fill1, donutTitleSettings.fill1);
-            donutTitleSettings.fontSize = DataViewObjects.getValue(
-                objects, chartProperties.donutTitle.fontSize, donutTitleSettings.fontSize);
-            donutTitleSettings.backgroundColor = DataViewObjects.getFillColor(
-                objects, chartProperties.donutTitle.backgroundColor, donutTitleSettings.backgroundColor);
-            donutTitleSettings.tooltipText = DataViewObjects.getValue(
-                objects, chartProperties.donutTitle.tooltipText, donutTitleSettings.tooltipText);
+            ringTitleSettings.show = DataViewObjects.getValue(objects, chartProperties.ringTitle.show, ringTitleSettings.show);
+            ringTitleSettings.titleText = DataViewObjects.getValue(
+                objects, chartProperties.ringTitle.titleText, ringTitleSettings.titleText);
+            ringTitleSettings.fill1 = DataViewObjects.getFillColor(objects, chartProperties.ringTitle.fill1, ringTitleSettings.fill1);
+            ringTitleSettings.fontSize = DataViewObjects.getValue(
+                objects, chartProperties.ringTitle.fontSize, ringTitleSettings.fontSize);
+            ringTitleSettings.backgroundColor = DataViewObjects.getFillColor(
+                objects, chartProperties.ringTitle.backgroundColor, ringTitleSettings.backgroundColor);
+            ringTitleSettings.tooltipText = DataViewObjects.getValue(
+                objects, chartProperties.ringTitle.tooltipText, ringTitleSettings.tooltipText);
 
-            return donutTitleSettings;
+            return ringTitleSettings;
         }
 
         private getDefaultAnimation(): IAnimation {
@@ -2692,7 +2893,13 @@ module powerbi.extensibility.visual {
                 show: false
             };
         }
+        private getDefaultArcPosition(): IArcPosition {
 
+            return {
+                position: 'normal',
+                patternFill: true
+            };
+        }
         private getAnimation(dataView: DataView): IAnimation {
             let objects: DataViewObjects = null;
             let animationSettings: IAnimation;
@@ -2706,6 +2913,19 @@ module powerbi.extensibility.visual {
             return animationSettings;
         }
 
+        private getArcPosition(dataView: DataView): IArcPosition {
+            let objects: DataViewObjects = null;
+            let arcSettings: IArcPosition;
+            arcSettings = this.getDefaultArcPosition();
+            if (!dataView.metadata || !dataView.metadata.objects) {
+                return arcSettings;
+            }
+            objects = dataView.metadata.objects;
+            arcSettings.position = DataViewObjects.getValue(objects, chartProperties.arcPosition.position, arcSettings.position);
+            arcSettings.patternFill = DataViewObjects.getValue(objects, chartProperties.arcPosition.patternFill, arcSettings.patternFill);
+
+            return arcSettings;
+        }
         private getDefaultNoDataText(): INodataText {
 
             return {
