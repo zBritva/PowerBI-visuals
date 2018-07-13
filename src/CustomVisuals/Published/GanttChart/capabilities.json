@@ -3,6 +3,7 @@
     {
       "name": "Category",
       "displayName": "Category",
+      "description": "Maximum 4 columns",
       "kind": "Grouping"
     },
     {
@@ -10,6 +11,7 @@
       "displayName": "Legend",
       "kind": "Grouping"
     },
+
     {
       "name": "StartDate",
       "displayName": "Start",
@@ -29,10 +31,16 @@
       "name": "KPIValueBag",
       "displayName": "KPI",
       "kind": "Grouping"
+    },    
+    {
+      "name": "Color",
+      "displayName": "Color",
+      "kind": "Grouping"
     },
     {
       "name": "Tooltip",
       "displayName": "Tooltip",
+      "description": "Maximum 4 columns",
       "kind": "Measure"
     }
   ],
@@ -64,9 +72,13 @@
             "min": 0,
             "max": 10
           },
+          "Color": {
+            "min": 0,
+            "max": 1
+          },
           "Tooltip": {
             "min": 0,
-            "max": 10
+            "max": 4
           }
         }
       ],
@@ -81,6 +93,12 @@
             {
               "for": {
                 "in": "Legend"
+              }
+            },
+
+            {
+              "for": {
+                "in": "Color"
               }
             },
             {
@@ -139,6 +157,17 @@
         }
       }
     },
+        "persistExpandCollapseSettings": {
+            "displayName": "Persist expand collapse",
+            "properties": {
+                "expandCollapseState": {
+                    "displayName": "Expand Collapse State",
+                    "type": {
+                        "text": true
+                    }
+                }
+            }
+        },
     "legend": {
       "displayName": "Legend",
       "description": "Display legend options",
@@ -619,7 +648,7 @@
       }
     },
     "barColor": {
-      "displayName": "Bars formatting",
+      "displayName": "Bar formatting",
       "properties": {
         "defaultColor": {
           "displayName": "Default color",
@@ -712,10 +741,10 @@
       }
     },
     "dateType": {
-      "displayName": "Gantt date type",
+      "displayName": "Gantt date hierarchy",
       "properties": {
         "type": {
-          "displayName": "Type",
+          "displayName": "Hierarchy",
           "type": {
             "enumeration": [
               {

@@ -103,17 +103,19 @@ module powerbi.extensibility.visual {
     import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
     import DataViewTableRow = powerbi.DataViewTableRow;
     import timeScale = d3.time.Scale;
-
-    let uniqueLegend: PrimitiveValue[] = [];
+    let uniquelegend: PrimitiveValue[];
     // tslint:disable-next-line:no-any
     let uniqueColors: any;
     let iterator: number = 1;
     let errorMessage: boolean = false;
-    let legendsIndex: number;
-    let repeatVar: number;
-    let tasks: Task[] = [];
+    let legIndex: number;
+    let r: number;
+    let scrollWidth: number;
+    const tasks: Task[] = [];
     // tslint:disable-next-line:no-any
     let uniquesColorsForLegends: any[] = [];
+    // tslint:disable-next-line:prefer-const
+    let legendIndex: number = -1;
     const percentFormat: string = '0.00 %;-0.00 %;0.00 %';
     const millisecondsInADay: number = 24 * 60 * 60 * 1000;
     const millisecondsInWeek: number = 7 * millisecondsInADay;
@@ -136,6 +138,7 @@ module powerbi.extensibility.visual {
     const semiColonLiteral: string = ';';
     const verticalLineLiteral: string = 'vertical-line';
     const zeroLiteral: string = '0';
+    const blankLiteral: string = '';
     const slashLiteral: string = '/';
     const colonLiteral: string = ':';
     const spaceLiteral: string = ' ';
@@ -176,14 +179,25 @@ module powerbi.extensibility.visual {
         resource: string;
         color: string;
         KPIValues: KPIValues[];
+        tooltipValues: tooltipDataValues[];
         tooltipInfo: VisualTooltipDataItem[];
         selectionId: ISelectionId;
-        legendSelectionid: ISelectionId;
+        level: number;
+        isLeaf: boolean;
+        rowId: number;
+        parentId: number;
+        expanded: boolean;
     }
 
     // tslint:disable-next-line:interface-name
     export interface KPIValues {
         name: string;
+        value: string;
+    }
+
+    // tslint:disable-next-line
+    export interface tooltipDataValues {
+        name: string ;
         value: string;
     }
 
@@ -203,11 +217,33 @@ module powerbi.extensibility.visual {
     }
 
     // tslint:disable-next-line:interface-name
+    export interface HierarchyArrayConfig {
+        id: number;
+        name: string[];
+        start: Date;
+        end: Date;
+        numStart: number;
+        numEnd: number;
+        resource: string;
+        color: string;
+        KPIValues: KPIValues[];
+        tooltipValues: tooltipDataValues[];
+        tooltipInfo: VisualTooltipDataItem[];
+        selectionId: ISelectionId;
+        level: number;
+        isLeaf: boolean;
+        rowId: number;
+        parentId: number;
+        expanded: boolean;
+    }
+
+    // tslint:disable-next-line:interface-name
     export interface GanttViewModel {
         dataView: DataView;
         settings: IGanttSettings;
         tasksNew: Task[];
         kpiData: KPIConfig[];
+        hierarchyArray: HierarchyArrayConfig[];
     }
 
     // tslint:disable-next-line:interface-name
@@ -217,7 +253,12 @@ module powerbi.extensibility.visual {
         offsetX: number;
         offsetY: number;
     }
-
+    // tslint:disable-next-line:interface-name
+    export interface ShowData {
+        sName: string;
+        // tslint:disable-next-line:no-any
+        sFlag: any;
+    }
     // tslint:disable-next-line:interface-name
     export interface GanttCalculateScaleAndDomainOptions {
         viewport: IViewport;
@@ -314,7 +355,8 @@ module powerbi.extensibility.visual {
         export const axisGroup: ClassAndSelector = createClassAndSelector('gantt_axis');
         export const domain: ClassAndSelector = createClassAndSelector('gantt_domain');
         export const axisTick: ClassAndSelector = createClassAndSelector('gantt_tick');
-        export const task: ClassAndSelector = createClassAndSelector('gantt_tasks');
+        // tslint:disable-next-line:no-shadowed-variable
+        export const tasks: ClassAndSelector = createClassAndSelector('gantt_tasks');
         export const taskGroup: ClassAndSelector = createClassAndSelector('gantt_task-group');
         export const singleTask: ClassAndSelector = createClassAndSelector('gantt_task');
         export const singlePhase: ClassAndSelector = createClassAndSelector('gantt_phase');
@@ -384,6 +426,7 @@ module powerbi.extensibility.visual {
         private colors: IColorPalette;
         private legend: ILegend;
         private barsLegend: ILegend;
+        private persistExpandCollapseSettings: PersistExpandCollapseSettings;
         private textProperties: TextProperties = {
             fontFamily: 'wf_segoe-ui_normal',
             fontSize: PixelConverter.toString(9)
@@ -408,7 +451,10 @@ module powerbi.extensibility.visual {
             }
         };
 
+        // tslint:disable-next-line:no-any
+        private static tasknew: any[] = [];
         private static selectionIdHash: boolean[] = [];
+        private static expandCollapseStates: {} = {};
         private static globalOptions: VisualUpdateOptions;
         private static previousSel: string;
         private static typeColors: string[] = ['#2c84c6', '#4c4d4e', '#4d4d00', '#cd6600', '#f08080',
@@ -549,6 +595,16 @@ module powerbi.extensibility.visual {
             + 'Nscy0xIiB3aWR0aD0iNTQuNSIgaGVpZ2h0PSI4LjMiLz48cmVjdCBjbGFzcz0iY2xzLTEiIHk9IjE4L'
             + 'jg1IiB3aWR0aD0iNTQuNSIgaGVpZ2h0PSI4LjMiLz48cmVjdCBjbGFzcz0iY2xzLTEiIHk9IjM3Ljci'
             + 'IHdpZHRoPSI1NC41IiBoZWlnaHQ9IjguMyIvPjwvZz48L2c+PC9zdmc+';
+
+        private static plusIcon: string =
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAAJUlEQVR42mNgAIL'
+            + 'y8vL/DLgASBKnApgkVgXIkhgKiNKJ005s4gDLbCZBiSxfygAAAABJRU5ErkJggg==';
+
+        private static minusIcon: string =
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAAG0lEQVR42mNg'
+            + 'wAfKy8v/48I4FeA0AacVDFQBAP9wJkE/KhUMAAAAAElFTkSuQmCC';
+        // tslint:disable-next-line:no-any
+        private static columnHeaderBgColor: any;
         private static iHeaderSingleCharWidth: number = 4;
         private static iKPIHeaderSingleCharWidth: number = 4;
         private static categoriesTitle: string[] = [];
@@ -609,6 +665,8 @@ module powerbi.extensibility.visual {
         private static metroValueFormatter: IValueFormatter;
         private static projectValueFormatter: IValueFormatter;
         private static trancheValueFormatter: IValueFormatter;
+        private static lastSelectedbar: number = null;
+        private static categorylength: number = null;
         private static get DefaultMargin(): IMargin {
             return {
                 top: 50,
@@ -674,6 +732,7 @@ module powerbi.extensibility.visual {
         private phaseIndicatorDiv: Selection<HTMLElement>;
         private phaseIndicatorSvg: Selection<HTMLElement>;
         private gridGroup: Selection<HTMLElement>;
+        private gridRows: d3.selection.Update<DataViewTableRow>;
         private todayGroup: Selection<HTMLElement>;
         private todayindicator: Selection<HTMLElement>;
         private todaytext: Selection<HTMLElement>;
@@ -688,37 +747,42 @@ module powerbi.extensibility.visual {
         private isInteractiveChart: boolean = false;
         private offset: number;
         // tslint:disable-next-line:no-any
-        private element: any;
-        // tslint:disable-next-line:no-any
         private options: any;
-
+        // tslint:disable-next-line:no-any
+        private bodyElement: any;
+        // tslint:disable-next-line:typedef
+        private static arrGantt = [];
+        private static ganttLen: number = null;
         constructor(options: VisualConstructorOptions) {
+
             this.init(options);
         }
 
         private init(options: VisualConstructorOptions): void {
             this.host = options.host;
             this.options = options;
-            this.element = options.element;
             this.colors = options.host.colorPalette;
             this.selectionManager = options.host.createSelectionManager();
             this.body = d3.select(options.element);
             this.tooltipServiceWrapper = createTooltipServiceWrapper(
                 this.host.tooltipService,
                 options.element);
+            this.bodyElement = $(options.element);
             this.behavior = new GanttChartBehavior();
             this.interactivityService = createInteractivityService(this.host);
-            this.createViewport($(options.element));
+            this.createViewport(this.bodyElement);
             this.clearViewport();
             Gantt.ganttDiv.classed('gantt_hidden', true);
             Gantt.errorDiv.classed('gantt_hidden', false);
-            Gantt.errorText.text(' ');
-            this.barsLegend = createLegend($(this.element), false, null, true);
+            Gantt.errorText.text('');
+            this.barsLegend = createLegend(this.bodyElement, false, null, true);
         }
+
         /**
          * Create the viewport area of the gantt chart
          */
         private createViewport(element: JQuery): void {
+
             // create div container to the whole viewport area
             Gantt.errorDiv = this.body.append('div')
                 .classed(Selectors.errorPanel.class, true)
@@ -771,6 +835,7 @@ module powerbi.extensibility.visual {
                     height: 12,
                     x: 62
                 });
+
             this.addLegendHideShowEvents(this);
 
             this.arrowDiv = Gantt.ganttDiv
@@ -969,7 +1034,7 @@ module powerbi.extensibility.visual {
 
             this.taskGroup = this.chartGroup
                 .append('g')
-                .classed(Selectors.task.class, true);
+                .classed(Selectors.tasks.class, true);
 
             this.bottommilestoneDiv = Gantt.ganttDiv
                 .append('div')
@@ -1004,6 +1069,7 @@ module powerbi.extensibility.visual {
          * Clear the viewport area
          */
         private clearViewport(): void {
+
             this.body.selectAll(Selectors.legendItems.selector).remove();
             this.body.selectAll(Selectors.legendTitle.selector).remove();
             this.axisGroup.selectAll(Selectors.axisTick.selector).remove();
@@ -1023,11 +1089,15 @@ module powerbi.extensibility.visual {
          * @param viewport The vieport to change it size
          */
         private updateChartSize(): void {
-            this.viewport.width = Math.ceil(this.viewport.width);
-            this.viewport.height = Math.ceil(this.viewport.height) - 25;
+            if (legendIndex !== -1) {
+                position(d3.select('.gantt-body'), this.barsLegend);
+            }
 
+            this.viewport.width = Math.ceil(this.viewport.width);
+            this.viewport.height = Math.ceil(this.viewport.height);
+            const heightSize : number = 20;
             Gantt.ganttDiv.style({
-                height: PixelConverter.toString(this.viewport.height),
+                height: PixelConverter.toString(this.viewport.height - heightSize),
                 width: PixelConverter.toString(this.viewport.width)
             });
 
@@ -1041,30 +1111,31 @@ module powerbi.extensibility.visual {
             });
 
             this.taskDiv.style({
-                width: PixelConverter.toString(Gantt.taskLabelWidth + 20)
+                width: PixelConverter.toString(Gantt.taskLabelWidth + heightSize)
             });
 
             this.kpiDiv.style({
                 width: PixelConverter.toString(Gantt.kpiLabelWidth),
-                left: PixelConverter.toString(Gantt.taskLabelWidth + 20)
+                left: PixelConverter.toString(Gantt.taskLabelWidth + heightSize)
             });
 
             this.kpiTitleDiv.style({
                 width: PixelConverter.toString(Gantt.kpiLabelWidth),
                 height: PixelConverter.toString(23),
                 top: PixelConverter.toString(20),
-                left: PixelConverter.toString(Gantt.taskLabelWidth + 20)
+                left: PixelConverter.toString(Gantt.taskLabelWidth + heightSize),
+                'background-color': Gantt.columnHeaderBgColor
             });
 
             this.barDiv.style({
                 width: PixelConverter.toString(this.viewport.width - Gantt.taskLabelWidth - Gantt.kpiLabelWidth),
-                left: PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + 20)
+                left: PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + heightSize)
             });
 
             this.timelineDiv.style({
                 height: PixelConverter.toString(Gantt.axisHeight),
                 width: PixelConverter.toString(this.viewport.width - Gantt.taskLabelWidth - Gantt.scrollHeight - Gantt.kpiLabelWidth),
-                left: PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + 20)
+                left: PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + heightSize)
             });
 
             this.imageDiv.style({
@@ -1081,14 +1152,14 @@ module powerbi.extensibility.visual {
 
             this.drillAllDiv.style({
                 height: PixelConverter.toString(Gantt.axisHeight),
-                width: PixelConverter.toString(Gantt.taskLabelWidth + 20),
+                width: PixelConverter.toString(Gantt.taskLabelWidth + heightSize),
                 top: PixelConverter.toString(0)
             });
 
             this.bottommilestoneDiv.style({
                 height: PixelConverter.toString(Gantt.bottomMilestoneHeight + Gantt.scrollHeight),
-                width: PixelConverter.toString(this.viewport.width - Gantt.taskLabelWidth - Gantt.kpiLabelWidth - 20),
-                left: PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + 20)
+                width: PixelConverter.toString(this.viewport.width - Gantt.taskLabelWidth - Gantt.kpiLabelWidth - heightSize),
+                left: PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + heightSize)
             });
 
             let thisObj: this;
@@ -1104,10 +1175,21 @@ module powerbi.extensibility.visual {
                     thisObj.setBottomScrollPosition(bottomMilestoneScrollPosition);
                 }
             });
+            let categoryWidth: number;
+            let categoryWidthSvg: number;
+            if (!this.viewModel.settings.taskLabels.isHierarchy) {
+                categoryWidth = 700;
+                categoryWidthSvg = 700;
+            } else {
+                // tslint:disable-next-line:no-any
+                const divTask: any = this.taskDiv.append('div');
+                categoryWidth = $($(divTask)[0]).parent().width();
+                categoryWidthSvg = scrollWidth + 75;
+            }
 
             this.bottomTaskDiv.style({
                 height: PixelConverter.toString(30),
-                width: PixelConverter.toString(700),
+                width: PixelConverter.toString(categoryWidth),
                 left: PixelConverter.toString(0),
                 bottom: PixelConverter.toString(0),
                 position: 'absolute',
@@ -1127,7 +1209,7 @@ module powerbi.extensibility.visual {
 
             this.bottomTaskSvg.style({
                 height: PixelConverter.toString(Gantt.scrollHeight + 10),
-                width: PixelConverter.toString(700),
+                width: PixelConverter.toString(categoryWidthSvg),
                 left: PixelConverter.toString(0),
                 bottom: PixelConverter.toString(0),
                 position: 'absolute'
@@ -1141,7 +1223,8 @@ module powerbi.extensibility.visual {
          */
         private static hasRole(column: DataViewMetadataColumn, name: string): boolean {
             // tslint:disable-next-line:no-any
-            const roles: any = column.roles;
+            let roles: any;
+            roles = column.roles;
 
             return roles && roles[name];
         }
@@ -1151,7 +1234,9 @@ module powerbi.extensibility.visual {
          * @param actualDate date which is actual date
          */
         private static isDateForecast(actualDate: Date): boolean {
-            const todayDate: Date = new Date();
+
+            let todayDate: Date;
+            todayDate = new Date();
 
             return (todayDate < actualDate ? true : false);
         }
@@ -1174,13 +1259,14 @@ module powerbi.extensibility.visual {
             let categorical: DataViewCategorical;
             let displayName: string;
             // tslint:disable-next-line:no-any
-            const oMap: any = {};
+            let oMap: any;
             prefixStartText = 'Actual';
             prefixEndText = 'Actual';
             prefixDurationText = 'Forecast';
             tooltipIndex = [];
             categorical = dataView.categorical;
             oColumns = dataView.metadata.columns;
+            oMap = {};
             let iColumnLength: number;
             iColumnLength = oColumns.length;
             for (let iColumnCount: number = 0; iColumnCount < iColumnLength; iColumnCount++) {
@@ -1193,70 +1279,94 @@ module powerbi.extensibility.visual {
                 }
             }
             tooltipDataArray = [];
-            const tooltipIndexLength: number = tooltipIndex.length;
-            for (let iTooltipIndexCount: number = 0; iTooltipIndexCount < tooltipIndexLength; iTooltipIndexCount++) {
-                let iCatLength: number;
-                iCatLength = categorical.categories.length;
-                for (let iCatCount: number = 0; iCatCount < iCatLength; iCatCount++) {
-                    if (categorical.categories[iCatCount].source.displayName === tooltipIndex[iTooltipIndexCount]) {
-                        if (categorical.categories[iCatCount].values[taskIndex]
-                            && categorical.categories[iCatCount].values[taskIndex] !== null
-                            && oMap[tooltipIndex[iTooltipIndexCount]] === 1) {
-                            let iValueFormatter: IValueFormatter;
-                            if (categorical.categories[iCatCount].source.format) {
-                                iValueFormatter = ValueFormatter.create({ format: categorical.categories[iCatCount].source.format });
-                                tooltipDataArray.push({
-                                    displayName: tooltipIndex[iTooltipIndexCount].toString(),
-                                    value: iValueFormatter.format(categorical.categories[iCatCount].values[taskIndex])
-                                });
-                            } else {
-                                tooltipDataArray.push({
-                                    displayName: tooltipIndex[iTooltipIndexCount].toString(),
-                                    value: categorical.categories[iCatCount].values[taskIndex].toString()
-                                });
+            let tooltipIndexLength: number;
+            tooltipIndexLength = tooltipIndex.length;
+            if (dataView.metadata.objects === undefined ||
+                dataView.metadata.objects.taskLabels === undefined || !dataView.metadata.objects.taskLabels.isHierarchy) {
+             for (let iTooltipIndexCount: number = 0; iTooltipIndexCount < tooltipIndexLength; iTooltipIndexCount++) {
+                    // tslint:disable-next-line:prefer-const
+                    let iCatLength: number = categorical.categories.length;
+                    for (let iCatCount: number = 0; iCatCount < iCatLength; iCatCount++) {
+                        if (categorical.categories[iCatCount].source.displayName === tooltipIndex[iTooltipIndexCount]) {
+                            if (categorical.categories[iCatCount].values[taskIndex]
+                                && categorical.categories[iCatCount].values[taskIndex] !== null
+                                && oMap[tooltipIndex[iTooltipIndexCount]] === 1) {
+                                let iValueFormatter: IValueFormatter;
+                                if (categorical.categories[iCatCount].source.format) {
+                                    iValueFormatter = ValueFormatter.create({ format: categorical.categories[iCatCount].source.format });
+                                    tooltipDataArray.push({
+                                        displayName: tooltipIndex[iTooltipIndexCount].toString(),
+                                        value: iValueFormatter.format(categorical.categories[iCatCount].values[taskIndex])
+                                    });
+                                } else {
+                                    tooltipDataArray.push({
+                                        displayName: tooltipIndex[iTooltipIndexCount].toString(),
+                                        value: categorical.categories[iCatCount].values[taskIndex].toString()
+                                    });
+                                }
+                                oMap[tooltipIndex[iTooltipIndexCount]] = 0;
                             }
-                            oMap[tooltipIndex[iTooltipIndexCount]] = 0;
+                        }
+                    }
+                    let iValLength: number;
+                    iValLength = categorical.values.length;
+                    for (let iValCount: number = 0; iValCount < iValLength; iValCount++) {
+                        if (categorical.values[iValCount].source.displayName === tooltipIndex[iTooltipIndexCount]) {
+                            if (categorical.values[iValCount].values[taskIndex] &&
+                                categorical.values[iValCount].values[taskIndex] !== null &&
+                                oMap[tooltipIndex[iTooltipIndexCount]] === 1) {
+                                let iValueFormatter: IValueFormatter;
+
+                                if (categorical.values[iValCount].source.format) {
+                                    iValueFormatter = ValueFormatter.create({ format: categorical.values[iValCount].source.format });
+                                    tooltipDataArray.push({
+                                        displayName: tooltipIndex[iTooltipIndexCount].toString(),
+                                        value: iValueFormatter.format(categorical.values[iValCount].values[taskIndex])
+                                    });
+                                } else {
+                                    let tooltipValues: string;
+                                    if (phase.tooltipInfo === null || phase.tooltipInfo.toString() === '') {
+                                        tooltipValues = <string>categorical.values[iValCount].values[taskIndex].toString();
+                                        tooltipDataArray.push({
+                                            displayName: tooltipIndex[iTooltipIndexCount].toString(),
+                                            value: tooltipValues
+                                        });
+                                    } else {
+                                        // tslint:disable-next-line:no-any
+                                        const tooltipvalue: any[] = [];
+                                        for (let j: number = 0; j < phase.tooltipInfo.length; j++) {
+                                            tooltipValues = phase.tooltipInfo[j].value;
+                                            tooltipvalue[j] = tooltipValues;
+                                        }
+                                        tooltipDataArray.push({
+                                            displayName: tooltipIndex[iTooltipIndexCount].toString(),
+                                            value: tooltipvalue[iTooltipIndexCount].toString()
+                                        });
+                                    }
+                                }
+                                oMap[tooltipIndex[iTooltipIndexCount]] = 0;
+                            }
                         }
                     }
                 }
-                const iValLength: number = categorical.values.length;
-                for (let iValCount: number = 0; iValCount < iValLength; iValCount++) {
-                    if (categorical.values[iValCount].source.displayName === tooltipIndex[iTooltipIndexCount]) {
-                        if (categorical.values[iValCount].values[taskIndex] &&
-                            categorical.values[iValCount].values[taskIndex] !== null &&
-                            oMap[tooltipIndex[iTooltipIndexCount]] === 1) {
-                            let iValueFormatter: IValueFormatter;
-
-                            if (categorical.values[iValCount].source.format) {
-                                iValueFormatter = ValueFormatter.create({ format: categorical.values[iValCount].source.format });
-                                tooltipDataArray.push({
-                                    displayName: tooltipIndex[iTooltipIndexCount].toString(),
-                                    value: iValueFormatter.format(categorical.values[iValCount].values[taskIndex])
-                                });
-                            } else {
-                                tooltipDataArray.push({
-                                    displayName: tooltipIndex[iTooltipIndexCount].toString(),
-                                    value: <string>categorical.values[iValCount].values[taskIndex].toString()
-                                });
-                            }
-                            oMap[tooltipIndex[iTooltipIndexCount]] = 0;
-                        }
-                    }
+            } else {
+         for (let i : number = 0; i < phase.tooltipValues.length; i++) {
+                    tooltipDataArray.push({
+                        displayName: phase.tooltipValues[i].name.toString(),
+                        value: phase.tooltipValues[i].value.toString()
+                    });
                 }
             }
-
+            /** Added Date format */
             if (phase.start != null) {
-                formattedDate = (zeroLiteral + (phase.start.getMonth() + 1)).slice(-2)
-                    + slashLiteral + (zeroLiteral + phase.start.getDate()).slice(-2) +
-                    slashLiteral + phase.start.getFullYear() + spaceLiteral +
-                    (zeroLiteral + phase.start.getHours()).slice(-2) + colonLiteral
-                    + (zeroLiteral + phase.start.getMinutes()).slice(-2);
+                formattedDate = ValueFormatter.format(
+                    new Date(phase.start.toString()),
+                    dataView.categorical.values[0].source.format);
                 tooltipDataArray.push({ displayName: 'Start', value: formattedDate });
-                formattedDate = (zeroLiteral + (phase.end.getMonth() + 1)).slice(-2)
-                    + slashLiteral + (zeroLiteral + phase.end.getDate()).slice(-2)
-                    + slashLiteral + phase.end.getFullYear() + spaceLiteral
-                    + (zeroLiteral + phase.end.getHours()).slice(-2) + colonLiteral
-                    + (zeroLiteral + phase.end.getMinutes()).slice(-2);
+
+                formattedDate = ValueFormatter.format(
+                    new Date(phase.end.toString()),
+                    dataView.categorical.values[1].source.format);
                 tooltipDataArray.push({ displayName: 'End', value: formattedDate });
             } else if (phase.start === null) {
                 tooltipDataArray.push({ displayName: 'Start', value: formatters.startDataFormatter.format(phase.numStart) });
@@ -1369,47 +1479,62 @@ module powerbi.extensibility.visual {
          * @param formatters task attributes represented format.
          * @param series An array that holds the color data of different task groups.
          */
-
         private static createTasks(dataView: DataView, host: IVisualHost,
-                                   formatters: GanttChartFormatters, colors: IColorPalette,
-            // tslint:disable-next-line:no-any
-                                   settings: IGanttSettings, barsLegend: ILegend, viewport: any): Task[] {
+                                   formatters: GanttChartFormatters, colors: IColorPalette
+            // tslint:disable-next-line
+            , settings: IGanttSettings, barsLegend: ILegend, viewport: any): Task[] {
+
             const metadataColumns: GanttColumns<DataViewMetadataColumn> = GanttColumns.getColumnSources(dataView);
-            const columns: GanttColumns<GanttCategoricalColumns> = GanttColumns.getCategoricalColumns(dataView);
+            let columns: GanttColumns<GanttCategoricalColumns>;
+            columns = GanttColumns.getCategoricalColumns(dataView);
             const columnSource: DataViewMetadataColumn[] = dataView.metadata.columns;
             // tslint:disable-next-line:no-any
-            const categoriesData: any = dataView.categorical.categories;
-            const valuesData: DataViewValueColumn[] = dataView.categorical.values;
-            const kpiRoles: number[] = [];
-            const categoryRoles: number[] = [];
+            let categoriesdata: any;
+            categoriesdata = dataView.categorical.categories;
 
-            if (!categoriesData || categoriesData.length === 0) { return; }
+            let valuesdata: DataViewValueColumn[];
+            valuesdata = dataView.categorical.values;
+            let kpiRoles: number[];
+            kpiRoles = [];
+            let tooltipRoles: number[];
+            tooltipRoles = [];
+            let categoryRoles: number[];
+            categoryRoles = [];
+
+            if (!categoriesdata || categoriesdata.length === 0) { return; }
 
             Gantt.categoriesTitle = [];
-            tasks = [];
+            // tslint:disable-next-line:no-shadowed-variable
+            let tasks: Task[] = [];
             let hashArr: Task[];
             const kpiValuesNames: string[] = [];
+            const tooltipValuesName: string[] = [];
             const categoryNames: string[] = [];
+
             // tslint:disable-next-line:no-any
-            categoriesData.map((child: any, index: number) => {
+            categoriesdata.map((child: any, index: number) => {
                 //Logic to add roles
                 if (child.source.roles[GanttRoles.category]) {
                     //If roles are are already present then not allowed to enter again
-                    if (!(categoryNames.indexOf(categoriesData[index].source.displayName) > -1)) {
+                    if (!(categoryNames.indexOf(categoriesdata[index].source.displayName) > -1)) {
                         categoryRoles.push(index);
-                        Gantt.categoriesTitle.push(categoriesData[index].source.displayName);
-                        categoryNames.push(categoriesData[index].source.displayName);
+                        Gantt.categoriesTitle.push(categoriesdata[index].source.displayName);
+                        categoryNames.push(categoriesdata[index].source.displayName);
                     }
 
                 }
 
                 if (child.source.roles[GanttRoles.kpiValueBag]) {
                     //If roles are are already present then not allowed to enter again
-                    if (!(kpiValuesNames.indexOf(categoriesData[index].source.displayName) > -1)) {
+                    if (!(kpiValuesNames.indexOf(categoriesdata[index].source.displayName) > -1)) {
                         kpiRoles.push(index);
-                        kpiValuesNames.push(categoriesData[index].source.displayName);
+                        kpiValuesNames.push(categoriesdata[index].source.displayName);
 
                     }
+                }
+                if (child.source.roles[GanttRoles.tooltip]) {
+                    tooltipRoles.push(index);
+                    tooltipValuesName.push(categoriesdata[index].source.displayName);
                 }
             });
 
@@ -1437,55 +1562,79 @@ module powerbi.extensibility.visual {
             let phaseIndex: number;
             phaseIndex = -1;
 
-            // Bars Legend
-            const legendData: LegendData = {
+            //Bars Legend
+            let legendData: LegendData;
+            legendData = {
                 dataPoints: [],
                 fontSize: 8,
                 title: 'Legend'
             };
 
             const colorPalette: IColorPalette = host.colorPalette;
+            // tslint:disable-next-line:no-any
+            const oUniquelegend: any = [];
+            // tslint:disable-next-line:no-any
+            const oUnique: any = [];
+            Gantt.tasknew = [];
+            let legendindex: number;
+            let catlength: number;
+            catlength = dataView.categorical.categories.length;
+            for (let catindex: number = 0; catindex < catlength; catindex++) {
+                if (dataView.categorical.categories[catindex].source.roles.hasOwnProperty('Legend')) {
+                    legendindex = catindex;
+                    break;
+                }
+            }
             // tslint:disable-next-line:cyclomatic-complexity no-any
-            categoriesData[0].values.map((child: any, index: number) => {
-                let legendIndex: number = -1;
+            categoriesdata[0].values.map((child: any, index: number) => {
+                // tslint:disable-next-line:no-use-before-declare
+                legendIndex = -1;
                 let startDate: Date = null;
                 let endDate: Date = null;
                 let datamin: number = null;
                 let datamax: number = null;
-                if ((Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1)
-                    && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1)
+
+                if ((Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1)
+                    && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1)
                     === typeof this.earliestStartDate) ||
-                    (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1)
-                        && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1)
+                    (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1)
+                        && typeof Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1)
                         === typeof this.earliestStartDate)) {
-                    startDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1);
-                    endDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1);
+                    startDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1);
+                    endDate = Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1);
 
                     startDate = startDate ? startDate : new Date();
                     endDate = endDate ? endDate : new Date();
                     Gantt.isDateData = true;
                 } else {
-                    datamin = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesData, GanttRoles.startDate, index, -1);
-                    datamax = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesData, GanttRoles.endDate, index, -1);
+                    datamin = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesdata, GanttRoles.startDate, index, -1);
+                    datamax = Gantt.getCategoricalTaskProperty<number>(columnSource, valuesdata, GanttRoles.endDate, index, -1);
                     if (datamax == null || datamin > datamax) {
                         datamax = datamin;
                     }
                     if (datamin == null || datamin > datamax) {
                         datamin = datamax;
                     }
-                    if (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.startDate, index, -1)
-                        || Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesData, GanttRoles.endDate, index, -1)) {
+                    if (Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.startDate, index, -1)
+                        || Gantt.getCategoricalTaskProperty<Date>(columnSource, valuesdata, GanttRoles.endDate, index, -1)) {
                         Gantt.isDateData = false;
                     }
                 }
-                const resource: string = Gantt.getCategoricalTaskProperty<string>(columnSource, valuesData, GanttRoles.resource, index, -1);
-                const kpiValues: KPIValues[] = [];
-                const taskValues: string[] = [];
+
+                let resource: string;
+                resource = Gantt.getCategoricalTaskProperty<string>(columnSource, valuesdata, GanttRoles.resource, index, -1);
+                let kpiValues: KPIValues[];
+                kpiValues = [];
+                let tooltipValues: tooltipDataValues[];
+                tooltipValues = [];
+                let taskValues: string[];
+                taskValues = [];
+
                 let duration: number = 0;
 
                 for (let kpiValueCounter: number = 0; kpiValueCounter < categoryRoles.length; kpiValueCounter++) {
                     let value: string = '';
-                    value = <string>categoriesData[categoryRoles[kpiValueCounter]].values[index];
+                    value = <string>categoriesdata[categoryRoles[kpiValueCounter]].values[index];
                     if (value && value !== '0') {
                         value = value ? value : '';
                     } else if (parseInt(value, 10) === 0) {
@@ -1496,29 +1645,28 @@ module powerbi.extensibility.visual {
 
                     if (kpiValueCounter === 0) {
                         Gantt.regionValueFormatter = ValueFormatter.create({
-                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
                         });
                     } else if (kpiValueCounter === 1) {
                         Gantt.metroValueFormatter = ValueFormatter.create({
-                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
                         });
                     } else if (kpiValueCounter === 2) {
                         Gantt.projectValueFormatter = ValueFormatter.create({
-                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
                         });
                     } else {
                         Gantt.trancheValueFormatter = ValueFormatter.create({
-                            format: categoriesData[categoryRoles[kpiValueCounter]].source.format
+                            format: categoriesdata[categoryRoles[kpiValueCounter]].source.format
                         });
                     }
-
                     taskValues.push(value);
                     value = (value === '' ? 'N/A' : value);
 
                     if (typeof (value) === 'object' &&
-                        categoriesData[categoryRoles[kpiValueCounter]].values[index].toString().length > Gantt.maxTaskNameLength) {
-                        Gantt.maxTaskNameLength = categoriesData[categoryRoles[kpiValueCounter]].values[index].toString().length < 15 ?
-                            categoriesData[categoryRoles[kpiValueCounter]].values[index].toString().length : 14;
+                        categoriesdata[categoryRoles[kpiValueCounter]].values[index].toString().length > Gantt.maxTaskNameLength) {
+                        Gantt.maxTaskNameLength = categoriesdata[categoryRoles[kpiValueCounter]].values[index].toString().length < 15 ?
+                            categoriesdata[categoryRoles[kpiValueCounter]].values[index].toString().length : 14;
                     }
 
                     if (value.length > Gantt.maxTaskNameLength) {
@@ -1526,12 +1674,30 @@ module powerbi.extensibility.visual {
                     }
                 }
 
-                const kpiRolesLength: number = kpiRoles.length;
+                let kpiRolesLength: number;
+                kpiRolesLength = kpiRoles.length;
+
                 for (let kpiValueCounter: number = 0; kpiValueCounter < kpiRolesLength; kpiValueCounter++) {
-                    const name: string = <string>categoriesData[kpiRoles[kpiValueCounter]].source.displayName;
-                    const value: string = <string>categoriesData[kpiRoles[kpiValueCounter]].values[index];
+                    // tslint:disable-next-line:prefer-const
+                    let name: string = <string>categoriesdata[kpiRoles[kpiValueCounter]].source.displayName;
+                    // tslint:disable-next-line:prefer-const
+                    let value: string = <string>categoriesdata[kpiRoles[kpiValueCounter]].values[index];
 
                     kpiValues.push({
+                        name: name,
+                        value: value
+                    });
+                }
+                let tooltipRolesLength: number;
+                tooltipRolesLength = tooltipRoles.length;
+
+                for (let tooltipValueCounter: number = 0; tooltipValueCounter < tooltipRolesLength; tooltipValueCounter++) {
+                    let name: string;
+                    name = <string>categoriesdata[kpiRoles[tooltipValueCounter]].source.displayName;
+                    let value: string;
+                    value = <string>categoriesdata[kpiRoles[tooltipValueCounter]].values[index];
+
+                    tooltipValues.push({
                         name: name,
                         value: value
                     });
@@ -1552,7 +1718,8 @@ module powerbi.extensibility.visual {
                 }
 
                 if (startDate != null) {
-                    const timeDiff: number = endDate.getTime() - startDate.getTime();
+                    let timeDiff: number;
+                    timeDiff = endDate.getTime() - startDate.getTime();
                     duration = Math.ceil(timeDiff / (1000 * 3600 * 24));
                     if (0 > duration) {
                         duration = 0;
@@ -1561,27 +1728,31 @@ module powerbi.extensibility.visual {
                     }
 
                 } else if (datamin != null) {
-                    const valueDiffer: number = datamax - datamin;
-                    duration = valueDiffer;
+                    let valuediffer: number;
+                    valuediffer = datamax - datamin;
+                    duration = valuediffer;
                 }
-
                 const defaultColor: Fill = {
                     solid: {
                         color: colorPalette.getColor(index.toString()).value
                     }
                 };
+
+                // tslint:disable-next-line:no-shadowed-variable
                 const categories: DataViewCategoryColumn[] = dataView.categorical.categories;
-                categories.forEach(function (datum: DataViewCategoricalColumn, iIterator: number): void {
+                // tslint:disable-next-line:typedef
+                categories.forEach(function (datum: DataViewCategoricalColumn, ka: number) {
                     if (datum.source.roles.Legend) {
-                        legendIndex = iIterator;
+                        // tslint:disable-next-line:no-use-before-declare
+                        legendIndex = ka;
                     }
                 });
+
                 // tslint:disable-next-line:no-any
                 let taskColor: any;
                 let cnt: number = 0;
                 const length: number = taskValues.length;
-                // Check for mapping Legend data name with categories data for all categories based on the number of categories present
-                // if legend have the same value that is already present in the category else it will raise an error.
+
                 switch (length) {
                     case 1:
                         if (dataView.categorical.categories[1] !== undefined) {
@@ -1656,72 +1827,52 @@ module powerbi.extensibility.visual {
                     Gantt.errorDiv.classed('gantt_hidden', false);
                     Gantt.errorText.text('Please select a field that is already present in "Category"');
                 }
-                for (let iIndex: number = 0; iIndex < tasks.length; iIndex++) {
-                    for (let k: number = 0; k < tasks[iIndex].name.length; k++) {
-                        if (taskValues[k] === tasks[iIndex].name[cnt]) {
-                            taskColor = tasks[iIndex].color;
-                            break;
+                for (let j: number = 0; j < taskValues.length; j++) {
+                    for (let i: number = 0; i < tasks.length; i++) {
+                        for (let k: number = 0; k < tasks[i].name.length; k++) {
+                            if (taskValues[k] === tasks[i].name[cnt]) {
+                                taskColor = tasks[i].color;
+                                break;
+                            }
                         }
                     }
                 }
+                // tslint:disable-next-line:no-use-before-declare
+                if (legendIndex === -1) {
+                    taskColor = this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0],
+                                                                     index, 'barColor', 'fillColor', defaultColor).solid.color;
+                }
                 if (taskColor !== undefined) {
-                    repeatVar = 1;
-                    tasks.push({
-                        id: index,
-                        repeat: repeatVar,
-                        name: taskValues,
-                        start: startDate,
-                        end: endDate,
-                        numStart: datamin,
-                        numEnd: datamax,
-                        resource: resource,
-                        color: settings.barColor.showall === true ? taskColor : settings.barColor.defaultColor,
-                        KPIValues: kpiValues,
-                        identity: null,
-                        selected: false,
-                        tooltipInfo: null,
-                        selectionId: host.createSelectionIdBuilder()
-                            .withCategory(dataView.categorical.categories[0], index)
-                            .createSelectionId(),
-                        legendSelectionid: host.createSelectionIdBuilder()
-                            .withMeasure(categories[0].values[index].toString())
-                            .createSelectionId()
-                    });
-                } else {
-                    repeatVar = 0;
+                    r = 1;
                     if (settings.barColor.showall) {
                         tasks.push({
                             id: index,
-                            repeat: repeatVar,
+                            repeat: r,
                             name: taskValues,
                             start: startDate,
                             end: endDate,
                             numStart: datamin,
                             numEnd: datamax,
                             resource: resource,
-                            color: settings.barColor.showall === true ?
-                            this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0],
-                                                                 index, 'barColor', 'fillColor', defaultColor).solid.color
-                            : settings.barColor.defaultColor,
+                            color: taskColor,
                             KPIValues: kpiValues,
+                            tooltipValues: tooltipValues,
                             identity: null,
                             selected: false,
                             tooltipInfo: null,
                             selectionId: host.createSelectionIdBuilder()
                                 .withCategory(dataView.categorical.categories[0], index)
                                 .createSelectionId(),
-                            legendSelectionid: host.createSelectionIdBuilder()
-                                .withMeasure(categories[0].values[index].toString())
-                                .createSelectionId()
-                        });
-                        uniquesColorsForLegends.push({
-                            color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
-                                                                        'barColor', 'fillColor', defaultColor).solid.color
+                            level: null,
+                            isLeaf: null,
+                            rowId: null,
+                            parentId: null,
+                            expanded: null
                         });
                     } else {
                         tasks.push({
                             id: index,
-                            repeat: repeatVar,
+                            repeat: r,
                             name: taskValues,
                             start: startDate,
                             end: endDate,
@@ -1730,15 +1881,90 @@ module powerbi.extensibility.visual {
                             resource: resource,
                             color: settings.barColor.defaultColor,
                             KPIValues: kpiValues,
+                            tooltipValues: tooltipValues,
                             identity: null,
                             selected: false,
                             tooltipInfo: null,
                             selectionId: host.createSelectionIdBuilder()
                                 .withCategory(dataView.categorical.categories[0], index)
                                 .createSelectionId(),
-                            legendSelectionid: host.createSelectionIdBuilder()
-                                .withMeasure(categories[0].values[index].toString())
-                                .createSelectionId()
+                            level: null,
+                            isLeaf: null,
+                            rowId: null,
+                            parentId: null,
+                            expanded: null
+                        });
+                    }
+                } else {
+                    r = 0;
+                    if (settings.barColor.showall) {
+                        tasks.push({
+                            id: index,
+                            repeat: r,
+                            name: taskValues,
+                            start: startDate,
+                            end: endDate,
+                            numStart: datamin,
+                            numEnd: datamax,
+                            resource: resource,
+                            color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
+                                                                        'barColor', 'fillColor', defaultColor).solid.color,
+                            KPIValues: kpiValues,
+                            tooltipValues: tooltipValues,
+                            identity: null,
+                            selected: false,
+                            tooltipInfo: null,
+                            selectionId: host.createSelectionIdBuilder()
+                                .withCategory(dataView.categorical.categories[0], index)
+                                .createSelectionId(),
+                            level: null,
+                            isLeaf: null,
+                            rowId: null,
+                            parentId: null,
+                            expanded: null
+                        });
+                        let sel: string;
+                        // tslint:disable-next-line:no-any
+                        const selection: any[] = [];
+                        sel = tasks[index].name[legendindex];
+                        if (uniquesColorsForLegends.indexOf(sel) === -1) {
+                            uniquesColorsForLegends.push({
+                                color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
+                                                                            'barColor', 'fillColor', defaultColor).solid.color,
+                                name: tasks[index].name[legendindex]
+                            });
+                            Gantt.tasknew.push({
+                                name: sel,
+                                repeat: r,
+                                color: tasks[index].color,
+                                selectionId: tasks[index].selectionId
+                            });
+                            oUniquelegend[index] = sel;
+                        }
+                    } else {
+                        tasks.push({
+                            id: index,
+                            repeat: r,
+                            name: taskValues,
+                            start: startDate,
+                            end: endDate,
+                            numStart: datamin,
+                            numEnd: datamax,
+                            resource: resource,
+                            color: settings.barColor.defaultColor,
+                            KPIValues: kpiValues,
+                            tooltipValues: tooltipValues,
+                            identity: null,
+                            selected: false,
+                            tooltipInfo: null,
+                            selectionId: host.createSelectionIdBuilder()
+                                .withCategory(dataView.categorical.categories[0], index)
+                                .createSelectionId(),
+                            level: null,
+                            isLeaf: null,
+                            rowId: null,
+                            parentId: null,
+                            expanded: null
                         });
                         uniquesColorsForLegends.push({
                             color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
@@ -1748,32 +1974,55 @@ module powerbi.extensibility.visual {
                 }
 
                 Gantt.selectionIdHash[index] = false;
-                tasks[index].tooltipInfo = Gantt.getTooltipInfo(tasks[index], formatters, dataView, index);
-                largest = index;
-                if (legendIndex !== -1) {
-                    uniqueLegend = (dataView.categorical.categories[legendIndex].values)
-                        .filter(function (e: PrimitiveValue, iIndex: number, arr: PrimitiveValue[]): boolean {
-                            return arr.lastIndexOf(e) === iIndex;
-                        });
+                // Non Hierarchy
+                if (dataView.metadata.objects === undefined ||
+                    dataView.metadata.objects.taskLabels === undefined || !dataView.metadata.objects.taskLabels.isHierarchy) {
+                    tasks[index].tooltipInfo = Gantt.getTooltipInfo(tasks[index], formatters, dataView, index);
                 }
+                largest = index;
+                // tslint:disable-next-line:no-use-before-declare
+                if (legendIndex !== -1) {
+                    // tslint:disable-next-line
+                    uniquelegend = (dataView.categorical.categories[legendIndex].values).filter(function (e, i, arr) {
+                        return arr.lastIndexOf(e) === i;
+                    });
+                }
+                // tslint:disable-next-line:no-use-before-declare
+                legIndex = legendIndex;
+            });
 
-                legendsIndex = legendIndex;
+            // tslint:disable-next-line:no-any
+            oUniquelegend.forEach(function (key: any): any {
+                // tslint:disable-next-line:no-any
+                let found: boolean = false;
+                // tslint:disable-next-line:no-any
+                uniquelegend = uniquelegend.filter(function (item: any): any {
+                    if (!found && item === key) {
+                        oUnique.push(item);
+                        found = true;
+
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
+            });
+            uniquelegend = oUnique;
+            // tslint:disable-next-line
+            let legendIndex = -1;
+            const categories: DataViewCategoryColumn[] = dataView.categorical.categories;
+            // tslint:disable-next-line:typedef
+            categories.forEach(function (datum, a: number) {
+                if (datum.source.roles.Legend) {
+                    legendIndex = a;
+                }
             });
             uniqueColors = [];
-
-            let legendIndex: number = -1;
-            const categories: DataViewCategoryColumn[] = dataView.categorical.categories;
-            categories.forEach(function (datum: DataViewCategoricalColumn, iIterator: number): void {
-                if (datum.source.roles.Legend) {
-                    legendIndex = iIterator;
-                }
-            });
-
             if (legendIndex !== -1) {
-                uniqueLegend.forEach(function (d: PrimitiveValue, jIndex: number): void {
+                uniquelegend.forEach(function (d: PrimitiveValue, i: number): void {
                     legendData.dataPoints.push({
                         label: d.toString(),  //name of the label
-                        color: uniquesColorsForLegends[jIndex].color,
+                        color: uniquesColorsForLegends[i].color,
                         icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box, //type of the legend icon,
                         selected: false,  // indicates of the legend is selected or not
                         identity: host.createSelectionIdBuilder()
@@ -1782,11 +2031,11 @@ module powerbi.extensibility.visual {
                     });
                     uniqueColors.push({
                         name: d,
-                        color: tasks[jIndex].color
+                        color: tasks[i].color
                     });
                 });
             }
-            if (legendsIndex !== -1) {
+            if (legendIndex !== -1) {
                 barsLegend.changeOrientation(LegendPosition.Top);
                 barsLegend.drawLegend(legendData, viewport);
                 position(d3.select('.gantt-body'), barsLegend);
@@ -1893,7 +2142,8 @@ module powerbi.extensibility.visual {
             return tasks;
         }
 
-        private adjustResizing(task: Task[], taskLabelwidth: number, viewModel: GanttViewModel): void {
+        // tslint:disable-next-line:no-shadowed-variable
+        private adjustResizing(tasks: Task[], taskLabelwidth: number, viewModel: GanttViewModel): void {
             let pressed: boolean;
             pressed = false;
             let moved: boolean;
@@ -1912,7 +2162,7 @@ module powerbi.extensibility.visual {
             let columnNumber: number;
             columnNumber = 0;
             let categoriesLength: number;
-            categoriesLength = task[0].name.length;
+            categoriesLength = tasks[0].name.length;
             const resizerClassLiteral: string = '.gantt_resizer';
 
             $(resizerClassLiteral).mousedown(function (e: JQueryMouseEventObject): void {
@@ -1922,8 +2172,9 @@ module powerbi.extensibility.visual {
                 pressed = true;
                 startX = e.pageX;
                 startWidth = this.x.animVal.value;
-                lastRectStartX = parseFloat($(headerCellClassLiteral + (task[0].name.length - 1)).attr('x'));
+                lastRectStartX = parseFloat($(headerCellClassLiteral + (tasks[0].name.length - 1)).attr('x'));
             });
+
             let columnX: string[];
             columnX = [];
             let scrollerX: string[];
@@ -1939,10 +2190,13 @@ module powerbi.extensibility.visual {
             let barLeft: string;
             barLeft = d3.select('.gantt_barPanel').style('left');
             let scroller: number;
-            for (let iIterator: number = parseInt(columnNumber + nullStringLiteral, 10); iIterator < task[0].name.length; iIterator++) {
-                columnX[iIterator] = d3.select(taskColumnClassLiteral + iIterator).attr('x');
-                if (iIterator !== 0) {
-                    scrollerX[iIterator] = d3.select(headerCellClassLiteral + iIterator).attr('x');
+            if (!viewModel.settings.taskLabels.isHierarchy) {
+                for (let iIterator: number = parseInt(columnNumber + nullStringLiteral, 10);
+                    iIterator < tasks[0].name.length; iIterator++) {
+                    columnX[iIterator] = d3.select(taskColumnClassLiteral + iIterator).attr('x');
+                    if (iIterator !== 0) {
+                        scrollerX[iIterator] = d3.select(headerCellClassLiteral + iIterator).attr('x');
+                    }
                 }
             }
             let highestLabelLength: number = 0;
@@ -2012,14 +2266,14 @@ module powerbi.extensibility.visual {
                     if (reflectChange) {
                         if (calculateWidth >= previousColumnStart) {
                             d3.select(dotLiteral + columnClass).attr('x', calculateWidth);
-                            for (let iIterator: number = scroller; iIterator < task[0].name.length; iIterator++) {
+                            for (let iIterator: number = scroller; iIterator < tasks[0].name.length; iIterator++) {
                                 scrollAdd = parseFloat(scrollerX[iIterator]) + parseFloat(xDiff.toString());
                                 d3.select(headerCellClassLiteral + iIterator).attr('x', scrollAdd);
                             }
 
                             let sum: number;
                             for (let iIterator: number = parseInt(columnNumber + nullStringLiteral, 10);
-                                iIterator < task[0].name.length; iIterator++) {
+                                iIterator < tasks[0].name.length; iIterator++) {
                                 sum = parseFloat(columnX[iIterator]) + parseFloat(xDiff.toString());
                                 d3.selectAll(taskColumnClassLiteral + iIterator).attr('x', sum);
                                 d3.selectAll(categoryIdLiteral + iIterator).attr('x', sum);
@@ -2032,7 +2286,7 @@ module powerbi.extensibility.visual {
             $(document).mouseup(function (): void {
                 if (pressed) {
                     pressed = false;
-                    thisObj.persistResizeData(task[0].name.length, viewModel);
+                    thisObj.persistResizeData(tasks[0].name.length, viewModel);
                 }
                 if (moved && columnClass) {
                     columnClass = undefined;
@@ -2138,6 +2392,21 @@ module powerbi.extensibility.visual {
             this.host.persistProperties(width);
         }
 
+        // tslint:disable-next-line:no-any
+        public persistExpandCollapseState(arrGantt: any): void {
+            const properties: { [propertyName: string]: DataViewPropertyValue } = {};
+            properties[`expandCollapseState`] = JSON.stringify(arrGantt);
+            const persistExpandCollapseSettings: VisualObjectInstancesToPersist = {
+                replace: [
+                    <VisualObjectInstance>{
+                        objectName: 'persistExpandCollapseSettings',
+                        selector: null,
+                        properties: properties
+                    }]
+            };
+            this.host.persistProperties(persistExpandCollapseSettings);
+        }
+
         public resetResizeData(categoryLength: number, viewModel: GanttViewModel): void {
             let properties: { [propertyName: string]: DataViewPropertyValue };
             properties = {};
@@ -2188,27 +2457,74 @@ module powerbi.extensibility.visual {
 
         private static updateCount: number = 0;
         private static isResizeStarted: boolean = false;
+        // tslint:disable-next-line:no-any
+        private static stateValue: any = [];
+        // tslint:disable-next-line:typedef
+        private static arrOptimized = [];
+        private static oOptimizedObj: ShowData;
 
-        /**
-         * Convert the dataView to view model
-         * @param dataView The data Model
-         */
-        public static converter(dataView: DataView, host: IVisualHost, colors: IColorPalette,
-            // tslint:disable-next-line:no-any
-                                barsLegend: ILegend, viewport: any): GanttViewModel {
-
+        public static converter(dataView: DataView, host: IVisualHost, colors: IColorPalette
+            // tslint:disable-next-line:typedef
+            ,                   barsLegend: ILegend, viewport): GanttViewModel {
             if (!dataView
                 || !dataView.categorical
                 || !Gantt.isChartHasTask(dataView)) {
                 return null;
             }
-
+            let objects: DataViewObjects;
+            objects = dataView.metadata.objects;
+            Gantt.stateValue = getValue(objects, 'persistExpandCollapseSettings', 'expandCollapseState', '{}');
+            // tslint:disable-next-line:typedef
+            Gantt.arrGantt = JSON.parse(Gantt.stateValue);
+            // tslint:disable-next-line:no-any
+            let oOptimizedObj: any = {};
+            // tslint:disable-next-line
+            let arrOptimized = [];
             const settings: IGanttSettings = GanttSettings.parse(dataView.metadata.objects, colors);
+            // tslint:disable-next-line:typedef
+            $.map(Gantt.arrGantt, function (sVal, iKey) {
+                if ('array' === $.type(sVal)) {
+                    oOptimizedObj.sName = Object.keys(Gantt.arrGantt[iKey][0]).toString();
+                    oOptimizedObj.sFlag = Gantt.arrGantt[iKey][0][oOptimizedObj.sName];
+                    arrOptimized.push(oOptimizedObj);
+                    oOptimizedObj = {};
+                }
+            });
             let metadata: DataViewMetadata;
             metadata = dataView.metadata;
+
+            // tslint:disable-next-line
+            let oMap: any = {};
+            let displayName: string;
+            let tooltipIndexNew: string[];
+            tooltipIndexNew = [];
+            let gColumns: DataViewMetadataColumn[];
+            gColumns = dataView.metadata.columns;
+            let iColumnLength: number;
+            iColumnLength = gColumns.length;
+            for (let iColumnCount: number = 0; iColumnCount < iColumnLength; iColumnCount++) {
+                if (gColumns[iColumnCount].roles[GanttRoles.tooltip]) {
+                    displayName = gColumns[iColumnCount].displayName;
+                    if (!oMap[displayName]) {
+                        tooltipIndexNew.push(displayName);
+                        oMap[displayName] = 1;
+                    }
+                }
+            }
+            //tooltipDataArray = [];
+            let tooltipIndexLength: number;
+            tooltipIndexLength = tooltipIndexNew.length;
+
             let kpiData: KPIConfig[];
             kpiData = [];
+            // tslint:disable-next-line:no-any
+            let resourceFeild: any = null;
+            // tslint:disable-next-line:no-any
+            let transformedArr: any;
+            transformedArr = [];
             const metadataColumnsLength: number = metadata.columns.length;
+            // tslint:disable-next-line:no-any
+            const kpiCatData: any = dataView.categorical.categories;
             for (let iIterator: number = 0; iIterator < metadataColumnsLength; iIterator++) {
                 if (metadata.columns[iIterator].roles[GanttRoles.kpiValueBag]) {
                     let currentColumn: DataViewMetadataColumn;
@@ -2221,19 +2537,879 @@ module powerbi.extensibility.visual {
                 }
             }
 
+            for (let iIterator: number = 0; iIterator < metadataColumnsLength; iIterator++) {
+
+                if (metadata.columns[iIterator].roles[GanttRoles.resource]) {
+                    resourceFeild = metadata.columns[iIterator].displayName;
+                }
+            }
+
+            // tslint:disable-next-line:no-any
+            let newKpiData: any = [];
+            // tslint:disable-next-line:no-any
+            let sortKpiData: any = [];
+            for (let i: number = kpiCatData.length - 1; i >= 0; i--) {
+                for (let j: number = kpiData.length - 1; j >= 0; j--) {
+                    if (kpiCatData[i].source.displayName === kpiData[j].name && newKpiData.indexOf(kpiData[j], 0) === -1) {
+                        newKpiData.push(kpiData[j]);
+                    }
+                }
+            }
+            sortKpiData = newKpiData;
+            newKpiData = [];
+            for (let i: number = sortKpiData.length - 1; i >= 0; i--) {
+                newKpiData.push(sortKpiData[i]);
+            }
+            while (kpiData.length !== 0) {
+                kpiData.pop();
+            }
+            for (let slen: number = 0; slen < newKpiData.length; slen++) {
+                kpiData.push(newKpiData[slen]);
+            }
             Gantt.formatters = this.getFormatters(dataView);
 
             const tasksNew: Task[] = Gantt.createTasks(dataView, host, Gantt.formatters, colors, settings, barsLegend, viewport);
+
+            // tslint:disable-next-line:no-any
+            let rows: any;
+            rows = dataView.table.rows;
+            // tslint:disable-next-line:no-any
+            let columns: any;
+            columns = dataView.metadata.columns;
+            // tslint:disable-next-line:no-any
+            let columnMappings: any;
+            // tslint:disable-next-line:no-any
+            let valuesdata: any;
+            valuesdata = dataView.categorical.values;
+            // tslint:disable-next-line:no-any
+            let categoriesdata: any;
+            let categoriesdataLen: number = 0;
+
+            let kpiLength: number;
+            kpiLength = kpiData.length;
+            categoriesdataLen = dataView.categorical.categories.length - (kpiLength + 1);
+            if (legendIndex === -1) {
+                categoriesdata = dataView.categorical.categories;
+            } else {
+                dataView.categorical.categories.splice(categoriesdataLen, 1);
+                categoriesdata = dataView.categorical.categories;
+            }
+            columnMappings = dataView.metadata.columns;
+            // tslint:disable-next-line:no-any
+            let elementIterator: any;
+            // tslint:disable-next-line:no-any
+            const ganttValues: any = [];
+            ganttValues.push(GanttRoles);
+            // tslint:disable-next-line:no-any
+            elementIterator = rows.map(function (ele: any, i: any): any {
+                // tslint:disable-next-line:no-any
+                let obj: any;
+                obj = {};
+
+                // tslint:disable-next-line:no-any
+                ele.forEach(function (e: any, ii: any): void {
+                    if (!obj[columns[ii].displayName]) {
+                        obj[columns[ii].displayName] = e;
+                    }
+                });
+
+                return obj;
+            });
+            // tslint:disable-next-line:no-any
+            let categoryColumns: any;
+            // tslint:disable-next-line:typedef
+            categoryColumns = categoriesdata.filter(function (column) {
+                return !column.isMeasure || !kpiData;
+            });
+            $.unique(categoryColumns);
+            // tslint:disable-next-line:prefer-const
+            let categorylen: number = categoryColumns.length;
+            for (let i: number = 0; i < categoryColumns.length; i++) {
+                if ((!categoryColumns[i].source.roles.Category || categoryColumns[i].source.roles.KPIValueBag === true) &&
+                    (!categoryColumns[i].source.roles.Category || !categoryColumns[i].source.roles.KPIValueBag === true)) {
+                    categoryColumns.splice(i, 1);
+                    i--;
+                }
+            }
+            Gantt.categorylength = categoryColumns.length;
+            // tslint:disable-next-line:no-any
+            let categoryColumnsMappings: any;
+            // tslint:disable-next-line:typedef
+            categoryColumnsMappings = columnMappings.filter(function (column) {
+                return column.isMeasure;
+            });
+            for (let i: number = categoryColumns.length - 1; i >= 0; i--) {
+                for (let k: number = 0; k < kpiData.length; k++) {
+                    if (categoryColumns[i] && (categoryColumns[i].displayName === kpiData[k].name)) {
+                        categoryColumns.splice(i, 1);
+                    }
+                }
+            }
+            // tslint:disable-next-line:no-any
+            let startArr: any;
+            startArr = [];
+            // tslint:disable-next-line:no-any
+            let endArr: any;
+            endArr = [];
+            let id: number;
+            id = 0;
+            // tslint:disable-next-line:no-any
+            let name: any;
+            name = ' ';
+            let start: Date;
+            let end: Date;
+            let numStart: number;
+            numStart = null;
+            let numEnd: number;
+            numEnd = null;
+            // tslint:disable-next-line:no-any
+            let resource: any;
+            resource = null;
+            let color: string;
+            color = ' ';
+            // tslint:disable-next-line:prefer-const
+            let tooltipInfo: VisualTooltipDataItem[];
+            // tslint:disable-next-line:prefer-const
+            let selectionId: ISelectionId;
+            let kpiValues: KPIValues[];
+            kpiValues = [];
+            let tooltipValues: KPIValues[];
+            tooltipValues = [];
+            // tslint:disable-next-line:no-any
+            let startDisplayName: any;
+            // tslint:disable-next-line:no-any
+            let endDisplayName: any;
+            let level: number;
+            level = 0;
+            let isLeaf: boolean;
+            isLeaf = false;
+            let rowId: number;
+            let parentId: number;
+            parentId = 0;
+            let expanded: boolean;
+            let repeat: number;
+            repeat = 0;
+            // tslint:disable-next-line:no-any
+            const repeatValue: any = [];
+            // tslint:disable-next-line:typedef
+            $.map(arrOptimized, function (e) {
+                if (name === e.sName) {
+                    expanded = e.sFlag;
+                }
+            });
+            if (expanded === undefined || null) {
+                expanded = false;
+            }
+            // tslint:disable-next-line
+            const hierarchicalData: any = {
+                id, name: 'Total', start, end, numEnd, resource, color, tooltipInfo, selectionId: [], children: [],
+                measure: {}, kpiMeasure: {}, kpiValues: [], tooltipValues: []
+            },
+                // tslint:disable-next-line:typedef
+                levels = categoryColumns.map(function (a) { return a.source.displayName; });
+
+            // tslint:disable-next-line:no-any
+            categoryColumnsMappings.forEach(function (measureCol: any): void {
+                hierarchicalData.measure[measureCol.displayName] = 0;
+            });
+
+            // tslint:disable-next-line:no-any
+            kpiData.forEach(function (kpimeasureCol: any): void {
+                hierarchicalData.kpiMeasure[kpimeasureCol.name] = 0;
+            });
+            let kpiDataValues: KPIValues[];
+            kpiDataValues = [];
+            let tooltipDataValues: tooltipDataValues[];
+            tooltipDataValues = [];
+            // tslint:disable-next-line:no-any
+            categoryColumnsMappings.forEach(function (measureCol: any): any {
+                if (measureCol.roles.StartDate) {
+                    startDisplayName = measureCol.displayName;
+                } else if (measureCol.roles.EndDate) {
+                    endDisplayName = measureCol.displayName;
+                } else {
+                    return;
+                }
+
+            });
+
+            // tslint:disable-next-line:no-any
+            categoriesdata[0].values.map((child: any, index: number) => {
+
+                let startDate: Date = null;
+                let endDate: Date = null;
+                let datamin: number = null;
+                let datamax: number = null;
+
+                if ((Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.startDate, index, -1)
+                    && typeof Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.startDate, index, -1)
+                    === typeof this.earliestStartDate) ||
+                    (Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.endDate, index, -1)
+                        && typeof Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.endDate, index, -1)
+                        === typeof this.earliestStartDate)) {
+                    startDate = Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.startDate, index, -1);
+                    endDate = Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.endDate, index, -1);
+
+                    startDate = startDate ? startDate : new Date();
+                    endDate = endDate ? endDate : new Date();
+                    Gantt.isDateData = true;
+                } else {
+                    datamin = Gantt.getCategoricalTaskProperty<number>(columns, valuesdata, GanttRoles.startDate, index, -1);
+                    datamax = Gantt.getCategoricalTaskProperty<number>(columns, valuesdata, GanttRoles.endDate, index, -1);
+                    if (datamax == null || datamin > datamax) {
+                        datamax = datamin;
+                    }
+                    if (datamin == null || datamin > datamax) {
+                        datamin = datamax;
+                    }
+                    if (Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.startDate, index, -1)
+                        || Gantt.getCategoricalTaskProperty<Date>(columns, valuesdata, GanttRoles.endDate, index, -1)) {
+                        Gantt.isDateData = false;
+                    }
+                }
+            });
+
+            // tslint:disable-next-line:no-any
+            elementIterator.forEach(function (d: any, i: any): any {
+                // Keep this as a reference to the current level
+               // tslint:disable-next-line:no-any
+                let depthCursor: any = hierarchicalData.children;
+                // tslint:disable-next-line:no-shadowed-variable
+                let kpiValues: KPIValues[];
+                kpiValues = [];
+                // tslint:disable-next-line:no-shadowed-variable
+                let tooltipValues: tooltipDataValues[];
+                tooltipValues = [];
+                // tslint:disable-next-line:no-any
+                const resourceValues: any = [];
+                // tslint:disable-next-line:no-any
+                const measure: any = [];
+                // Go down one level at a time
+                // tslint:disable-next-line:no-any
+                levels.forEach(function (property: any, depth: any): void {
+                    // Look to see if a branch has already been created
+                    // tslint:disable-next-line:no-any
+                    let index: any;
+                    // tslint:disable-next-line:no-any
+                    depthCursor.forEach(function (child: any, ind: any): void {
+                        if (child.children.length > 0) {
+                            if (d[property] === child.name) { index = ind; }
+                        }
+                    });
+                    // Add a branch if it isn't there
+
+                    if (isNaN(index)) {
+                        depthCursor.push({
+                            name: d[property], children: [], measure: {}
+                            , kpiMeasure: {}, color, kpiValues: [], tooltipValues: [], resource
+                        });
+                        index = depthCursor.length - 1;
+                    }
+                    // tslint:disable-next-line:no-any
+                    const measures: any = {};
+                    // tslint:disable-next-line:no-any
+                    const kpiMeasures: any = {};
+                    // if this is a leaf, add the measure values, else add 0 as the measure value
+                    if (depth === levels.length - 1) {
+                        kpiValues = [];
+                        // tslint:disable-next-line:no-any
+                        kpiData.forEach(function (kpiMeasure: any): void {
+                            kpiValues.push({
+                                name: kpiMeasure.name,
+                                value: d[kpiMeasure.name]
+                            });
+
+                        });
+                        // tslint:disable-next-line:no-shadowed-variable
+                        // tslint:disable-next-line:typedef
+                        // tslint:disable-next-line:no-shadowed-variable
+                        let index : number = 0;
+                        // tslint:disable-next-line:no-any
+                        tooltipIndexNew.forEach(function (tooltipMeasure: any): void {
+                            tooltipValues.push({
+                                name: tooltipIndexNew[index],
+                                value: d[tooltipMeasure]
+                            });
+                            index++;
+                        });
+                        resource = d[resourceFeild];
+                        if (typeof d[startDisplayName] !== 'number') {
+                            start = d[startDisplayName];
+                            end = d[endDisplayName];
+                        } else {
+                            numStart = null === d[startDisplayName] ? d[endDisplayName] : d[startDisplayName];
+                            numEnd = null === d[endDisplayName] ? d[startDisplayName] : d[endDisplayName];
+                        }
+
+                    } else {
+                        kpiValues = [];
+                        // tslint:disable-next-line:no-any
+                        kpiData.forEach(function (kpiMeasure: any): void {
+                            kpiValues.push({
+                                name: kpiMeasure.name,
+                                value: null
+                            });
+
+                        });
+
+                        resource = null;
+                        tooltipInfo = null;
+                        start = null;
+                        end = null;
+                        numStart = null;
+                        numEnd = null;
+                    }
+                    depthCursor[index].kpiValues = kpiValues;
+                    depthCursor[index].tooltipValues = tooltipValues;
+                    depthCursor[index].resource = resource;
+                    depthCursor[index].measure = measures;
+                    depthCursor[index].start = start;
+                    depthCursor[index].end = end;
+                    depthCursor[index].numStart = numStart;
+                    depthCursor[index].numEnd = numEnd;
+                    // Now reference the new child array as we go deeper into the tree
+                    depthCursor = depthCursor[index].children;
+                });
+            });
+            // tslint:disable-next-line:no-any
+            const tasknewarray: any = [];
+            let categorylenn: number = 0;
+            categorylenn = tasksNew[0].name.length - 1;
+            for (let index: number = 0; index < tasksNew.length; index++) {
+                tasknewarray.push({
+                    name: tasksNew[index].name[categorylenn],
+                    selectionId: tasksNew[index].selectionId
+                });
+            }
+            if (settings.taskLabels.isHierarchy) {
+                while (tasksNew.length) {
+                    tasksNew.pop();
+                }
+            }
+            const arrGanttLen: number = Object.keys(Gantt.arrGantt).length;
+            // tslint:disable-next-line
+            let protoObjecttoArray: any = $.map(Gantt.arrGantt, function (value, index) {
+                return [value];
+            });
+            // tslint:disable-next-line:typedef
+            const sumMeasures = function (dest, src) {
+                // tslint:disable-next-line:typedef
+                Object.keys(src).forEach((element) => {
+                    dest += src[element];
+                });
+
+                return dest;
+            };
+            rowId = 0;
+            let legendData: LegendData;
+            legendData = {
+                dataPoints: [],
+                fontSize: 8,
+                title: 'Legend'
+            };
+            // tslint:disable-next-line:no-any
+            const repeatedValues: any = [];
+            let selectionidindex: number = 0;
+            // tslint:disable-next-line:no-any
+            let legenduniquecolors: any = [];
+            let valuesdata1: DataViewValueColumn[];
+            valuesdata1 = dataView.categorical.values;
+            const columnSource: DataViewMetadataColumn[] = dataView.metadata.columns;
+            // tslint:disable-next-line:typedef
+            const toArray = function (arr, level1, parentRowId) {
+                if (!arr.children) { return; }
+                level1++;
+                rowId++;
+                let currentId: number;
+                currentId = rowId;
+                // tslint:disable-next-line:no-any
+                let children: any;
+                children = arr.children.slice(0);
+                for (let iIterator: number = 0; iIterator < children.length; iIterator++) {
+                    toArray(children[iIterator], level1, currentId);
+                }
+                const defaultColor: Fill = {
+                    solid: {
+                        color: colors.getColor(currentId.toString()).value
+                    }
+                };
+                const identity: string = null;
+                let selected: boolean;
+                selected = false;
+                // tslint:disable-next-line
+                let KPIValues: KPIValues[];
+                KPIValues = [];
+                // tslint:disable-next-line
+                let tooltipValues: KPIValues[];
+                // tslint:disable-next-line:typedef
+                const row = {
+                    id, repeat, name, identity, start, end, numStart, numEnd, resource, color,
+                    KPIValues, tooltipValues, selected, tooltipInfo, selectionId, level, isLeaf, rowId, parentId, expanded
+                };
+                row.name = arr.name;
+                repeatValue.push(row.name);
+
+                let count: number = 0;
+
+                for (let occur: number = 0; occur < repeatValue.length; occur++) {
+                    if (row.name === repeatValue[occur]) {
+                        count++;
+
+                    }
+                }
+                if (count > 1) {
+                    row.repeat = 1;
+                } else {
+                    row.repeat = 0;
+                }
+                row.id = currentId;
+
+                children = arr.children.slice(0);
+                for (let iIterator: number = 0; iIterator < children.length; iIterator++) {
+                    if (children.length === 1) {
+                        row.start = children[iIterator].start;
+                        row.end = children[iIterator].end;
+                        arr.start = row.start;
+                        arr.end = row.end;
+                    } else {
+                        startArr.push(children[iIterator].start);
+                        endArr.push(children[iIterator].end);
+                    }
+                }
+                if (startArr.length > 0) {
+                    if (startArr[0] !== null) {
+                        row.start = new Date(Math.min.apply(null, startArr));
+                        row.end = new Date(Math.max.apply(null, endArr));
+                        arr.start = row.start;
+                        arr.end = row.end;
+                    }
+                    startArr = [];
+                    endArr = [];
+                }
+                if (arr.start !== null && arr.end !== null) {
+                    row.start = arr.start;
+                    row.end = arr.end;
+                }
+                row.KPIValues = arr.kpiValues;
+                row.tooltipValues = arr.tooltipValues;
+
+                children = arr.children.slice(0);
+                for (let iIterator: number = 0; iIterator < children.length; iIterator++) {
+                    if (children.length === 1) {
+                        row.numStart = children[iIterator].numStart;
+                        row.numEnd = children[iIterator].numEnd;
+                        arr.numStart = row.numStart;
+                        arr.numEnd = row.numEnd;
+                    } else {
+                        startArr.push(children[iIterator].numStart);
+                        endArr.push(children[iIterator].numEnd);
+                    }
+                }
+                if (startArr.length > 0) {
+                    if (startArr[0] !== null) {
+                        row.numStart = Math.min.apply(null, startArr);
+                        row.numEnd = Math.max.apply(null, endArr);
+                        arr.numStart = row.numStart;
+                        arr.numEnd = row.numEnd;
+                    }
+                    startArr = [];
+                    endArr = [];
+                }
+                if (arr.numStart !== null && arr.numStart !== null) {
+                    row.numStart = arr.numStart;
+                    row.numEnd = arr.numEnd;
+                }
+                const categories: DataViewCategoryColumn[] = dataView.categorical.categories;
+                // tslint:disable-next-line:no-any
+                let cnt: number = 0;
+                const length: number = levels.length;
+                const colorPalette: IColorPalette = host.colorPalette;
+                // tslint:disable-next-line:no-any
+                const arrName: any[] = [];
+                arrName.push(arr.name);
+                // tslint:disable-next-line:no-any
+                const arr1: any[] = [];
+                arr1.push(arr);
+
+                switch (length) {
+                    case 1:
+                        if (dataView.categorical.categories[1] !== undefined &&
+                            dataView.categorical.categories[0].source.displayName
+                            === dataView.categorical.categories[1].source.displayName) {
+                            cnt = 0;
+                        }
+                        break;
+                    case 2:
+                        if (dataView.categorical.categories[2] !== undefined &&
+                            dataView.categorical.categories[0].source.displayName
+                            === dataView.categorical.categories[2].source.displayName) {
+                            cnt = 0;
+                        } else {
+                            cnt = 1;
+                        }
+                        break;
+                    case 3:
+                        if (dataView.categorical.categories[3] !== undefined &&
+                            dataView.categorical.categories[0].source.displayName
+                            === dataView.categorical.categories[3].source.displayName) {
+                            cnt = 0;
+                        } else if (dataView.categorical.categories[3] !== undefined &&
+                            dataView.categorical.categories[1].source.displayName
+                            === dataView.categorical.categories[3].source.displayName) {
+                            cnt = 1;
+                        } else {
+                            cnt = 2;
+                        }
+                        break;
+                    case 4:
+                        if (dataView.categorical.categories[4] !== undefined &&
+                            dataView.categorical.categories[0].source.displayName
+                            === dataView.categorical.categories[4].source.displayName) {
+                            cnt = 0;
+                        } else if (dataView.categorical.categories[4] !== undefined &&
+                            dataView.categorical.categories[1].source.displayName
+                            === dataView.categorical.categories[4].source.displayName) {
+                            cnt = 1;
+                        } else if (dataView.categorical.categories[4] !== undefined &&
+                            dataView.categorical.categories[2].source.displayName
+                            === dataView.categorical.categories[4].source.displayName) {
+                            cnt = 2;
+                        } else {
+                            cnt = 3;
+                        }
+                        break;
+                    default:
+                        break;
+
+                }
+                row.numStart = arr.numStart;
+                row.numEnd = arr.numEnd;
+                row.identity = null;
+                // tslint:disable-next-line:no-any
+                let resData: any = [];
+                // tslint:disable-next-line
+                let tooltipData: any = [];
+                for (let iIterator : number = 0; iIterator < children.length; iIterator++) {
+                    if (children.length === 1) {
+                        row.resource = children[iIterator].resource;
+                        resData.push(children[iIterator].resource);
+                        tooltipData.push(children[iIterator].tooltipValues);
+                    } else {
+                        resData.push(children[iIterator].resource);
+                        tooltipData.push(children[iIterator].tooltipValues);
+                    }
+
+                }
+                if (tooltipData.length > 0) {
+                    row.tooltipValues = tooltipData[0];
+                    arr.tooltipValues = row.tooltipValues;
+                }
+
+                if (resData.length > 0) {
+                    if (resData[0] !== null && typeof (resData[0]) === 'number') {
+                        row.resource = sumMeasures(row.resource, resData);
+                        arr.resource = row.resource;
+                    } else {
+                        row.resource = resData[0];
+                        arr.resource = row.resource;
+                    }
+
+                    resData = [];
+                }
+                if (arr.resource !== null) {
+                    row.resource = arr.resource;
+                }
+                row.level = level1;
+                row.isLeaf = 0 === children.length;
+                // tslint:disable-next-line:no-conditional-assignment
+                if (row.isLeaf = 0 === children.length) {
+                    row.selectionId = host.createSelectionIdBuilder()
+                        .withCategory(dataView.categorical.categories[0], selectionidindex)
+                        .createSelectionId();
+                    selectionidindex++;
+                }
+                if (uniquelegend.length === 0) {
+                    row.color = settings.barColor.defaultColor;
+                } else {
+                    if (settings.barColor.showall) {
+                        if (uniquelegend.indexOf(row.name) !== -1) {
+                            for (let index: number = 0; index < uniquelegend.length; index++) {
+                                if (row.name === legenduniquecolors[index].label) {
+                                    row.color = legenduniquecolors[index].color;
+                                    break;
+                                }
+                            }
+                        } else {
+                            row.color = settings.barColor.defaultColor;
+
+                        }
+                    } else {
+                        row.color = settings.barColor.defaultColor;
+                    }
+                }
+
+                row.rowId = currentId;
+                row.parentId = parentRowId;
+                if (arrGanttLen === 0) {
+                    row.expanded = false;
+                    Gantt.arrGantt[row.rowId] = false;
+                    Gantt.ganttLen = categoryColumns.length;
+                } else {
+                    Gantt.ganttLen = categoryColumns.length;
+                    row.expanded = Gantt.arrGantt[row.rowId] === true ? true : false;
+                }
+                transformedArr.push(row);
+
+            };
+            //tslint:disable-next-line
+            uniquelegend.forEach(function (d: PrimitiveValue, ijk: number): void {
+                legendData.dataPoints.push({
+                    label: d.toString(),  //name of the label
+                    color: uniquesColorsForLegends[ijk].color,
+                    icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box, //type of the legend icon,
+                    selected: false,  // indicates of the legend is selected or not
+                    identity: host.createSelectionIdBuilder()
+                        .withMeasure(d.toString())
+                        .createSelectionId()  //selectionId of the legend
+                });
+            });
+            legenduniquecolors = legendData.dataPoints;
+            if (legendIndex !== -1) {
+                barsLegend.changeOrientation(LegendPosition.Top);
+                barsLegend.drawLegend(legendData, viewport);
+                position(d3.select('.gantt-body'), barsLegend);
+            }
+            toArray(hierarchicalData, -1, rowId);
+            //tslint:disable-next-line
+            const newArr: any = [];
+            //tslint:disable-next-line
+            const newColors: any = [];
+            let uniqueCount: number = uniquelegend.length;
+            while (uniqueCount >= 0) {
+                newArr.push(uniquelegend[uniqueCount]);
+                uniqueCount--;
+            }
+            for (let i: number = 0; i < transformedArr.length; i++) {
+                for (let j: number = 0; j < newArr.length; j++) {
+                    if (transformedArr[i].name === newArr[j]) {
+                        newColors.push({ color: transformedArr[i].color });
+                        delete newArr[j];
+                        //tslint:disable-next-line
+                    }
+                }
+            }
+            legendData.dataPoints = [];
+            uniqueColors = [];
+            uniquelegend.forEach(function (d: PrimitiveValue, ijk: number): void {
+                legendData.dataPoints.push({
+                    label: d.toString(),  //name of the label
+                    color: newColors[ijk].color,
+                    icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box, //type of the legend icon,
+                    selected: false,  // indicates of the legend is selected or not
+                    identity: host.createSelectionIdBuilder()
+                        .withMeasure(d.toString())
+                        .createSelectionId()  //selectionId of the legend
+                });
+                uniqueColors.push({
+                    name: d,
+                    color: rows.color
+                });
+            });
+            rows = transformedArr.reverse();
+            rows.splice(0, 1);
+            let rowindex: number = 0;
+            tasknewarray.reverse();
+            for (let index: number = 0; index < rows.length; index++) {
+                rows[index].selectionId = [];
+                if (rows[index].name === tasknewarray[rowindex].name) {
+                    rows[index].selectionId = tasknewarray[rowindex].selectionId;
+                    rowindex++;
+                    if (rowindex === tasknewarray.length) {
+                        break;
+                    }
+                }
+            }
+            if (settings.taskLabels.isHierarchy) {
+                addSelection(rows);
+            }
+            // tslint:disable-next-line:typedef
+            function addSelection(row) {
+                const categoryLen: number = dataView.categorical.categories.length;
+                let maxCategoryLen: number = 0;
+                for (let k: number = 0; k < categoryLen; k++) {
+                    if (dataView.categorical.categories[k].source.roles.Category === true) {
+                        maxCategoryLen++;
+                        if (maxCategoryLen > 4) {
+                            break;
+                        }
+                    }
+                }
+                let hashArr: {};
+                hashArr = {};
+                let catLength: number;
+                catLength = categoryColumns.length;
+                // tslint:disable-next-line:no-any
+                let hierarchyArray: any[];
+                hierarchyArray = [];
+                for (let i: number = 0; i < rows.length; i++) {
+                    if (hashArr[rows[i][`parentId`]] === undefined) {
+                        hashArr[rows[i][`parentId`]] = [];
+                    }
+                    hashArr[rows[i][`parentId`]].push(rows[i]);
+                }
+                // tslint:disable-next-line:prefer-const
+                let selection: ISelectionId[];
+                for (let yCounter: number = 0; yCounter < rows.length; yCounter++) {
+                    if (rows[yCounter].isLeaf !== true) {
+                        rows[yCounter][`selectionId`] = [];
+                    }
+                    rows[yCounter].tooltipInfo = [];
+                }
+                let jCounter: number = 0;
+                const rowslen: number = rows.length - 1;
+                jCounter = maxCategoryLen - 1;
+                jCounter = 0;
+                for (let iCounter: number = rows.length - 1; iCounter > 0; iCounter--) {
+                    hierarchyArray[rowslen - iCounter] = rows[iCounter][`parentId`];
+                }
+                // tslint:disable-next-line:no-any
+                const uniqueElements: any = hierarchyArray.filter(function (item: any, pos: any): any {
+                    return hierarchyArray.indexOf(item) === pos;
+                });
+                // tslint:disable-next-line:typedef
+                uniqueElements.sort(function (a, b) {
+                    return parseFloat(a) - parseFloat(b);
+                });
+                for (let iCounter: number = 1; iCounter < uniqueElements.length; iCounter++) {
+                    for (let kCounter: number = 0; kCounter < hashArr[uniqueElements[iCounter]].length; kCounter++) {
+                        if (hashArr[uniqueElements[iCounter]][kCounter].isLeaf.toString() === 'true') {
+                            for (let lCounter: number = 0; lCounter < rows.length; lCounter++) {
+                                if (rows[lCounter].rowId === hashArr[uniqueElements[iCounter]][kCounter].parentId) {
+                                    rows[lCounter].selectionId.push(hashArr[uniqueElements[iCounter]][kCounter].selectionId);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (catLength === 4) {
+                    for (let iCounter: number = 1; iCounter < uniqueElements.length; iCounter++) {
+                        if (hashArr[uniqueElements[iCounter]] !== undefined) {
+                            for (let kCounter: number = 0; kCounter < hashArr[uniqueElements[iCounter]].length; kCounter++) {
+                                if (hashArr[uniqueElements[iCounter]][kCounter].level === 3) {
+                                    for (let lCounter: number = 0; lCounter < rows.length; lCounter++) {
+                                        if (rows[lCounter].rowId === hashArr[uniqueElements[iCounter]][kCounter].parentId) {
+                                            if (hashArr[uniqueElements[iCounter]][kCounter].selectionId.length > 1) {
+                                                for (let i: number = 0; i < hashArr[uniqueElements[iCounter]][kCounter]
+                                                    .selectionId.length; i++) {
+                                                    rows[lCounter].selectionId.push(hashArr[uniqueElements[iCounter]][kCounter]
+                                                        .selectionId[i]);
+                                                }
+                                            } else {
+                                                rows[lCounter].selectionId.push(hashArr[uniqueElements[iCounter]][kCounter].selectionId[0]);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (catLength >= 3) {
+                    for (let iCounter: number = 1; iCounter < uniqueElements.length; iCounter++) {
+                        if (hashArr[uniqueElements[iCounter]] !== undefined) {
+                            for (let kCounter: number = 0; kCounter < hashArr[uniqueElements[iCounter]].length; kCounter++) {
+                                if (hashArr[uniqueElements[iCounter]][kCounter].level === 2) {
+                                    for (let lCounter: number = 0; lCounter < rows.length; lCounter++) {
+                                        if (rows[lCounter].rowId === hashArr[uniqueElements[iCounter]][kCounter].parentId) {
+                                            if (hashArr[uniqueElements[iCounter]][kCounter].selectionId.length > 1) {
+                                                for (let i: number = 0; i < hashArr[uniqueElements[iCounter]][kCounter]
+                                                    .selectionId.length; i++) {
+                                                    rows[lCounter].selectionId.push(hashArr[uniqueElements[iCounter]][kCounter]
+                                                        .selectionId[i]);
+                                                }
+                                            } else {
+                                                rows[lCounter].selectionId.push(hashArr[uniqueElements[iCounter]][kCounter].selectionId[0]);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // tslint:disable-next-line:typedef
+            transformedArr = transformedArr.sort(function (a, b) {
+                return a.id > b.id ? 1 : a.id < b.id ? -1 : 0;
+            });
+            for (let i: number = 0; i < transformedArr.length; i++) {
+                for (let j: number = 0; j < uniquelegend.length; j++) {
+                    if (transformedArr[i].name === uniquelegend[j]) {
+                        legendData.dataPoints[j].color = transformedArr[i].color;
+                    }
+                }
+            }
+            if (settings.taskLabels.isHierarchy) {
+                for (let index: number = 0; index < transformedArr.length; index++) {
+                    tasksNew.push(transformedArr[index]);
+                }
+            }
+
+            let rowIndex: number = 0;
+            // tslint:disable-next-line:no-any
+            let selobjchildrencncierarchy: any = [];
+            // tslint:disable-next-line:typedef
+            function getDirectChildInHierarchy(sRowID) {
+                // tslint:disable-next-line:typedef
+                $.map(tasksNew, function (sObj) {
+                    if (sObj.parentId === sRowID) {
+                        selobjchildrencncierarchy.push(sObj);
+                        getDirectChildInHierarchy(sObj.rowId);
+                    }
+                });
+
+                return selobjchildrencncierarchy;
+            }
+            let mycolor: string;
+            for (let iIterator: number = 0; iIterator < tasksNew.length; iIterator++) {
+                for (let k: number = 0; k < legendData.dataPoints.length; k++) {
+                    // tslint:disable-next-line:no-any
+                    const seltaskName: any = tasksNew[iIterator].name;
+                    if (legendData.dataPoints[k].label === seltaskName) {
+                        rowIndex = tasksNew[iIterator].rowId;
+                        mycolor = legendData.dataPoints[k].color;
+
+                        selobjchildrencncierarchy.push(tasksNew[iIterator]);
+                        selobjchildrencncierarchy = getDirectChildInHierarchy(rowIndex);
+                        for (let jIterator: number = 0; jIterator < selobjchildrencncierarchy.length; jIterator++) {
+                            selobjchildrencncierarchy[jIterator].color = mycolor;
+                        }
+                        selobjchildrencncierarchy = [];
+                    }
+
+                }
+            }
+
+            // tslint:disable-next-line:typedef
+            for (let tooltipLength = 0; tooltipLength < tasksNew.length; tooltipLength++) {
+                tasksNew[tooltipLength].tooltipInfo = Gantt.getTooltipInfo(tasksNew[tooltipLength],
+                                                                           this.formatters, dataView, tooltipLength);
+            }
 
             return {
                 dataView: dataView,
                 settings: settings,
                 tasksNew: tasksNew,
-                kpiData: kpiData
+                kpiData: kpiData,
+                hierarchyArray: transformedArr
             };
         }
 
         private static isValidDate(date: Date): boolean {
+
             if (Object.prototype.toString.call(date) !== '[object Date]') {
                 return false;
             }
@@ -2252,7 +3428,6 @@ module powerbi.extensibility.visual {
         private static getCategoricalObjectValue<T>(category: DataViewCategoryColumn, index: number,
                                                     objectName: string, propertyName: string, defaultValue: T): T {
             const categoryObjects: DataViewObjects[] = category.objects;
-
             if (categoryObjects) {
                 const categoryObject: DataViewObject = categoryObjects[index];
                 if (categoryObject) {
@@ -2275,27 +3450,34 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
-            // iterator = 0;
             d3.selectAll('.legend').remove();
-            const legendLiteralRoles: string = 'Legend';
-            uniqueLegend = [];
+            uniquelegend = [];
             uniquesColorsForLegends = [];
+            Gantt.arrGantt = [];
             Gantt.colorsIndex = 0;
             Gantt.kpiLabelWidth = 75;
             Gantt.globalOptions = options;
+            position(d3.select('.gantt-body'), this.barsLegend);
             if (!options.dataViews || !options.dataViews[0]) {
                 this.clearViewport();
 
                 return;
             }
+
             for (let index: number = 0; index < options.dataViews[0].categorical.categories.length; index++) {
-                if (options.dataViews[0].categorical.categories[index].source.roles[legendLiteralRoles] === true) {
+                if (options.dataViews[0].categorical.categories[index].source.roles.Legend === true) {
                     iterator = 1;
                     break;
                 }
             }
             if (iterator === 1) {
-                this.barsLegend = createLegend($(this.element), false, null, true);
+                this.barsLegend = createLegend(this.bodyElement, false, null, true);
+            }
+
+            if (!options.dataViews || !options.dataViews[0]) {
+                this.clearViewport();
+
+                return;
             }
 
             let hasStart: boolean = false;
@@ -2310,6 +3492,7 @@ module powerbi.extensibility.visual {
                     if (options.dataViews[0].categorical.values[iCounter].source.roles[endDateLiteral]) {
                         hasEnd = true;
                     }
+
                 }
             }
 
@@ -2325,10 +3508,24 @@ module powerbi.extensibility.visual {
             Gantt.sortLevel = getJSONString2;
             Gantt.prevSortedColumn = getJSONString2;
             const thisObj: this = this;
-
             this.viewModel = Gantt.converter(options.dataViews[0], this.host, this.colors, this.barsLegend, options.viewport);
+            this.persistExpandCollapseSettings = this.viewModel.settings.persistExpandCollapseSettings;
             this.barsLegend.changeOrientation(LegendPosition.Top);
+            Gantt.expandCollapseStates = JSON.parse(this.persistExpandCollapseSettings.expandCollapseState || '{}');
             Gantt.viewModelNew = this.viewModel;
+            $('.gantt_errorPanel').remove();
+            if (this.barDiv) {
+                this.barDiv.remove();
+                this.kpiDiv.remove();
+                this.taskDiv.remove();
+            }
+            $('.gantt-body').remove();
+            this.createViewport(this.bodyElement);
+            this.clearViewport();
+            Gantt.ganttDiv.classed('gantt_hidden', true);
+            Gantt.errorDiv.classed('gantt_hidden', false);
+            Gantt.errorText.text('');
+
             if (!this.viewModel || !this.viewModel.tasksNew) {
                 this.clearViewport();
                 Gantt.ganttDiv.classed('gantt_hidden', true);
@@ -2378,7 +3575,6 @@ module powerbi.extensibility.visual {
                 Gantt.errorDiv.classed('gantt_hidden', true);
                 Gantt.ganttDiv.classed('gantt_hidden', false);
             }
-
             Gantt.isPhaseHighlighted = false;
             d3.selectAll('.tooltip-content-container').style('visibility', 'hidden');
             let flagProject: boolean;
@@ -2477,7 +3673,7 @@ module powerbi.extensibility.visual {
             Gantt.kpiLabelWidthOriginal = Gantt.kpiLabelWidth * this.viewModel.kpiData.length;
             Gantt.kpiLabelWidth = Gantt.kpiLabelWidthOriginal;
             Gantt.taskLabelWidthOriginal = (this.viewport.width - Gantt.kpiLabelWidthOriginal) * Gantt.currentDisplayRatio / 100;
-
+            Gantt.columnHeaderBgColor = this.viewModel.settings.columnHeader.fill2;
             Gantt.minDisplayRatio = Math.ceil((100 * ((0.01 * this.viewport.width) + Gantt.kpiLabelWidthOriginal)) / this.viewport.width);
             if (Gantt.currentDisplayRatio < Gantt.minDisplayRatio && Gantt.minDisplayRatio <= 80) {
                 this.viewModel.settings.displayRatio.ratio = Gantt.minDisplayRatio;
@@ -2527,7 +3723,6 @@ module powerbi.extensibility.visual {
                 }
                 $('.gantt_kpiImagePanel').show();
             }
-
             Gantt.visualCoordinates = {
                 width: this.viewport.width,
                 height: this.viewport.height
@@ -2579,7 +3774,6 @@ module powerbi.extensibility.visual {
             if (this.interactivityService) {
                 this.interactivityService.applySelectionStateToData(this.viewModel.tasksNew);
             }
-
             let dateTypeMilliseconds: number;
             dateTypeMilliseconds = Gantt.getDateType(this.viewModel.settings.dateType.type);
             let startDate: Date;
@@ -2638,7 +3832,6 @@ module powerbi.extensibility.visual {
                 } else {
                     Gantt.scrollHeight = 0;
                 }
-
                 this.updateChartSize();
                 this.renderCustomLegendIndicator();
                 this.updateSvgSize(this, axisLength);
@@ -2709,7 +3902,6 @@ module powerbi.extensibility.visual {
                 } else {
                     Gantt.scrollHeight = 0;
                 }
-
                 this.updateChartSize();
                 this.renderCustomLegendIndicator();
                 this.updateSvgSize(this, axisLength);
@@ -2851,7 +4043,6 @@ module powerbi.extensibility.visual {
                 this.updateTaskLabels(this.viewModel.tasksNew, this.viewModel.settings.taskLabels.width);
                 this.updateElementsPositions(this.viewport, this.margin);
             }
-
             this.adjustResizing(this.viewModel.tasksNew, this.viewModel.settings.taskLabels.width, this.viewModel);
 
             if ((this.viewModel.settings.legend.show
@@ -3011,7 +4202,7 @@ module powerbi.extensibility.visual {
 
             this.arrowDiv.style({
                 left: PixelConverter.toString(this.viewport.width - 60),
-                top: PixelConverter.toString(Gantt.axisHeight - 22)
+                top: PixelConverter.toString(Gantt.axisHeight - 1)
             });
 
             this.kpiIndicatorDiv.style({
@@ -3061,6 +4252,10 @@ module powerbi.extensibility.visual {
                         fill: indicatorTitleColor
                     })
                     .text('KPIs');
+
+                kpiGroup = this.kpiIndicatorSvg
+                    .append('g')
+                    .classed('kpiIndicatorGroup', true);
 
                 kpiGroup = this.kpiIndicatorSvg
                     .append('g')
@@ -3449,6 +4644,9 @@ module powerbi.extensibility.visual {
             if (document.getElementsByClassName('gantt_timelinePanel')) {
                 document.getElementsByClassName('gantt_timelinePanel')[0].scrollLeft = bottomMilestoneScrollPosition;
             }
+            if (document.getElementsByClassName('gantt_barPanel')[1]) {
+                document.getElementsByClassName('gantt_barPanel')[1].scrollLeft = bottomMilestoneScrollPosition;
+            }
         }
 
         private setBottomTaskScrollPosition(bottomTaskScrollPosition: number): void {
@@ -3536,6 +4734,7 @@ module powerbi.extensibility.visual {
                 if ($LegendToggleImageId.hasClass('notVisible')) {
                     $LegendToggleImageId.removeClass('notVisible').addClass('visible');
                     $LegendToggleImageId.attr('href', Gantt.drillUpImage);
+                    $($('.gantt_legendIndicatorPanel')[0]).css('top', 49 + pxLiteral);
                     $('.gantt_legendIndicatorPanel').show();
                     $('.arrow').show();
                 } else {
@@ -3576,6 +4775,12 @@ module powerbi.extensibility.visual {
         private expandCollapseTaskKPIPanel(
             thisObj: Gantt, elementId: string, elementClass: string,
             elementGroupClass: string, isTaskLabel: boolean): void {
+            $('.gantt_barPanel').not(':first').remove();
+            let $LegendToggleImageId: JQuery;
+            $LegendToggleImageId = $('#LegendToggleImage');
+            if (!$LegendToggleImageId.hasClass('visible')) {
+                $($(d3.selectAll('.gantt_barPanel')[0])[0]).attr('style', `width:${this.viewport.width - 18}px; left: 18px`);
+            }
             d3.event[stopPropagationLiteral]();
             let element: Selection<SVGAElement>;
             element = d3.select(elementId);
@@ -3630,8 +4835,8 @@ module powerbi.extensibility.visual {
                         Gantt.sortOrder = 'asc';
                     }
                     Gantt.sortLevel = iCounter;
-                    thisObj.viewModel = Gantt.converter(Gantt.globalOptions.dataViews[0],
-                                                        thisObj.host, thisObj.colors, thisObj.barsLegend, thisObj.options.viewport);
+                    thisObj.viewModel = Gantt.converter(Gantt.globalOptions.dataViews[0], thisObj.host,
+                                                        thisObj.colors, thisObj.barsLegend, thisObj.options.viewport);
 
                     for (let jCounter: number = 0; jCounter < Gantt.numberOfCategories; jCounter++) {
                         if (jCounter !== iCounter) {
@@ -3650,6 +4855,7 @@ module powerbi.extensibility.visual {
         }
 
         private removeAllHighlight(): void {
+
             Gantt.totalLegendSelected = 0;
             Gantt.currentSelectionState = {};
             $('.milestoneHighlighted').removeClass('milestoneHighlighted');
@@ -3665,6 +4871,7 @@ module powerbi.extensibility.visual {
         }
 
         private moveAllTOBackground(): void {
+
             Gantt.totalLegendSelected = 0;
             $('.milestoneHighlighted').removeClass('milestoneHighlighted');
             $('.phaseHighlighted').removeClass('phaseHighlighted');
@@ -3678,6 +4885,7 @@ module powerbi.extensibility.visual {
         }
 
         private redrawChart(thisObj: Gantt): void {
+
             let rightSectionWidth: number;
             rightSectionWidth = Gantt.visualWidth - Gantt.taskLabelWidth
                 - Gantt.DefaultMargin.left - Gantt.defaultValues.ResourceWidth - Gantt.kpiLabelWidth;
@@ -3723,6 +4931,7 @@ module powerbi.extensibility.visual {
         }
 
         private static getDateType(type: string): number {
+
             switch (type) {
                 case 'Day':
                     return millisecondsInADay;
@@ -3745,6 +4954,7 @@ module powerbi.extensibility.visual {
         }
 
         private static getQuarterName(timeinmilliseconds: number): string {
+
             let date: Date;
             date = new Date(timeinmilliseconds);
             let month: number;
@@ -3752,7 +4962,6 @@ module powerbi.extensibility.visual {
             let year: number;
             year = date.getFullYear();
             let quarter: string = '';
-
             // Find quarter number of the date based on month number
             if (month <= 3) {
                 quarter = 'Q1';
@@ -3941,6 +5150,7 @@ module powerbi.extensibility.visual {
         }
 
         private rendergrids(xAxisProperties: IAxisProperties, totaltasks: number): void {
+
             let taskGridLinesShow: boolean;
             let taskGridLinesInterval: number;
             let taskGridLinesColor: string;
@@ -3948,6 +5158,11 @@ module powerbi.extensibility.visual {
             taskGridLinesInterval = this.viewModel.settings.taskGridlines.interval;
             taskGridLinesColor = this.viewModel.settings.taskGridlines.fill;
             this.gridGroup.selectAll('*').remove();
+            $('.gantt_barPanel')
+                .css('width', PixelConverter.toString(this.viewport.width - Gantt.taskLabelWidth - Gantt.kpiLabelWidth - 20))
+                .css('left', PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + 20));
+            $('.gantt_bottomTaskDiv')
+                .css('width', PixelConverter.toString(Gantt.taskLabelWidth + 20));
             let xAxis: d3.svg.Axis;
             xAxis = xAxisProperties.axis;
             xAxis.tickSize(this.getTodayLineLength(totaltasks));
@@ -3958,9 +5173,9 @@ module powerbi.extensibility.visual {
 
                 this.gridGroup.selectAll('line').style({ stroke: taskGridLinesColor });
                 this.gridGroup.selectAll('text').remove();
-                for (let iIndex: number = 0; iIndex < xAxisProperties.values.length; iIndex++) {
-                    if (iIndex % taskGridLinesInterval !== 0) {
-                        d3.select(this.gridGroup.selectAll('line')[0][iIndex]).attr('visibility', 'hidden');
+                for (let i: number = 0; i < xAxisProperties.values.length; i++) {
+                    if (i % taskGridLinesInterval !== 0) {
+                        d3.select(this.gridGroup.selectAll('line')[0][i]).attr('visibility', 'hidden');
                     }
                 }
             }
@@ -3977,6 +5192,7 @@ module powerbi.extensibility.visual {
          * @param width : number of characters to be displayed
          */
         private static getLabelValuesNew(value: string, property: string, width: number): string {
+
             let imageString: string;
             let classNAme: string;
             imageString = '';
@@ -4035,8 +5251,14 @@ module powerbi.extensibility.visual {
          * @param tasks All tasks array
          * @param width The task label width
          */
-        private updateTaskLabels(task: Task[], width: number): void {
+        // tslint:disable-next-line:no-shadowed-variable
+        private updateTaskLabels(tasks: Task[], width: number): void {
+
             let axisLabel: Selection<HTMLElement>;
+            // tslint:disable-next-line:no-any
+            const expandeditems: any = [];
+            // tslint:disable-next-line:no-any
+            let axisLabelImg: any;
             let columnHeaderColor: string;
             let columnHeaderBgColor: string;
             let columnHeaderFontSize: number;
@@ -4067,7 +5289,6 @@ module powerbi.extensibility.visual {
             let barPanelLeft: number;
             let kpiPanelWidth: number;
             let lastRectX: number;
-
             thisObj = this;
             columnHeaderColor = this.viewModel.settings.columnHeader.fill;
             columnHeaderBgColor = this.viewModel.settings.columnHeader.fill2;
@@ -4080,7 +5301,7 @@ module powerbi.extensibility.visual {
             taskLabelsFontSize = this.viewModel.settings.taskLabels.fontSize;
             taskLabelsFontFamily = this.viewModel.settings.taskLabels.fontFamily;
             totalKPIs = this.viewModel.kpiData.length;
-            totalCategories = task[0].name.length;
+            totalCategories = tasks[0].name.length;
             normalizer = (this.viewModel.settings.taskLabels.fontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
             kpiFontSize = 23 * Gantt.maximumNormalizedFontSize / Gantt.maximumFontSize;
             kpiFontColor = '#000';
@@ -4111,7 +5332,6 @@ module powerbi.extensibility.visual {
             $KpiTitlePanelClass = $('.gantt_kpiTitlePanel');
             let $TaskSvg: JQuery;
             $TaskSvg = $('.gantt_taskSvg');
-
             $KpiTitlePanelClass.css('background-color', columnHeaderBgColor);
             $DrillAllPanel2Class.css('background-color', columnHeaderBgColor);
 
@@ -4196,111 +5416,122 @@ module powerbi.extensibility.visual {
                 }
                 $TaskSvg.css('margin-left', '1px');
             }
-
-            let objects: DataViewObjects = null;
-            let getJSONString: string;
-            let columnWidth: number;
-            let columnWidthsArr: number[];
-            let taskColumnArr: number[];
-            let horizGridX1Arr: number[];
-            let horizGridX2Arr: number[];
-            let vertGridArr: number[];
-            objects = this.viewModel.dataView.metadata.objects;
-            columnWidth = 0;
-            columnWidthsArr = [];
-            taskColumnArr = [];
-            horizGridX1Arr = [];
-            horizGridX2Arr = [];
-            vertGridArr = [];
-            getJSONString = getValue<string>(objects, 'categoryColumnsWidth', 'width', 'text');
-            let numOfCharsAllowedHeader: number = 0;
-            numOfCharsAllowedHeader = Gantt.taskLabelWidth / (Gantt.iHeaderSingleCharWidth * this.viewModel.tasksNew[0].name.length);
-            kpiPanelWidth = parseFloat(d3.select('.gantt_kpiPanel').style('left'));
-
-            for (let iIterator: number = 0; iIterator <= 3; iIterator++) {
-                columnWidthsArr[iIterator] = 0;
-                taskColumnArr[iIterator] = 0;
-                horizGridX1Arr[iIterator] = 0;
-                horizGridX2Arr[iIterator] = 0;
-                vertGridArr[iIterator] = 0;
-            }
-
-            for (let jCount: number = 0; jCount < totalCategories; jCount++) {
-
+            if (!isTaskLabelHierarchyView) {
+                let objects: DataViewObjects = null;
+                let getJSONString: string;
+                let columnWidth: number;
+                let columnWidthsArr: number[];
+                let taskColumnArr: number[];
+                let horizGridX1Arr: number[];
+                let horizGridX2Arr: number[];
+                let vertGridArr: number[];
                 objects = this.viewModel.dataView.metadata.objects;
-                getJSONString = getValue<string>(objects, 'categoryColumnsWidth', 'width', 'text');
                 columnWidth = 0;
-                if (getJSONString && getJSONString.length !== 0 && getJSONString.indexOf('text') === -1) {
-                    let splittedJSON: string[];
-                    let columnName: string;
-                    let taskColumnName: string;
-                    let horizGridX1: string;
-                    let horizGridX2: string;
-                    let vertGrid: string;
-                    let oSplittedLength: string[];
-                    splittedJSON = getJSONString.split(';');
-                    columnName = columnLiteral + jCount;
-                    taskColumnName = taskColumnLiteral + jCount;
-                    horizGridX1 = 'horizontal-line';
-                    horizGridX1 += jCount;
-                    horizGridX1 += '-x1';
-                    horizGridX2 = 'horizontal-line';
-                    horizGridX2 += jCount;
-                    horizGridX2 += '-x2';
-                    vertGrid = verticalLineLiteral + jCount;
-                    for (let iIterator: number = 0; iIterator < splittedJSON.length; iIterator++) {
-                        if (splittedJSON[iIterator].indexOf(taskColumnName) !== -1) {
-                            oSplittedLength = splittedJSON[iIterator].split(':');
-                            columnWidth = parseFloat(oSplittedLength[1]);
-                            taskColumnArr[jCount] = columnWidth;
-                        } else if (splittedJSON[iIterator].indexOf(vertGrid) !== -1) {
-                            oSplittedLength = splittedJSON[iIterator].split(':');
-                            columnWidth = parseFloat(oSplittedLength[1]);
-                            vertGridArr[jCount] = columnWidth;
-                        } else if (splittedJSON[iIterator].indexOf(horizGridX1) !== -1) {
-                            oSplittedLength = splittedJSON[iIterator].split(':');
-                            columnWidth = parseFloat(oSplittedLength[1]);
-                            horizGridX1Arr[jCount] = columnWidth;
-                        } else if (splittedJSON[iIterator].indexOf(horizGridX2) !== -1) {
-                            oSplittedLength = splittedJSON[iIterator].split(':');
-                            columnWidth = parseFloat(oSplittedLength[1]);
-                            horizGridX2Arr[jCount] = columnWidth;
-                        } else if (splittedJSON[iIterator].indexOf(columnName) !== -1) {
-                            oSplittedLength = splittedJSON[iIterator].split(':');
-                            columnWidth = parseFloat(oSplittedLength[1]);
-                            columnWidthsArr[jCount] = columnWidth;
+                columnWidthsArr = [];
+                taskColumnArr = [];
+                horizGridX1Arr = [];
+                horizGridX2Arr = [];
+                vertGridArr = [];
+                getJSONString = getValue<string>(objects, 'categoryColumnsWidth', 'width', 'text');
+                let numOfCharsAllowedHeader: number = 0;
+                numOfCharsAllowedHeader = Gantt.taskLabelWidth / (Gantt.iHeaderSingleCharWidth * this.viewModel.tasksNew[0].name.length);
+                kpiPanelWidth = parseFloat(d3.select('.gantt_kpiPanel').style('left'));
+
+                for (let iIterator: number = 0; iIterator <= 3; iIterator++) {
+                    columnWidthsArr[iIterator] = 0;
+                    taskColumnArr[iIterator] = 0;
+                    horizGridX1Arr[iIterator] = 0;
+                    horizGridX2Arr[iIterator] = 0;
+                    vertGridArr[iIterator] = 0;
+                }
+                for (let jCount: number = 0; jCount < totalCategories; jCount++) {
+                    objects = this.viewModel.dataView.metadata.objects;
+                    getJSONString = getValue<string>(objects, 'categoryColumnsWidth', 'width', 'text');
+                    columnWidth = 0;
+                    if (getJSONString && getJSONString.length !== 0 && getJSONString.indexOf('text') === -1) {
+                        let splittedJSON: string[];
+                        let columnName: string;
+                        let taskColumnName: string;
+                        let horizGridX1: string;
+                        let horizGridX2: string;
+                        let vertGrid: string;
+                        let oSplittedLength: string[];
+                        splittedJSON = getJSONString.split(';');
+                        columnName = columnLiteral + jCount;
+                        taskColumnName = taskColumnLiteral + jCount;
+                        horizGridX1 = 'horizontal-line';
+                        horizGridX1 += jCount;
+                        horizGridX1 += '-x1';
+                        horizGridX2 = 'horizontal-line';
+                        horizGridX2 += jCount;
+                        horizGridX2 += '-x2';
+                        vertGrid = verticalLineLiteral + jCount;
+                        for (let iIterator: number = 0; iIterator < splittedJSON.length; iIterator++) {
+                            if (splittedJSON[iIterator].indexOf(taskColumnName) !== -1) {
+                                oSplittedLength = splittedJSON[iIterator].split(':');
+                                columnWidth = parseFloat(oSplittedLength[1]);
+                                taskColumnArr[jCount] = columnWidth;
+                            } else if (splittedJSON[iIterator].indexOf(vertGrid) !== -1) {
+                                oSplittedLength = splittedJSON[iIterator].split(':');
+                                columnWidth = parseFloat(oSplittedLength[1]);
+                                vertGridArr[jCount] = columnWidth;
+                            } else if (splittedJSON[iIterator].indexOf(horizGridX1) !== -1) {
+                                oSplittedLength = splittedJSON[iIterator].split(':');
+                                columnWidth = parseFloat(oSplittedLength[1]);
+                                horizGridX1Arr[jCount] = columnWidth;
+                            } else if (splittedJSON[iIterator].indexOf(horizGridX2) !== -1) {
+                                oSplittedLength = splittedJSON[iIterator].split(':');
+                                columnWidth = parseFloat(oSplittedLength[1]);
+                                horizGridX2Arr[jCount] = columnWidth;
+                            } else if (splittedJSON[iIterator].indexOf(columnName) !== -1) {
+                                oSplittedLength = splittedJSON[iIterator].split(':');
+                                columnWidth = parseFloat(oSplittedLength[1]);
+                                columnWidthsArr[jCount] = columnWidth;
+                            }
                         }
                     }
-                }
-                const textElement: Selection<HTMLElement> = this.drillAllGroup.append('text')
-                    .attr('class', categoryLiteral + jCount + spaceLiteral + taskColumnLiteral + jCount)
-                    .attr('x', 15)
-                    .attr('y', 10);
 
-                const sortIconImage: Selection<HTMLElement> = this.drillAllGroup.append('image')
-                    .attr('class', 'sortAsc')
-                    .attr('class', categoryLiteral + jCount)
-                    .attr('id', categoryLiteral + jCount)
-                    .attr('y', 10)
-                    .attr('height', 7)
-                    .attr('width', 7);
+                    const textElement: Selection<HTMLElement> = this.drillAllGroup.append('text')
+                        .attr('class', categoryLiteral + jCount + spaceLiteral + taskColumnLiteral + jCount)
+                        .attr('x', 15)
+                        .attr('y', 10);
 
-                if (Gantt.numberOfCategories !== 1) {
-                    if (jCount === 0) {
-                        textElement.attr('x', 15);
+                    const sortIconImage: Selection<HTMLElement> = this.drillAllGroup.append('image')
+                        .attr('class', 'sortAsc')
+                        .attr('class', categoryLiteral + jCount)
+                        .attr('id', categoryLiteral + jCount)
+                        .attr('y', 10)
+                        .attr('height', 7)
+                        .attr('width', 7);
 
-                        if (Gantt.sortOrder === 'asc' || Gantt.sortLevel !== jCount) {
-                            sortIconImage
-                                .attr('x', 15)
-                                .attr('xlink:href', Gantt.sortAscOrder);
+                    if (Gantt.numberOfCategories !== 1) {
+                        if (jCount === 0) {
+                            textElement.attr('x', 15);
+
+                            if (Gantt.sortOrder === 'asc' || Gantt.sortLevel !== jCount) {
+                                sortIconImage
+                                    .attr('x', 15)
+                                    .attr('xlink:href', Gantt.sortAscOrder);
+                            } else {
+                                sortIconImage
+                                    .attr('x', 15)
+                                    .attr('xlink:href', Gantt.sortDescOrder);
+                            }
                         } else {
-                            sortIconImage
-                                .attr('x', 15)
-                                .attr('xlink:href', Gantt.sortDescOrder);
+                            textElement.attr('x', taskColumnArr[jCount]);
+
+                            if (Gantt.sortOrder === 'asc' || Gantt.sortLevel !== jCount) {
+                                sortIconImage
+                                    .attr('x', taskColumnArr[jCount])
+                                    .attr('xlink:href', Gantt.sortAscOrder);
+                            } else {
+                                sortIconImage
+                                    .attr('x', taskColumnArr[jCount])
+                                    .attr('xlink:href', Gantt.sortDescOrder);
+                            }
                         }
                     } else {
                         textElement.attr('x', taskColumnArr[jCount]);
-
                         if (Gantt.sortOrder === 'asc' || Gantt.sortLevel !== jCount) {
                             sortIconImage
                                 .attr('x', taskColumnArr[jCount])
@@ -4311,363 +5542,390 @@ module powerbi.extensibility.visual {
                                 .attr('xlink:href', Gantt.sortDescOrder);
                         }
                     }
-                } else {
-                    textElement.attr('x', taskColumnArr[jCount]);
-                    if (Gantt.sortOrder === 'asc' || Gantt.sortLevel !== jCount) {
-                        sortIconImage
-                            .attr('x', taskColumnArr[jCount])
-                            .attr('xlink:href', Gantt.sortAscOrder);
-                    } else {
-                        sortIconImage
-                            .attr('x', taskColumnArr[jCount])
-                            .attr('xlink:href', Gantt.sortDescOrder);
-                    }
-                }
-                if (jCount === totalCategories - 1) {
-                    kpiPanelWidth = parseInt(d3.select('.gantt_kpiPanel').style('left'), 10);
-                    lastRectX = parseInt(d3.select(categoryClassLiteral + jCount).attr('x'), 10);
-                    if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 1) || lastRectX > barPanelLeft - 1) {
-                        d3.select(categoryClassLiteral + jCount)
-                            .text(Gantt.categoriesTitle[jCount])
-                            .style({
-                                'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) /
-                                    Gantt.maximumFontSize + pxLiteral,
-                                'font-family': columnHeaderFontFamily,
-                                fill: columnHeaderColor,
-                                'background-color': columnHeaderBgColor
-                            })
-                            .call(
-                                AxisHelper.LabelLayoutStrategy.clip,
-                                100,
-                                textMeasurementService.svgEllipsis);
-                    } else {
-                        d3.select(categoryClassLiteral + jCount)
-                            .text(Gantt.categoriesTitle[jCount])
-                            .style({
-                                'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) /
-                                    Gantt.maximumFontSize + pxLiteral,
-                                'font-family': columnHeaderFontFamily,
-                                fill: columnHeaderColor,
-                                'background-color': columnHeaderBgColor
-                            })
-                            .call(
-                                AxisHelper.LabelLayoutStrategy.clip,
-                                kpiPanelWidth -
-                                lastRectX,
-                                textMeasurementService.svgEllipsis);
-                    }
-
-                } else {
-                    if (jCount === 0) {
-                        d3.select(categoryClassLiteral + jCount)
-                            .text(Gantt.categoriesTitle[jCount])
-                            .style({
-                                'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral,
-                                'font-family': columnHeaderFontFamily,
-                                fill: columnHeaderColor,
-                                'background-color': columnHeaderBgColor
-                            })
-                            .call(AxisHelper.LabelLayoutStrategy.clip, columnWidthsArr[jCount] - 15, textMeasurementService.svgEllipsis);
-                    } else {
-                        d3.select(categoryClassLiteral + jCount)
-                            .text(Gantt.categoriesTitle[jCount])
-                            .style({
-                                'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral,
-                                'font-family': columnHeaderFontFamily,
-                                fill: columnHeaderColor,
-                                'background-color': columnHeaderBgColor
-                            })
-                            .call(AxisHelper.LabelLayoutStrategy.clip, columnWidthsArr[jCount] - 10, textMeasurementService.svgEllipsis);
-                    }
-
-                }
-
-                d3.select(categoryClassLiteral + jCount)
-                    .append('title').text(Gantt.getLabelValuesNew(Gantt.categoriesTitle[jCount].toString(), 'text', 50));
-
-                if (jCount !== 0) {
-                    let resizer: Selection<HTMLElement>;
-                    resizer = this.drillAllGroup.append('rect').classed('gantt_resizer', true).classed(headerCellLiteral + jCount, true);
-                    resizer.attr({
-                        x: taskColumnArr[jCount] - 10,
-                        y: 0,
-                        height: '30px',
-                        width: '5px',
-                        fill: columnHeaderBgColor,
-                        columnId: headerCellLiteral + jCount
-                    });
-
-                }
-            }
-
-            for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
-                let axisKPILabel: Selection<HTMLElement>;
-                axisKPILabel = this.kpiTitleGroup.append('text').classed(Selectors.label.class, true);
-                axisKPILabel.attr({
-                    x: 3 + (Gantt.kpiLabelWidth / totalKPIs * jCount),
-                    y: 15,
-                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral,
-                    'font-family': columnHeaderFontFamily,
-                    fill: columnHeaderColor,
-                    background: columnHeaderBgColor,
-                    'stroke-width': Gantt.axisLabelStrokeWidth
-                });
-
-                let sKPITitle: string;
-                sKPITitle = tasks[0].KPIValues[jCount].name;
-                let sFirstWord: string;
-                sFirstWord = sKPITitle.substr(0, sKPITitle.indexOf(' '));
-                switch (sFirstWord) {
-                    case 'First':
-                    case 'Last':
-                    case 'Earliest':
-                    case 'Latest':
-                        sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 1, sKPITitle.length);
-                        break;
-                    case 'Count':
-                    case 'Average':
-                    case 'Min':
-                    case 'Max':
-                    case 'Variance':
-                    case 'Median':
-                        sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 4, sKPITitle.length);
-                        break;
-                    case 'Standard':
-                        sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 14, sKPITitle.length);
-                    default:
-                }
-                let numberOfCharsAllowed: number;
-                numberOfCharsAllowed = 75 / (Gantt.iKPIHeaderSingleCharWidth);
-                axisKPILabel.text(Gantt.getLabelValuesNew(sKPITitle, 'text', numberOfCharsAllowed));
-                axisKPILabel.append('title').text(sKPITitle);
-
-                if (jCount !== 0) {
-                    let kpiTitleVerticleLine: Selection<HTMLElement>;
-                    kpiTitleVerticleLine = this.kpiTitleGroup.append('line').classed(verticalLineSimpleLiteral, true);
-                    kpiTitleVerticleLine.attr({
-                        x1: (Gantt.kpiLabelWidth / totalKPIs * jCount),
-                        y1: 0,
-                        x2: (Gantt.kpiLabelWidth / totalKPIs * jCount),
-                        y2: 30,
-                        stroke: '#f2f2f2'
-                    });
-
-                    let kpiVerticleLine: Selection<HTMLElement>;
-                    kpiVerticleLine = this.kpiGroup.append('line').classed(verticalLineSimpleLiteral, true);
-                    kpiVerticleLine.attr({
-                        x1: (Gantt.kpiLabelWidth / totalKPIs * jCount) - 1,
-                        y1: 0,
-                        x2: (Gantt.kpiLabelWidth / totalKPIs * jCount) - 1,
-                        y2: Gantt.currentTasksNumber * chartLineHeight + 8,
-                        stroke: '#f2f2f2'
-                    });
-                }
-            }
-            let categoryObject: string[];
-            categoryObject = [];
-            const tasksLength: number = tasks.length;
-            let yVal: number = -1;
-            let opacityValue: number = 0;
-            for (let tasknumber: number = 0; tasknumber < tasksLength; tasknumber++) {
-                let currentLevel: Task;
-                currentLevel = tasks[tasknumber];
-                thisObj = this;
-                let regionAttr: string = '';
-                let metroAttr: string = '';
-                let projectAttr: string = '';
-                let trancheAttr: string = '';
-                for (let jCount: number = 0; jCount < totalCategories; jCount++) {
-                    if (jCount === 0) {
-                        regionAttr = tasks[tasknumber].name[jCount];
-                    } else if (jCount === 1) {
-                        metroAttr = tasks[tasknumber].name[jCount];
-                    } else if (jCount === 2) {
-                        projectAttr = tasks[tasknumber].name[jCount];
-                    } else if (jCount === 3) {
-                        trancheAttr = tasks[tasknumber].name[jCount];
-                    }
-                    if (taskLabelsShow) {
-                        if (isTaskLabelHierarchyView) {
-                            if (categoryObject[jCount] === tasks[tasknumber].name[jCount] && (totalCategories - 1) !== jCount) {
-                                continue;
-                            }
-                            if (tasknumber !== 0) {
-                                axisLabel = this.lineGroup
-                                    .append('line')
-                                    .classed(horizontalLineSimpleLiteral + jCount, true);
-                                let x1Val: number = Gantt.taskLineCoordinateX
-                                    + ((Gantt.singleCharacterWidth * this.viewModel.settings.taskLabels.width + 25) * jCount) - 5;
-
-                                if (0 === jCount) {
-                                    x1Val -= 10;
-                                }
-                            }
-                        }
-                        categoryObject[jCount] = tasks[tasknumber].name[jCount];
-                        opacityValue = tasknumber % 2 === 0 ? 0.2 : 0.6;
-                        if (yVal !== thisObj.getTaskLabelCoordinateY(tasknumber)) {
-                            const greyRect: Selection<HTMLElement> = this.lineGroup.append('rect').attr({
-                                x: 0,
-                                y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
-                                width: $('.gantt_taskSvg').width(),
-                                height: 24,
-                                fill: '#ccc',
-                                class: 'gantt_backgroundRect',
-                                opacity: opacityValue
-                            });
-                            yVal = thisObj.getTaskLabelCoordinateY(tasknumber);
-                        }
-                        axisLabel = this.lineGroup
-                            .append('text')
-                            .classed(Selectors.label.class, true).classed('gantt_kpiClass', true);
-
-                        if (jCount === 0) {
-                            axisLabel.attr({
-                                x: taskColumnArr[jCount],
-                                y: this.getTaskLabelCoordinateY(tasknumber),
-                                class: Selectors.toggleTask.class + spaceLiteral
-                                    + taskRowLiteral + tasknumber + spaceLiteral + taskColumnLiteral + jCount,
-                                fill: taskLabelsColor,
-                                'stroke-width': Gantt.axisLabelStrokeWidth,
-                                regionAttr: regionAttr,
-                                metroAttr: metroAttr,
-                                projectAttr: projectAttr,
-                                trancheAttr: trancheAttr
-                            }).style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily);
-                        } else {
-
-                            axisLabel.attr({
-                                x: taskColumnArr[jCount],
-                                y: this.getTaskLabelCoordinateY(tasknumber),
-                                class: Selectors.toggleTask.class + spaceLiteral +
-                                    taskRowLiteral + tasknumber + spaceLiteral + taskColumnLiteral + jCount,
-                                fill: taskLabelsColor,
-                                'stroke-width': Gantt.axisLabelStrokeWidth,
-                                regionAttr: regionAttr,
-                                metroAttr: metroAttr,
-                                projectAttr: projectAttr,
-                                trancheAttr: trancheAttr
-                            }).style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily);
-                        }
-
-                        let categoryLabel: string = tasks[tasknumber].name[jCount].toString();
-
-                        if (jCount === 0) {
-                            categoryLabel = Gantt.regionValueFormatter.format(tasks[tasknumber].name[jCount]);
-                        } else if (jCount === 1) {
-                            categoryLabel = Gantt.metroValueFormatter.format(tasks[tasknumber].name[jCount]);
-                        } else if (jCount === 2) {
-                            categoryLabel = Gantt.projectValueFormatter.format(tasks[tasknumber].name[jCount]);
-                        } else if (jCount === 3) {
-                            categoryLabel = Gantt.trancheValueFormatter.format(tasks[tasknumber].name[jCount]);
-                        }
-                        if (categoryLabel === '') {
-                            categoryLabel = 'N/A';
-                        }
-
-                        if (jCount === totalCategories - 1) {
-                            lastRectX = parseInt(d3.select(dotLiteral + categoryLiteral + jCount).attr('x'), 10);
-                            if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 1) || lastRectX > barPanelLeft - 1) {
-                                axisLabel.text(categoryLabel)
-                                    .call(
-                                        AxisHelper.LabelLayoutStrategy.clip,
-                                        100,
-                                        textMeasurementService.svgEllipsis);
-                            } else {
-                                axisLabel.text(categoryLabel)
-                                    .call(
-                                        AxisHelper.LabelLayoutStrategy.clip,
-                                        parseInt(d3.select('.gantt_kpiPanel').style('left'), 10) - lastRectX - 10,
-                                        textMeasurementService.svgEllipsis);
-                            }
-
-                        } else {
-                            axisLabel.text(categoryLabel)
+                    if (jCount === totalCategories - 1) {
+                        kpiPanelWidth = parseInt(d3.select('.gantt_kpiPanel').style('left'), 10);
+                        lastRectX = parseInt(d3.select(categoryClassLiteral + jCount).attr('x'), 10);
+                        if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 1) || lastRectX > barPanelLeft - 1) {
+                            d3.select(categoryClassLiteral + jCount)
+                                .text(Gantt.categoriesTitle[jCount])
+                                .style({
+                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) /
+                                        Gantt.maximumFontSize + pxLiteral,
+                                    'font-family': columnHeaderFontFamily,
+                                    fill: columnHeaderColor,
+                                    'background-color': columnHeaderBgColor
+                                })
                                 .call(
                                     AxisHelper.LabelLayoutStrategy.clip,
-                                    columnWidthsArr[jCount] - 20,
+                                    100,
+                                    textMeasurementService.svgEllipsis);
+                        } else {
+                            d3.select(categoryClassLiteral + jCount)
+                                .text(Gantt.categoriesTitle[jCount])
+                                .style({
+                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) /
+                                        Gantt.maximumFontSize + pxLiteral,
+                                    'font-family': columnHeaderFontFamily,
+                                    fill: columnHeaderColor,
+                                    'background-color': columnHeaderBgColor
+                                })
+                                .call(
+                                    AxisHelper.LabelLayoutStrategy.clip,
+                                    kpiPanelWidth -
+                                    lastRectX,
                                     textMeasurementService.svgEllipsis);
                         }
 
-                        axisLabel.append('title').text(Gantt.getLabelValuesNew(categoryLabel, 'title', width));
+                    } else {
+                        if (jCount === 0) {
+                            d3.select(categoryClassLiteral + jCount)
+                                .text(Gantt.categoriesTitle[jCount])
+                                .style({
+                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize)
+                                        / Gantt.maximumFontSize + pxLiteral,
+                                    'font-family': columnHeaderFontFamily,
+                                    fill: columnHeaderColor,
+                                    'background-color': columnHeaderBgColor
+                                })
+                                .call(AxisHelper.LabelLayoutStrategy.clip, columnWidthsArr[jCount]
+                                    // tslint:disable-next-line:align
+                                    - 15, textMeasurementService.svgEllipsis);
+                        } else {
+                            d3.select(categoryClassLiteral + jCount)
+                                .text(Gantt.categoriesTitle[jCount])
+                                .style({
+                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize)
+                                        / Gantt.maximumFontSize + pxLiteral,
+                                    'font-family': columnHeaderFontFamily,
+                                    fill: columnHeaderColor,
+                                    'background-color': columnHeaderBgColor
+                                })
+                                .call(AxisHelper.LabelLayoutStrategy.clip, columnWidthsArr[jCount]
+                                    // tslint:disable-next-line:align
+                                    - 10, textMeasurementService.svgEllipsis);
+                        }
+
+                    }
+                    d3.select(categoryClassLiteral + jCount)
+                        .append('title').text(Gantt.getLabelValuesNew(Gantt.categoriesTitle[jCount].toString(), 'text', 50));
+
+                    if (jCount !== 0) {
+
+                        let resizer: Selection<HTMLElement>;
+                        resizer = this.drillAllGroup.append('rect')
+                            .classed('gantt_resizer', true).classed(headerCellLiteral + jCount, true);
+                        resizer.attr({
+                            x: taskColumnArr[jCount] - 10,
+                            y: 0,
+                            height: '30px',
+                            width: '5px',
+                            fill: columnHeaderBgColor,
+                            columnId: headerCellLiteral + jCount
+                        });
 
                     }
                 }
 
-                if (0 !== currentLevel.KPIValues.length) {
-                    for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
+                for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
+                    let axisKPILabel: Selection<HTMLElement>;
+                    axisKPILabel = this.kpiTitleGroup.append('text').classed(Selectors.label.class, true);
+                    axisKPILabel.attr({
+                        x: 3 + (Gantt.kpiLabelWidth / totalKPIs * jCount),
+                        y: 15,
+                        'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral,
+                        'font-family': columnHeaderFontFamily,
+                        fill: columnHeaderColor,
+                        background: columnHeaderBgColor,
+                        'stroke-width': Gantt.axisLabelStrokeWidth
+                    });
+                    let sKPITitle: string;
+                    sKPITitle = tasks[0].KPIValues[jCount].name;
+                    let sFirstWord: string;
+                    sFirstWord = sKPITitle.substr(0, sKPITitle.indexOf(' '));
+                    switch (sFirstWord) {
+                        case 'First':
+                        case 'Last':
+                        case 'Earliest':
+                        case 'Latest':
+                            sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 1, sKPITitle.length);
+                            break;
+                        case 'Count':
+                        case 'Average':
+                        case 'Min':
+                        case 'Max':
+                        case 'Variance':
+                        case 'Median':
+                            sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 4, sKPITitle.length);
+                            break;
+                        case 'Standard':
+                            sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 14, sKPITitle.length);
+                        default:
+                    }
+                    let numberOfCharsAllowed: number;
+                    numberOfCharsAllowed = 75 / (Gantt.iKPIHeaderSingleCharWidth);
+                    axisKPILabel.text(Gantt.getLabelValuesNew(sKPITitle, 'text', numberOfCharsAllowed));
+                    axisKPILabel.append('title').text(sKPITitle);
+
+                    if (jCount !== 0) {
+                        let kpiTitleVerticleLine: Selection<HTMLElement>;
+                        kpiTitleVerticleLine = this.kpiTitleGroup.append('line').classed(verticalLineSimpleLiteral, true);
+                        kpiTitleVerticleLine.attr({
+                            x1: (Gantt.kpiLabelWidth / totalKPIs * jCount),
+                            y1: 0,
+                            x2: (Gantt.kpiLabelWidth / totalKPIs * jCount),
+                            y2: 30,
+                            stroke: '#f2f2f2'
+                        });
+
+                        let kpiVerticleLine: Selection<HTMLElement>;
+                        kpiVerticleLine = this.kpiGroup.append('line').classed(verticalLineSimpleLiteral, true);
+                        kpiVerticleLine.attr({
+                            x1: (Gantt.kpiLabelWidth / totalKPIs * jCount) - 1,
+                            y1: 0,
+                            x2: (Gantt.kpiLabelWidth / totalKPIs * jCount) - 1,
+                            y2: Gantt.currentTasksNumber * chartLineHeight + 8,
+                            stroke: '#f2f2f2'
+                        });
+                    }
+                }
+
+                let categoryObject: string[];
+                categoryObject = [];
+                const tasksLength: number = tasks.length;
+                let yVal: number = -1;
+                let opacityValue: number = 0;
+                for (let tasknumber: number = 0; tasknumber < tasksLength; tasknumber++) {
+                    let currentLevel: Task;
+                    currentLevel = tasks[tasknumber];
+                    thisObj = this;
+                    let regionAttr: string = '';
+                    let metroAttr: string = '';
+                    let projectAttr: string = '';
+                    let trancheAttr: string = '';
+                    for (let jCount: number = 0; jCount < totalCategories; jCount++) {
                         if (jCount === 0) {
-                            thisObj.kpiGroup.append('rect').attr({
-                                x: 0,
-                                y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
-                                height: 24,
-                                width: parseInt(d3.select('.gantt_kpiSvg').attr('width'), 10),
-                                fill: '#ccc',
-                                opacity: opacityValue
-                            })
-                                .attr('x', 0)
-                                .attr('y', thisObj.getTaskLabelCoordinateY(tasknumber) - 17)
-                                .attr('height', 24)
-                                .attr('width', parseInt(d3.select('.gantt_kpiSvg').attr('width'), 10))
-                                .attr('fill', '#ccc');
+                            regionAttr = tasks[tasknumber].name[jCount];
+                        } else if (jCount === 1) {
+                            metroAttr = tasks[tasknumber].name[jCount];
+                        } else if (jCount === 2) {
+                            projectAttr = tasks[tasknumber].name[jCount];
+                        } else if (jCount === 3) {
+                            trancheAttr = tasks[tasknumber].name[jCount];
                         }
-                        if (this.viewModel.kpiData[jCount].type.toLowerCase() === 'indicator') {
-                            let axisKPILabel: Selection<HTMLElement>;
-                            axisKPILabel = thisObj.kpiGroup
-                                .append('circle').classed(Selectors.label.class, true)
-                                .classed(kpiClassLiteral + spaceLiteral + taskRowLiteral + tasknumber, true);
-                            let color: string = kpiFontColor;
-                            let text: string = '';
-                            let titleText: string;
-                            titleText = currentLevel.KPIValues[jCount].value ? currentLevel.KPIValues[jCount].value.toString() : '';
-                            let showCircle: boolean = true;
-                            let extraLeftPadding: number = 0;
-                            switch (currentLevel.KPIValues[jCount].value ? currentLevel.KPIValues[jCount].value.toString() : '') {
-                                case '1':
-                                    color = '#ad1717';
-                                    text = 'R';
-                                    extraLeftPadding = 1.5;
-                                    break;
-                                case '2':
-                                    color = '#d15d0d';
-                                    text = 'O';
-                                    extraLeftPadding = 1;
-                                    break;
-                                case '3':
-                                    color = '#ff9d00';
-                                    text = 'Y';
-                                    extraLeftPadding = 2;
-
-                                    break;
-                                case '4':
-                                    color = '#116836';
-                                    text = 'G';
-                                    extraLeftPadding = 0.5;
-                                    break;
-                                default:
-                                    showCircle = false;
-                                    break;
+                        if (taskLabelsShow) {
+                            categoryObject[jCount] = tasks[tasknumber].name[jCount];
+                            opacityValue = tasknumber % 2 === 0 ? 0.2 : 0.6;
+                            if (yVal !== thisObj.getTaskLabelCoordinateY(tasknumber)) {
+                                const greyRect: Selection<HTMLElement> = this.lineGroup.append('rect').attr({
+                                    x: 0,
+                                    y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
+                                    width: $('.gantt_taskSvg').width(),
+                                    height: 24,
+                                    fill: '#ccc',
+                                    class: 'gantt_backgroundRect',
+                                    opacity: opacityValue
+                                });
+                                yVal = thisObj.getTaskLabelCoordinateY(tasknumber);
                             }
+                            axisLabel = this.lineGroup
+                                .append('text')
+                                .classed(Selectors.label.class, true).classed('gantt_kpiClass', true);
+                            if (jCount === 0) {
 
-                            if (showCircle) {
-                                axisKPILabel.attr({
-                                    cx: (Gantt.kpiLabelWidth / totalKPIs * jCount) + 37.5,
-                                    cy: thisObj.getTaskLabelCoordinateY(tasknumber) - 4,
-                                    r: 8,
-                                    fill: color,
+                                axisLabel.attr({
+                                    x: taskColumnArr[jCount],
+                                    y: this.getTaskLabelCoordinateY(tasknumber),
+                                    class: Selectors.toggleTask.class + spaceLiteral
+                                        + taskRowLiteral + tasknumber + spaceLiteral + taskColumnLiteral + jCount,
+                                    fill: taskLabelsColor,
                                     'stroke-width': Gantt.axisLabelStrokeWidth,
                                     regionAttr: regionAttr,
                                     metroAttr: metroAttr,
                                     projectAttr: projectAttr,
                                     trancheAttr: trancheAttr
-                                }).style('font-size', normalizer + pxLiteral);
-                                axisKPILabel.append('title').text(titleText);
+                                }).style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily);
+                            } else {
 
+                                axisLabel.attr({
+                                    x: taskColumnArr[jCount],
+                                    y: this.getTaskLabelCoordinateY(tasknumber),
+                                    class: Selectors.toggleTask.class + spaceLiteral +
+                                        taskRowLiteral + tasknumber + spaceLiteral + taskColumnLiteral + jCount,
+                                    fill: taskLabelsColor,
+                                    'stroke-width': Gantt.axisLabelStrokeWidth,
+                                    regionAttr: regionAttr,
+                                    metroAttr: metroAttr,
+                                    projectAttr: projectAttr,
+                                    trancheAttr: trancheAttr
+                                }).style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily);
+                            }
+
+                            let categoryLabel: string = tasks[tasknumber].name[jCount].toString();
+
+                            if (jCount === 0) {
+                                categoryLabel = Gantt.regionValueFormatter.format(tasks[tasknumber].name[jCount]);
+                            } else if (jCount === 1) {
+                                categoryLabel = Gantt.metroValueFormatter.format(tasks[tasknumber].name[jCount]);
+                            } else if (jCount === 2) {
+                                categoryLabel = Gantt.projectValueFormatter.format(tasks[tasknumber].name[jCount]);
+                            } else if (jCount === 3) {
+                                categoryLabel = Gantt.trancheValueFormatter.format(tasks[tasknumber].name[jCount]);
+                            }
+                            if (categoryLabel === '') {
+                                categoryLabel = 'N/A';
+                            }
+
+                            if (jCount === totalCategories - 1) {
+
+                                lastRectX = parseInt(d3.select(dotLiteral + categoryLiteral + jCount).attr('x'), 10);
+                                if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 1) || lastRectX > barPanelLeft - 1) {
+                                    axisLabel.text(categoryLabel)
+                                        .call(
+                                            AxisHelper.LabelLayoutStrategy.clip,
+                                            100,
+                                            textMeasurementService.svgEllipsis);
+                                } else {
+                                    axisLabel.text(categoryLabel)
+                                        .call(
+                                            AxisHelper.LabelLayoutStrategy.clip,
+                                            parseInt(d3.select('.gantt_kpiPanel').style('left'), 10) - lastRectX - 10,
+                                            textMeasurementService.svgEllipsis);
+                                }
+
+                            } else {
+                                axisLabel.text(categoryLabel)
+                                    .call(
+                                        AxisHelper.LabelLayoutStrategy.clip,
+                                        columnWidthsArr[jCount] - 20,
+                                        textMeasurementService.svgEllipsis);
+                            }
+
+                            axisLabel.append('title').text(Gantt.getLabelValuesNew(categoryLabel, 'title', width));
+                        }
+                    }
+                    if (0 !== currentLevel.KPIValues.length) {
+                        for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
+                            if (jCount === 0) {
+                                thisObj.kpiGroup.append('rect').attr({
+                                    x: 0,
+                                    y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
+                                    height: 24,
+                                    width: parseInt(d3.select('.gantt_kpiSvg').attr('width'), 10),
+                                    fill: '#ccc',
+                                    opacity: opacityValue
+                                })
+                                    .attr('x', 0)
+                                    .attr('y', thisObj.getTaskLabelCoordinateY(tasknumber) - 17)
+                                    .attr('height', 24)
+                                    .attr('width', parseInt(d3.select('.gantt_kpiSvg').attr('width'), 10))
+                                    .attr('fill', '#ccc');
+                            }
+                            if (this.viewModel.kpiData[jCount].type.toLowerCase() === 'indicator') {
+                                let axisKPILabel: Selection<HTMLElement>;
+                                axisKPILabel = thisObj.kpiGroup
+                                    .append('circle').classed(Selectors.label.class, true)
+                                    .classed(kpiClassLiteral + spaceLiteral + taskRowLiteral + tasknumber, true);
+                                let color: string = kpiFontColor;
+                                let text: string = '';
+                                let titleText: string;
+                                titleText = currentLevel.KPIValues[jCount].value ? currentLevel.KPIValues[jCount].value.toString() : '';
+                                let showCircle: boolean = true;
+                                let extraLeftPadding: number = 0;
+                                switch (currentLevel.KPIValues[jCount].value ? currentLevel.KPIValues[jCount].value.toString() : '') {
+                                    case '1':
+                                        color = '#ad1717';
+                                        text = 'R';
+                                        extraLeftPadding = 1.5;
+                                        break;
+                                    case '2':
+                                        color = '#d15d0d';
+                                        text = 'O';
+                                        extraLeftPadding = 1;
+                                        break;
+                                    case '3':
+                                        color = '#ff9d00';
+                                        text = 'Y';
+                                        extraLeftPadding = 2;
+
+                                        break;
+                                    case '4':
+                                        color = '#116836';
+                                        text = 'G';
+                                        extraLeftPadding = 0.5;
+                                        break;
+                                    default:
+                                        showCircle = false;
+                                        break;
+                                }
+
+                                if (showCircle) {
+                                    axisKPILabel.attr({
+                                        cx: (Gantt.kpiLabelWidth / totalKPIs * jCount) + 37.5,
+                                        cy: thisObj.getTaskLabelCoordinateY(tasknumber) - 4,
+                                        r: 8,
+                                        fill: color,
+                                        'stroke-width': Gantt.axisLabelStrokeWidth,
+                                        regionAttr: regionAttr,
+                                        metroAttr: metroAttr,
+                                        projectAttr: projectAttr,
+                                        trancheAttr: trancheAttr
+                                    }).style('font-size', normalizer + pxLiteral);
+                                    axisKPILabel.append('title').text(titleText);
+
+                                    axisKPILabel = thisObj.kpiGroup.append('text').classed(Selectors.label.class, true);
+                                    axisKPILabel.attr({
+                                        x: (Gantt.kpiLabelWidth / totalKPIs * jCount) + 32.5 + extraLeftPadding,
+                                        y: thisObj.getTaskLabelCoordinateY(tasknumber),
+                                        fill: '#fff',
+                                        'stroke-width': 5,
+                                        regionAttr: regionAttr,
+                                        metroAttr: metroAttr,
+                                        projectAttr: projectAttr,
+                                        trancheAttr: trancheAttr
+                                    }).style('font-size', kpiFontSize + pxLiteral);
+
+                                    axisKPILabel.text(text);
+                                    axisKPILabel.append('title').text(titleText);
+                                }
+                            } else if (thisObj.viewModel.kpiData[jCount].type.toLowerCase() === 'type') {
+                                let axisKPILabel: Selection<HTMLElement>;
+                                axisKPILabel = thisObj.kpiGroup
+                                    .append('rect').classed(Selectors.label.class, true)
+                                    .classed(kpiClassLiteral + spaceLiteral + taskRowLiteral + tasknumber, true);
+
+                                let color: string;
+                                color = '#fff';
+                                let text: string = currentLevel.KPIValues[jCount].value ?
+                                    currentLevel.KPIValues[jCount].value.toString() : '';
+                                if (!text) { continue; }
+                                let titleText: string;
+                                titleText = text;
+                                if (-1 === types.indexOf(text)) {
+                                    types.push(text);
+                                }
+                                let index: number;
+                                index = types.indexOf(text);
+                                typeColor = Gantt.typeColors[index % Gantt.typeColors.length];
+                                text = text.charAt(0) + text.charAt(-1 !== text.indexOf(' ') ? text.indexOf(' ') + 1 : -1);
+
+                                axisKPILabel.attr({
+                                    x: Gantt.taskLineCoordinateX + (Gantt.kpiLabelWidth / totalKPIs * jCount) + 9.5,
+                                    y: thisObj.getTaskLabelCoordinateY(tasknumber) - 12,
+                                    width: 24,
+                                    height: 16,
+                                    fill: typeColor,
+                                    'stroke-width': Gantt.axisLabelStrokeWidth,
+                                    regionAttr: regionAttr,
+                                    metroAttr: metroAttr,
+                                    projectAttr: projectAttr,
+                                    trancheAttr: trancheAttr
+                                }).style('font-size', kpiFontSize + pxLiteral);
+                                axisKPILabel.append('title').text(titleText);
                                 axisKPILabel = thisObj.kpiGroup.append('text').classed(Selectors.label.class, true);
                                 axisKPILabel.attr({
-                                    x: (Gantt.kpiLabelWidth / totalKPIs * jCount) + 32.5 + extraLeftPadding,
+                                    x: Gantt.taskLineCoordinateX + (Gantt.kpiLabelWidth / totalKPIs * jCount) + 12.5,
                                     y: thisObj.getTaskLabelCoordinateY(tasknumber),
-                                    fill: '#fff',
+                                    fill: color,
                                     'stroke-width': 5,
                                     regionAttr: regionAttr,
                                     metroAttr: metroAttr,
@@ -4675,651 +5933,2441 @@ module powerbi.extensibility.visual {
                                     trancheAttr: trancheAttr
                                 }).style('font-size', kpiFontSize + pxLiteral);
 
-                                axisKPILabel.text(text);
+                                axisKPILabel.text(text.toUpperCase());
                                 axisKPILabel.append('title').text(titleText);
-                            }
-                        } else if (thisObj.viewModel.kpiData[jCount].type.toLowerCase() === 'type') {
-                            let axisKPILabel: Selection<HTMLElement>;
-                            axisKPILabel = thisObj.kpiGroup
-                                .append('rect').classed(Selectors.label.class, true)
-                                .classed(kpiClassLiteral + spaceLiteral + taskRowLiteral + tasknumber, true);
+                            } else {
+                                let axisKPILabel: Selection<HTMLElement>;
+                                axisKPILabel = thisObj.kpiGroup
+                                    .append('text').classed(Selectors.label.class, true)
+                                    .classed(kpiClassLiteral + spaceLiteral + taskRowLiteral + tasknumber, true);
 
-                            let color: string;
-                            color = '#fff';
-                            let text: string = currentLevel.KPIValues[jCount].value ? currentLevel.KPIValues[jCount].value.toString() : '';
-                            if (!text) { continue; }
-                            let titleText: string;
-                            titleText = text;
-                            if (-1 === types.indexOf(text)) {
-                                types.push(text);
-                            }
-                            let index: number;
-                            index = types.indexOf(text);
-                            typeColor = Gantt.typeColors[index % Gantt.typeColors.length];
-                            text = text.charAt(0) + text.charAt(-1 !== text.indexOf(' ') ? text.indexOf(' ') + 1 : -1);
-
-                            axisKPILabel.attr({
-                                x: Gantt.taskLineCoordinateX + (Gantt.kpiLabelWidth / totalKPIs * jCount) + 9.5,
-                                y: thisObj.getTaskLabelCoordinateY(tasknumber) - 12,
-                                width: 24,
-                                height: 16,
-                                fill: typeColor,
-                                'stroke-width': Gantt.axisLabelStrokeWidth,
-                                regionAttr: regionAttr,
-                                metroAttr: metroAttr,
-                                projectAttr: projectAttr,
-                                trancheAttr: trancheAttr
-                            }).style('font-size', kpiFontSize + pxLiteral);
-                            axisKPILabel.append('title').text(titleText);
-                            axisKPILabel = thisObj.kpiGroup.append('text').classed(Selectors.label.class, true);
-                            axisKPILabel.attr({
-                                x: Gantt.taskLineCoordinateX + (Gantt.kpiLabelWidth / totalKPIs * jCount) + 12.5,
-                                y: thisObj.getTaskLabelCoordinateY(tasknumber),
-                                fill: color,
-                                'stroke-width': 5,
-                                regionAttr: regionAttr,
-                                metroAttr: metroAttr,
-                                projectAttr: projectAttr,
-                                trancheAttr: trancheAttr
-                            }).style('font-size', kpiFontSize + pxLiteral);
-
-                            axisKPILabel.text(text.toUpperCase());
-                            axisKPILabel.append('title').text(titleText);
-                        } else {
-                            let axisKPILabel: Selection<HTMLElement>;
-                            axisKPILabel = thisObj.kpiGroup
-                                .append('text').classed(Selectors.label.class, true)
-                                .classed(kpiClassLiteral + spaceLiteral + taskRowLiteral + tasknumber, true);
-
-                            let iLeftSpacing: number = 5;
-                            if (typeof currentLevel.KPIValues[jCount].value === 'number') {
-                                let clippedText: string;
-                                clippedText = currentLevel.KPIValues[jCount].value.toString();
-                                thisObj.body.append('text')
-                                    .text(clippedText)
-                                    .classed('singleCharacter', true)
-                                    .style({
-                                        'font-size': kpiFontSize + pxLiteral,
-                                        'font-family': 'Segoe UI'
-                                    });
-                                let textTotalWidth: number;
-                                textTotalWidth = $('.singleCharacter').innerWidth();
-                                let numberOfCharactersAllowed: number;
-                                numberOfCharactersAllowed = Math.floor(
-                                    (Gantt.kpiLabelWidth / totalKPIs) / (textTotalWidth / clippedText.length));
-                                if (clippedText.length > numberOfCharactersAllowed) {
-                                    $('.singleCharacter').text(clippedText.substring(0, numberOfCharactersAllowed - 2) + ellipsisLiteral);
+                                let iLeftSpacing: number = 5;
+                                if (typeof currentLevel.KPIValues[jCount].value === 'number') {
+                                    let clippedText: string;
+                                    clippedText = currentLevel.KPIValues[jCount].value.toString();
+                                    thisObj.body.append('text')
+                                        .text(clippedText)
+                                        .classed('singleCharacter', true)
+                                        .style({
+                                            'font-size': kpiFontSize + pxLiteral,
+                                            'font-family': 'Segoe UI'
+                                        });
+                                    let textTotalWidth: number;
                                     textTotalWidth = $('.singleCharacter').innerWidth();
-                                    let iCount: number = 0;
-                                    while (textTotalWidth < width) {
-                                        iCount++;
-                                        $('.singleCharacter')
-                                            .text(clippedText.substring(0, numberOfCharactersAllowed - 2 + iCount) + ellipsisLiteral);
+                                    let numberOfCharactersAllowed: number;
+                                    numberOfCharactersAllowed = Math.floor(
+                                        (Gantt.kpiLabelWidth / totalKPIs) / (textTotalWidth / clippedText.length));
+                                    if (clippedText.length > numberOfCharactersAllowed) {
+                                        $('.singleCharacter').text(clippedText
+                                            .substring(0, numberOfCharactersAllowed - 2) + ellipsisLiteral);
                                         textTotalWidth = $('.singleCharacter').innerWidth();
+                                        let iCount: number = 0;
+                                        while (textTotalWidth < width) {
+                                            iCount++;
+                                            $('.singleCharacter')
+                                                .text(clippedText.substring(0, numberOfCharactersAllowed - 2 + iCount) + ellipsisLiteral);
+                                            textTotalWidth = $('.singleCharacter').innerWidth();
+                                        }
+                                    } else {
+                                        iLeftSpacing = Gantt.kpiLabelWidth / totalKPIs - textTotalWidth - 5;
                                     }
-                                } else {
-                                    iLeftSpacing = Gantt.kpiLabelWidth / totalKPIs - textTotalWidth - 5;
+                                    d3.selectAll('.singleCharacter').remove();
                                 }
-                                d3.selectAll('.singleCharacter').remove();
+
+                                axisKPILabel.attr({
+                                    x: (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing,
+                                    y: thisObj.getTaskLabelCoordinateY(tasknumber),
+                                    fill: kpiFontColor,
+                                    'stroke-width': Gantt.axisLabelStrokeWidth,
+                                    regionAttr: regionAttr,
+                                    metroAttr: metroAttr,
+                                    projectAttr: projectAttr,
+                                    trancheAttr: trancheAttr
+                                }).style('font-size', kpiFontSize + pxLiteral);
+
+                                axisKPILabel.text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'text'));
+                                axisKPILabel.append('title').text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'title'));
                             }
-
-                            axisKPILabel.attr({
-                                x: (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing,
-                                y: thisObj.getTaskLabelCoordinateY(tasknumber),
-                                fill: kpiFontColor,
-                                'stroke-width': Gantt.axisLabelStrokeWidth,
-                                regionAttr: regionAttr,
-                                metroAttr: metroAttr,
-                                projectAttr: projectAttr,
-                                trancheAttr: trancheAttr
-                            }).style('font-size', kpiFontSize + pxLiteral);
-
-                            axisKPILabel.text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'text'));
-
-                            axisKPILabel.append('title').text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'title'));
                         }
                     }
                 }
-            }
-            //Render bars
-            if (!Gantt.isDateData) {
-                for (let tasknumber: number = 0; tasknumber < tasksLength; tasknumber++) {
-                    let currentLevel: Task;
-                    currentLevel = tasks[tasknumber];
-                    const regionAttr: string = '';
-                    const metroAttr: string = '';
-                    const projectAttr: string = '';
-                    const trancheAttr: string = '';
-                    let taskGroupSelection: Selection<HTMLElement>;
+                //Render bars
+                if (!Gantt.isDateData) {
+                    for (let tasknumber: number = 0; tasknumber < tasksLength; tasknumber++) {
+                        let currentLevel: Task;
+                        currentLevel = tasks[tasknumber];
+                        const regionAttr: string = '';
+                        const metroAttr: string = '';
+                        const projectAttr: string = '';
+                        const trancheAttr: string = '';
+                        let taskGroupSelection: Selection<HTMLElement>;
+                        opacityValue = tasknumber % 2 === 0 ? 0.2 : 0.6;
+                        const backgroundRectBar: Selection<HTMLElement> = thisObj.backgroundGroupBar.append('rect').attr({
+                            x: 0,
+                            y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
+                            height: 24,
+                            width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10),
+                            fill: '#ccc',
+                            opacity: opacityValue
+                        });
 
-                    opacityValue = tasknumber % 2 === 0 ? 0.2 : 0.6;
-                    const backgroundRectBar: Selection<HTMLElement> = thisObj.backgroundGroupBar.append('rect').attr({
-                        x: 0,
-                        y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
-                        height: 24,
-                        width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10),
-                        fill: '#ccc',
-                        opacity: opacityValue
-                    });
+                        taskGroupSelection = thisObj.taskGroup
+                            .append('g')
+                            .classed(Selectors.taskGroup.class, true);
 
-                    taskGroupSelection = thisObj.taskGroup
-                        .append('g')
-                        .classed(Selectors.taskGroup.class, true);
+                        let taskSelection: Selection<HTMLElement>;
+                        taskSelection = taskGroupSelection
+                            .append('g')
+                            .classed(Selectors.singleTask.class, true);
 
-                    let taskSelection: Selection<HTMLElement>;
-                    taskSelection = taskGroupSelection
-                        .append('g')
-                        .classed(Selectors.singleTask.class, true);
+                        let yPos: number = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
+                        let xPos: number = 0;
+                        let xPosStart: number = 0;
+                        let eachPhaseSelection: Selection<Task>;
+                        eachPhaseSelection = taskSelection
+                            .datum(currentLevel)
+                            .append('g')
+                            .classed(Selectors.singlePhase.class, true);
 
-                    let yPos: number = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
-                    let xPos: number = 0;
-                    let xPosStart: number = 0;
-                    let eachPhaseSelection: Selection<Task>;
-                    eachPhaseSelection = taskSelection
-                        .datum(currentLevel)
-                        .append('g')
-                        .classed(Selectors.singlePhase.class, true);
+                        let taskRect: Selection<Task>;
+                        taskRect = eachPhaseSelection
+                            .append('rect')
+                            .classed(Selectors.taskRect.class, true)
+                            .classed(taskRowLiteral + tasknumber, true);
 
-                    let taskRect: Selection<Task>;
-                    taskRect = eachPhaseSelection
-                        .append('rect')
-                        .classed(Selectors.taskRect.class, true)
-                        .classed(taskRowLiteral + tasknumber, true);
+                        if (currentLevel.numEnd !== null || currentLevel.numStart !== null) {
+                            // tslint:disable-next-line:no-any
+                            if (isNaN(thisObj.taskDurationToWidth1(currentLevel)) || isNaN(thisObj.timeScale(<any>currentLevel.numStart))) {
+                                taskRect
+                                    .attr({
+                                        // tslint:disable-next-line:no-any
+                                        x: 0,
+                                        y: Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 3,
+                                        width: 0,
+                                        height: Gantt.getBarHeight() / 1.5,
+                                        regionAttr: regionAttr,
+                                        metroAttr: metroAttr,
+                                        projectAttr: projectAttr,
+                                        trancheAttr: trancheAttr
+                                    })
+                                    .style('fill', currentLevel.color);
+                            } else {
+                                taskRect
+                                    .attr({
+                                        // tslint:disable-next-line:no-any
+                                        x: thisObj.timeScale(<any>currentLevel.numStart),
+                                        y: Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 3,
+                                        width: 0 === thisObj.taskDurationToWidth1(currentLevel) ? 3 :
+                                            thisObj.taskDurationToWidth1(currentLevel),
+                                        height: Gantt.getBarHeight() / 1.5,
+                                        regionAttr: regionAttr,
+                                        metroAttr: metroAttr,
+                                        projectAttr: projectAttr,
+                                        trancheAttr: trancheAttr
+                                    })
+                                    .style('fill', currentLevel.color);
+                            }
 
-                    if (currentLevel.numEnd !== null || currentLevel.numStart !== null) {
-                        // tslint:disable-next-line:no-any
-                        if (isNaN(thisObj.taskDurationToWidth1(currentLevel)) || isNaN(thisObj.timeScale(<any>currentLevel.numStart))) {
-                            taskRect
-                                .attr({
-                                    // tslint:disable-next-line:no-any
-                                    x: 0,
-                                    y: Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 3,
-                                    width: 0,
-                                    height: Gantt.getBarHeight() / 1.5,
-                                    regionAttr: regionAttr,
-                                    metroAttr: metroAttr,
-                                    projectAttr: projectAttr,
-                                    trancheAttr: trancheAttr
-                                })
-                                .style('fill', currentLevel.color);
-                        } else {
-                            taskRect
-                                .attr({
-                                    // tslint:disable-next-line:no-any
-                                    x: thisObj.timeScale(<any>currentLevel.numStart),
-                                    y: Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 3,
-                                    width: 0 === thisObj.taskDurationToWidth1(currentLevel) ? 3 :
-                                        thisObj.taskDurationToWidth1(currentLevel),
-                                    height: Gantt.getBarHeight() / 1.5,
-                                    regionAttr: regionAttr,
-                                    metroAttr: metroAttr,
-                                    projectAttr: projectAttr,
-                                    trancheAttr: trancheAttr
-                                })
-                                .style('fill', currentLevel.color);
+                            yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
+                            // tslint:disable-next-line:no-any
+                            if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
+                                // tslint:disable-next-line:no-any
+                                xPos = thisObj.timeScale(<any>currentLevel.numEnd);
+                                // tslint:disable-next-line:no-any
+                                xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                            }
+                            // tslint:disable-next-line:no-any
+                            if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
+                                // tslint:disable-next-line:no-any
+                                xPos = thisObj.timeScale(<any>currentLevel.numEnd);
+                                // tslint:disable-next-line:no-any
+                                xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                            }
                         }
+                        thisObj.renderTooltip(eachPhaseSelection);
+                        if (currentLevel.numStart === null && currentLevel.numEnd === null) {
+                            continue;
+                        }
+                        let labelnormalizer: number;
+                        labelnormalizer = (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize)
+                            / Gantt.maximumFontSize;
+                        if (taskResourceShow) {
+                            let taskResource: Selection<HTMLElement>;
+                            taskResource = taskSelection
+                                .append('text')
+                                .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
+
+                            d3.select('body').append('text')
+                                .text(currentLevel.resource)
+                                .classed('resourceLabelText', true)
+                                .style({
+                                    'font-size': normalizer + pxLiteral,
+                                    'font-family': dataLabelsFontFamily
+                                });
+
+                            let titleWidth: number;
+                            titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
+                            d3.selectAll('.resourceLabelText').remove();
+                            let xPosVal: number = 0;
+                            switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
+                                case 'top':
+                                    xPosVal = ((xPosStart + xPos) / 2) - (titleWidth / 2);
+                                    break;
+                                case 'left':
+                                    xPosVal = ((xPosStart - titleWidth) > 0 ? (xPosStart - titleWidth - 30) : (-20));
+                                    break;
+                                case 'right':
+                                default:
+                                    xPosVal = xPos + 5;
+                                    break;
+                            }
+                            taskResource
+                                .attr({
+                                    x: xPosVal,
+                                    y: yPos + labelnormalizer / 3,
+                                    regionAttr: regionAttr,
+                                    metroAttr: metroAttr,
+                                    projectAttr: projectAttr,
+                                    trancheAttr: trancheAttr
+                                })
+                                .text(currentLevel.resource)
+                                .style({
+                                    fill: taskResourceColor,
+                                    'font-size': labelnormalizer + pxLiteral,
+                                    'font-family': dataLabelsFontFamily
+                                }).call(
+                                    AxisHelper.LabelLayoutStrategy.clip,
+                                    Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
+                                    textMeasurementService.svgEllipsis);
+                            taskResource.append('title').text(currentLevel.resource);
+                        }
+                    }
+                } else {
+                    for (let tasknumber: number = 0; tasknumber < tasksLength; tasknumber++) {
+                        let currentLevel: Task;
+                        currentLevel = tasks[tasknumber];
+                        const regionAttr: string = '';
+                        const metroAttr: string = '';
+                        const projectAttr: string = '';
+                        const trancheAttr: string = '';
+                        opacityValue = tasknumber % 2 === 0 ? 0.2 : 0.6;
+                        const backgroundRectBar: Selection<HTMLElement> = thisObj.backgroundGroupBar.append('rect').attr({
+                            x: 0,
+                            y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
+                            height: 24,
+                            width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10),
+                            fill: '#ccc',
+                            opacity: opacityValue
+                        });
+
+                        let taskGroupSelection: Selection<HTMLElement>;
+                        taskGroupSelection = thisObj.taskGroup
+                            .append('g')
+                            .classed(Selectors.taskGroup.class, true);
+
+                        let taskSelection: Selection<HTMLElement>;
+                        taskSelection = taskGroupSelection
+                            .append('g')
+                            .classed(Selectors.singleTask.class, true);
+
+                        let yPos: number;
+                        yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
+                        let xPos: number;
+                        xPos = 0;
+                        let xPosStart: number;
+                        xPosStart = 0;
+                        let eachPhaseSelection: Selection<Task>;
+                        eachPhaseSelection = taskSelection
+                            .datum(currentLevel)
+                            .append('g')
+                            .classed(Selectors.singlePhase.class, true);
+
+                        let taskRect: Selection<Task>;
+                        taskRect = eachPhaseSelection
+                            .append('rect')
+                            .classed(Selectors.taskRect.class, true)
+                            .classed(taskRowLiteral + tasknumber, true);
+
+                        taskRect
+                            .attr({
+                                x: thisObj.timeScale(currentLevel.start),
+                                y: Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 3,
+                                width: 0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel),
+                                height: Gantt.getBarHeight() / 1.5,
+                                regionAttr: regionAttr,
+                                metroAttr: metroAttr,
+                                projectAttr: projectAttr,
+                                trancheAttr: trancheAttr
+                            })
+                            .style('fill', currentLevel.color);
 
                         yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
-                        // tslint:disable-next-line:no-any
-                        if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
-                            // tslint:disable-next-line:no-any
-                            xPos = thisObj.timeScale(<any>currentLevel.numEnd);
-                            // tslint:disable-next-line:no-any
-                            xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                        if (xPos < thisObj.timeScale(currentLevel.end)) {
+                            xPos = thisObj.timeScale(currentLevel.start) +
+                                (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
+                            xPosStart = thisObj.timeScale(currentLevel.start);
                         }
-                        // tslint:disable-next-line:no-any
-                        if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
-                            // tslint:disable-next-line:no-any
-                            xPos = thisObj.timeScale(<any>currentLevel.numEnd);
-                            // tslint:disable-next-line:no-any
-                            xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                        if (xPos < thisObj.timeScale(currentLevel.end)) {
+                            xPos = thisObj.timeScale(currentLevel.start) +
+                                (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
+                            xPosStart = thisObj.timeScale(currentLevel.start);
                         }
-                    }
-                    thisObj.renderTooltip(eachPhaseSelection);
-                    if (currentLevel.numStart === null && currentLevel.numEnd === null) {
-                        continue;
-                    }
-                    let labelnormalizer: number;
-                    labelnormalizer = (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize)
-                        / Gantt.maximumFontSize;
-                    if (taskResourceShow) {
-                        let taskResource: Selection<HTMLElement>;
-                        taskResource = taskSelection
-                            .append('text')
-                            .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
+                        thisObj.renderTooltip(eachPhaseSelection);
+                        let labelnormalizer: number;
+                        labelnormalizer =
+                            (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
+                        if (taskResourceShow) {
 
-                        d3.select('body').append('text')
-                            .text(currentLevel.resource)
-                            .classed('resourceLabelText', true)
-                            .style({
-                                'font-size': normalizer + pxLiteral,
-                                'font-family': dataLabelsFontFamily
-                            });
+                            let taskResource: Selection<HTMLElement>;
+                            taskResource = taskSelection
+                                .append('text')
+                                .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
 
-                        let titleWidth: number;
-                        titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
-                        d3.selectAll('.resourceLabelText').remove();
-                        let xPosVal: number = 0;
-                        switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
-                            case 'top':
-                                xPosVal = ((xPosStart + xPos) / 2) - (titleWidth / 2);
-                                break;
-                            case 'left':
-                                xPosVal = ((xPosStart - titleWidth) > 0 ? (xPosStart - titleWidth - 30) : (-20));
-                                break;
-                            case 'right':
-                            default:
-                                xPosVal = xPos + 5;
-                                break;
-                        }
-                        taskResource
-                            .attr({
-                                x: xPosVal,
-                                y: yPos + labelnormalizer / 3,
-                                regionAttr: regionAttr,
-                                metroAttr: metroAttr,
-                                projectAttr: projectAttr,
-                                trancheAttr: trancheAttr
-                            })
-                            .text(currentLevel.resource)
-                            .style({
-                                fill: taskResourceColor,
-                                'font-size': labelnormalizer + pxLiteral,
-                                'font-family': dataLabelsFontFamily
-                            }).call(
-                                AxisHelper.LabelLayoutStrategy.clip,
-                                Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
-                                textMeasurementService.svgEllipsis);
-                        taskResource.append('title').text(currentLevel.resource);
-                    }
-                }
-            } else {
-                for (let tasknumber: number = 0; tasknumber < tasksLength; tasknumber++) {
-                    let currentLevel: Task;
-                    currentLevel = tasks[tasknumber];
-                    const regionAttr: string = '';
-                    const metroAttr: string = '';
-                    const projectAttr: string = '';
-                    const trancheAttr: string = '';
-
-                    opacityValue = tasknumber % 2 === 0 ? 0.2 : 0.6;
-                    const backgroundRectBar: Selection<HTMLElement> = thisObj.backgroundGroupBar.append('rect').attr({
-                        x: 0,
-                        y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
-                        height: 24,
-                        width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10),
-                        fill: '#ccc',
-                        opacity: opacityValue
-                    });
-
-                    let taskGroupSelection: Selection<HTMLElement>;
-                    taskGroupSelection = thisObj.taskGroup
-                        .append('g')
-                        .classed(Selectors.taskGroup.class, true);
-
-                    let taskSelection: Selection<HTMLElement>;
-                    taskSelection = taskGroupSelection
-                        .append('g')
-                        .classed(Selectors.singleTask.class, true);
-
-                    let yPos: number;
-                    yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
-                    let xPos: number;
-                    xPos = 0;
-                    let xPosStart: number;
-                    xPosStart = 0;
-                    let eachPhaseSelection: Selection<Task>;
-                    eachPhaseSelection = taskSelection
-                        .datum(currentLevel)
-                        .append('g')
-                        .classed(Selectors.singlePhase.class, true);
-
-                    let taskRect: Selection<Task>;
-                    taskRect = eachPhaseSelection
-                        .append('rect')
-                        .classed(Selectors.taskRect.class, true)
-                        .classed(taskRowLiteral + tasknumber, true);
-
-                    taskRect
-                        .attr({
-                            x: thisObj.timeScale(currentLevel.start),
-                            y: Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 3,
-                            width: 0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel),
-                            height: Gantt.getBarHeight() / 1.5,
-                            regionAttr: regionAttr,
-                            metroAttr: metroAttr,
-                            projectAttr: projectAttr,
-                            trancheAttr: trancheAttr
-                        })
-                        .style('fill', currentLevel.color);
-
-                    yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
-                    if (xPos < thisObj.timeScale(currentLevel.end)) {
-                        xPos = thisObj.timeScale(currentLevel.start) +
-                            (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
-                        xPosStart = thisObj.timeScale(currentLevel.start);
-                    }
-                    if (xPos < thisObj.timeScale(currentLevel.end)) {
-                        xPos = thisObj.timeScale(currentLevel.start) +
-                            (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
-                        xPosStart = thisObj.timeScale(currentLevel.start);
-                    }
-
-                    thisObj.renderTooltip(eachPhaseSelection);
-                    let labelnormalizer: number;
-                    labelnormalizer =
-                        (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
-                    if (taskResourceShow) {
-                        let taskResource: Selection<HTMLElement>;
-                        taskResource = taskSelection
-                            .append('text')
-                            .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
-
-                        d3.select('body').append('text')
-                            .text(currentLevel.resource)
-                            .classed('resourceLabelText', true)
-                            .style({
-                                'font-size': normalizer + pxLiteral,
-                                'font-family': dataLabelsFontFamily
-                            });
-
-                        let titleWidth: number;
-                        titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
-                        d3.selectAll('.resourceLabelText').remove();
-                        let xPosVal: number = 0;
-                        switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
-                            case 'top':
-                                xPosVal = ((xPosStart + xPos) / 2) - (titleWidth / 2);
-                                break;
-                            case 'left':
-                                xPosVal = ((xPosStart - titleWidth) > 0 ? (xPosStart - titleWidth - 30) : (-20));
-                                break;
-                            case 'right':
-                            default:
-                                xPosVal = xPos + 5;
-                                break;
-                        }
-                        taskResource
-                            .attr({
-                                x: xPosVal,
-                                y: yPos + labelnormalizer / 3,
-                                regionAttr: regionAttr,
-                                metroAttr: metroAttr,
-                                projectAttr: projectAttr,
-                                trancheAttr: trancheAttr
-                            })
-                            .text(currentLevel.resource)
-                            .style({
-                                fill: taskResourceColor,
-                                'font-size': labelnormalizer + pxLiteral,
-                                'font-family': dataLabelsFontFamily
-                            }).call(
-                                AxisHelper.LabelLayoutStrategy.clip,
-                                Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
-                                textMeasurementService.svgEllipsis);
-                        taskResource.append('title').text(currentLevel.resource);
-                    }
-                    let selectionManager: ISelectionManager;
-                    selectionManager = this.selectionManager;
-                }
-            }
-
-            let bars: UpdateSelection<Task>;
-            bars = d3.selectAll(dotLiteral + Selectors.taskRect.class).data(tasks);
-
-            bars.on('click', function (d: Task): void {
-                // tslint:disable-next-line:no-any
-                let sClass: any;
-                sClass = this.className;
-                let oSplittedClassNames: string[];
-                let rowNumber: string;
-                oSplittedClassNames = sClass.animVal.split(' ');
-                for (let iIterator: number = 0; iIterator < oSplittedClassNames.length; iIterator++) {
-                    let className: string;
-                    className = oSplittedClassNames[iIterator];
-                    if (className.indexOf('task-row') !== -1) {
-                        rowNumber = className.substr(8, className.length - 8);
-                        $(taskRowClassLiteral + rowNumber).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
-                    }
-                }
-
-                thisObj.selectionManager.select(d.selectionId, false).then((ids: ISelectionId[]) => {
-                    if (ids.length === 0) {
-                        $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                        $('.gantt_toggle-task').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                        $('.gantt_kpiClass').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                        $('.gantt_task-resource').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                        Gantt.isSelected = false;
-
-                    } else {
-                        $('.gantt_task-rect').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
-                        $('.gantt_toggle-task').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
-                        $('.gantt_kpiClass').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
-                        $('.gantt_task-resource').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
-
-                        let sString: string;
-                        sString = '';
-                        let sStr: string;
-                        sStr = '';
-                        if ($('.gantt_task-rect').attr('trancheAttr')) {
-                            sString = 'trancheAttr';
-                        } else if ($('.gantt_task-rect').attr('projectAttr')) {
-                            sString = 'projectAttr';
-                        } else if ($('.gantt_task-rect').attr('metroAttr')) {
-                            sString = 'metroAttr';
-                        } else if ($('.gantt_task-rect').attr('regionAttr')) {
-                            sString = 'regionAttr';
-                        }
-                        if (sString) {
-                            sStr = $(this).attr(sString);
-                        }
-                        $('.gantt_toggle-task').addClass('gantt_loweropacity').removeClass('gantt_higheropacity');
-                        $(taskRowClassLiteral + rowNumber).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
-                        Gantt.isSelected = true;
-                    }
-                });
-
-                let $LegendToggleImageId: JQuery;
-                $LegendToggleImageId = $('#LegendToggleImage');
-                if ($LegendToggleImageId.hasClass('visible')) {
-                    $LegendToggleImageId.removeClass('visible').addClass('notVisible');
-                    $LegendToggleImageId.attr('href', Gantt.drillDownImage);
-                    $('.gantt_legendIndicatorPanel').hide();
-                    $('.arrow').hide();
-                }
-                (<Event>d3.event).stopPropagation();
-            });
-
-            let textsHierarchy: Selection<SVGAElement>;
-            textsHierarchy = d3.selectAll(dotLiteral + Selectors.toggleTask.class);
-            // tslint:disable-next-line:cyclomatic-complexity no-any
-            textsHierarchy.on('click', function (d: any): void {
-                $('.gantt_toggle-task').addClass('gantt_loweropacity');
-                $('.gantt_task-rect').addClass('gantt_loweropacity');
-                $('.gantt_kpiClass').addClass('gantt_loweropacity');
-                $('.gantt_task-resource').addClass('gantt_loweropacity');
-
-                let sString: string;
-                sString = '';
-                let sStr: string;
-                sStr = '';
-
-                if ($(this).attr('regionAttr') === '') {
-                    sString = '';
-                } else if ($(this).attr('metroAttr') === '') {
-                    sString = 'regionAttr';
-                } else if ($(this).attr('projectAttr') === '') {
-                    sString = 'metroAttr';
-                } else if ($(this).attr('trancheAttr') === '') {
-                    sString = 'projectAttr';
-                } else {
-                    sString = 'trancheAttr';
-                }
-                sStr = $(this).attr(sString);
-                let flag: boolean;
-                flag = false;
-                let categoryName: string;
-                categoryName = $(this).find('title').text();
-                let selectedSelID: ISelectionId[];
-                selectedSelID = [];
-                const tasksLength2: number = tasks.length;
-                for (let iIndex: number = 0; iIndex < tasksLength2; iIndex++) {
-                    for (let j: number = tasks[0].name.length - 1; j >= 0; j--) {
-                        if (!(tasks[iIndex].name[j])) { continue; }
-                        let currentcategory: string;
-                        if (j === 0) {
-                            currentcategory = Gantt.regionValueFormatter.format(tasks[iIndex].name[j]);
-                        } else if (j === 1) {
-                            currentcategory = Gantt.metroValueFormatter.format(tasks[iIndex].name[j]);
-                        } else if (j === 2) {
-                            currentcategory = Gantt.projectValueFormatter.format(tasks[iIndex].name[j]);
-                        } else {
-                            currentcategory = Gantt.trancheValueFormatter.format(tasks[iIndex].name[j]);
-                        }
-                        let k: number = iIndex;
-                        if (currentcategory === categoryName || currentcategory.toString() === categoryName) {
-                            if (Gantt.previousSel === categoryName) {
-                                for (let m: number = 0; m < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length; m++) {
-                                    Gantt.selectionIdHash[m] = true;
-                                    Gantt.previousSel = null;
-                                }
-                                $('.gantt_toggle-task').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                                $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                                $('.gantt_kpiClass').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                                $('.gantt_task-resource').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                                Gantt.isSelected = true;
-                            } else {
-                                for (let m: number = 0; m < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length; m++) {
-                                    Gantt.selectionIdHash[m] = false;
-                                }
-                                k = 0;
-                                let categoryLength: number;
-                                let categoryValFormatted: string;
-                                for (categoryLength =
-                                    Gantt.globalOptions.dataViews[0].categorical.categories[j].values.length; k < categoryLength; k++) {
-                                    if (j === 0) {
-                                        categoryValFormatted = Gantt.regionValueFormatter.format(tasks[k].name[j]);
-                                    } else if (j === 1) {
-                                        categoryValFormatted = Gantt.metroValueFormatter.format(tasks[k].name[j]);
-                                    } else if (j === 2) {
-                                        categoryValFormatted = Gantt.projectValueFormatter.format(tasks[k].name[j]);
-                                    } else {
-                                        categoryValFormatted = Gantt.trancheValueFormatter.format(tasks[k].name[j]);
-                                    }
-                                    if (categoryValFormatted === categoryName || categoryValFormatted.toString() === categoryName) {
-                                        Gantt.selectionIdHash[k] = true;
-                                    }
-                                }
-                                Gantt.previousSel = currentcategory.toString();
+                            d3.select('body').append('text')
+                                .text(currentLevel.resource)
+                                .classed('resourceLabelText', true)
+                                .style({
+                                    'font-size': normalizer + pxLiteral,
+                                    'font-family': dataLabelsFontFamily
+                                });
+                            let titleWidth: number;
+                            titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
+                            d3.selectAll('.resourceLabelText').remove();
+                            let xPosVal: number = 0;
+                            switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
+                                case 'top':
+                                    xPosVal = ((xPosStart + xPos) / 2) - (titleWidth / 2);
+                                    break;
+                                case 'left':
+                                    xPosVal = ((xPosStart - titleWidth) > 0 ? (xPosStart - titleWidth - 30) : (-20));
+                                    break;
+                                case 'right':
+                                default:
+                                    xPosVal = xPos + 5;
+                                    break;
                             }
-                            flag = true;
+                            taskResource
+                                .attr({
+                                    x: xPosVal,
+                                    y: yPos + labelnormalizer / 3,
+                                    regionAttr: regionAttr,
+                                    metroAttr: metroAttr,
+                                    projectAttr: projectAttr,
+                                    trancheAttr: trancheAttr
+                                })
+                                .text(currentLevel.resource)
+                                .style({
+                                    fill: taskResourceColor,
+                                    'font-size': labelnormalizer + pxLiteral,
+                                    'font-family': dataLabelsFontFamily
+                                }).call(
+                                    AxisHelper.LabelLayoutStrategy.clip,
+                                    Gantt.defaultValues.ResourceWidth - Gantt.resourceWidthPadding - 20,
+                                    textMeasurementService.svgEllipsis);
+                            taskResource.append('title').text(currentLevel.resource);
+
+                        }
+                        let selectionManager: ISelectionManager;
+                        selectionManager = this.selectionManager;
+                    }
+                }
+
+                let bars: UpdateSelection<Task>;
+                bars = d3.selectAll(dotLiteral + Selectors.taskRect.class).data(tasks);
+
+                bars.on('click', function (d: Task): void {
+                    // tslint:disable-next-line:no-any
+                    let sClass: any;
+                    sClass = this.className;
+                    let oSplittedClassNames: string[];
+                    let rowNumber: string;
+                    oSplittedClassNames = sClass.animVal.split(' ');
+                    for (let iIterator: number = 0; iIterator < oSplittedClassNames.length; iIterator++) {
+                        let className: string;
+                        className = oSplittedClassNames[iIterator];
+                        if (className.indexOf('task-row') !== -1) {
+                            rowNumber = className.substr(8, className.length - 8);
+                            $(taskRowClassLiteral + rowNumber).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
+                        }
+                    }
+
+                    thisObj.selectionManager.select(d.selectionId, false).then((ids: ISelectionId[]) => {
+                        if (ids.length === 0) {
+                            $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            $('.gantt_toggle-task').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            $('.gantt_kpiClass').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            $('.gantt_task-resource').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            Gantt.isSelected = false;
+
+                        } else {
+                            $('.gantt_task-rect').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
+                            $('.gantt_toggle-task').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
+                            $('.gantt_kpiClass').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
+                            $('.gantt_task-resource').removeClass('gantt_higheropacity').addClass('gantt_loweropacity');
+
+                            let sString: string;
+                            sString = '';
+                            let sStr: string;
+                            sStr = '';
+                            if ($('.gantt_task-rect').attr('trancheAttr')) {
+                                sString = 'trancheAttr';
+                            } else if ($('.gantt_task-rect').attr('projectAttr')) {
+                                sString = 'projectAttr';
+                            } else if ($('.gantt_task-rect').attr('metroAttr')) {
+                                sString = 'metroAttr';
+                            } else if ($('.gantt_task-rect').attr('regionAttr')) {
+                                sString = 'regionAttr';
+                            }
+                            if (sString) {
+                                sStr = $(this).attr(sString);
+                            }
+                            $('.gantt_toggle-task').addClass('gantt_loweropacity').removeClass('gantt_higheropacity');
+                            $(taskRowClassLiteral + rowNumber).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
+                            Gantt.isSelected = true;
+                        }
+                    });
+                    let $LegendToggleImageId: JQuery;
+                    $LegendToggleImageId = $('#LegendToggleImage');
+                    if ($LegendToggleImageId.hasClass('visible')) {
+                        $LegendToggleImageId.removeClass('visible').addClass('notVisible');
+                        $LegendToggleImageId.attr('href', Gantt.drillDownImage);
+                        $('.gantt_legendIndicatorPanel').hide();
+                        $('.arrow').hide();
+                    }
+                    (<Event>d3.event).stopPropagation();
+                });
+                let textsHierarchy: Selection<SVGAElement>;
+                textsHierarchy = d3.selectAll(dotLiteral + Selectors.toggleTask.class);
+                // tslint:disable-next-line:cyclomatic-complexity no-any
+                textsHierarchy.on('click', function (d: any): void {
+                    $('.gantt_toggle-task').addClass('gantt_loweropacity');
+                    $('.gantt_task-rect').addClass('gantt_loweropacity');
+                    $('.gantt_kpiClass').addClass('gantt_loweropacity');
+                    $('.gantt_task-resource').addClass('gantt_loweropacity');
+
+                    let sString: string;
+                    sString = '';
+                    let sStr: string;
+                    sStr = '';
+
+                    if ($(this).attr('regionAttr') === '') {
+                        sString = '';
+                    } else if ($(this).attr('metroAttr') === '') {
+                        sString = 'regionAttr';
+                    } else if ($(this).attr('projectAttr') === '') {
+                        sString = 'metroAttr';
+                    } else if ($(this).attr('trancheAttr') === '') {
+                        sString = 'projectAttr';
+                    } else {
+                        sString = 'trancheAttr';
+                    }
+                    sStr = $(this).attr(sString);
+                    let flag: boolean;
+                    flag = false;
+                    let categoryName: string;
+                    categoryName = $(this).find('title').text();
+                    let selectedSelID: ISelectionId[];
+                    selectedSelID = [];
+                    const tasksLength2: number = tasks.length;
+                    for (let i: number = 0; i < tasksLength2; i++) {
+                        for (let j: number = tasks[0].name.length - 1; j >= 0; j--) {
+                            if (!(tasks[i].name[j])) { continue; }
+                            let currentcategory: string;
+                            if (j === 0) {
+                                currentcategory = Gantt.regionValueFormatter.format(tasks[i].name[j]);
+                            } else if (j === 1) {
+                                currentcategory = Gantt.metroValueFormatter.format(tasks[i].name[j]);
+                            } else if (j === 2) {
+                                currentcategory = Gantt.projectValueFormatter.format(tasks[i].name[j]);
+                            } else {
+                                currentcategory = Gantt.trancheValueFormatter.format(tasks[i].name[j]);
+                            }
+                            let k: number = i;
+                            if (currentcategory === categoryName || currentcategory.toString() === categoryName) {
+                                if (Gantt.previousSel === categoryName) {
+                                    for (let m: number = 0; m < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length
+                                        ; m++) {
+                                        Gantt.selectionIdHash[m] = true;
+                                        Gantt.previousSel = null;
+                                    }
+                                    $('.gantt_toggle-task').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                                    $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                                    $('.gantt_kpiClass').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                                    $('.gantt_task-resource').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                                    Gantt.isSelected = true;
+                                } else {
+                                    for (let m: number = 0; m < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length
+                                        ; m++) {
+                                        Gantt.selectionIdHash[m] = false;
+                                    }
+                                    k = 0;
+                                    let categoryLength: number;
+                                    let categoryValFormatted: string;
+                                    for (categoryLength =
+                                        Gantt.globalOptions.dataViews[0].categorical.categories[j].values.length; k < categoryLength; k++) {
+                                        if (j === 0) {
+                                            categoryValFormatted = Gantt.regionValueFormatter.format(tasks[k].name[j]);
+                                        } else if (j === 1) {
+                                            categoryValFormatted = Gantt.metroValueFormatter.format(tasks[k].name[j]);
+                                        } else if (j === 2) {
+                                            categoryValFormatted = Gantt.projectValueFormatter.format(tasks[k].name[j]);
+                                        } else {
+                                            categoryValFormatted = Gantt.trancheValueFormatter.format(tasks[k].name[j]);
+                                        }
+                                        if (categoryValFormatted === categoryName || categoryValFormatted.toString() === categoryName) {
+                                            Gantt.selectionIdHash[k] = true;
+                                        }
+                                    }
+                                    Gantt.previousSel = currentcategory.toString();
+                                }
+                                flag = true;
+                            }
+                            if (flag) { break; }
                         }
                         if (flag) { break; }
                     }
-                    if (flag) { break; }
-                }
 
-                selectedSelID = [];
-                for (let iIndex: number = 0; iIndex < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length; iIndex++) {
-                    if (Gantt.selectionIdHash[iIndex] && selectionIds[iIndex]) {
-                        selectedSelID.push(selectionIds[iIndex]);
-                        $(taskRowClassLiteral + iIndex).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
-                        Gantt.isSelected = true;
+                    selectedSelID = [];
+                    for (let i: number = 0; i < Gantt.globalOptions.dataViews[0].categorical.categories[0].values.length; i++) {
+                        if (Gantt.selectionIdHash[i] && selectionIds[i]) {
+                            selectedSelID.push(selectionIds[i]);
+                            $(taskRowClassLiteral + i).addClass('gantt_higheropacity').removeClass('gantt_loweropacity');
+                            Gantt.isSelected = true;
+                        }
+                        if (selectedSelID.length === selectionIds.length || selectedSelID.length === 0) {
+                            Gantt.isSelected = false;
+                        }
                     }
-                    if (selectedSelID.length === selectionIds.length || selectedSelID.length === 0) {
-                        Gantt.isSelected = false;
+                    thisObj.selectionManager.select(selectedSelID).then((ids: ISelectionId[]) => {
+                        if (ids.length === 0) {
+                            $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            $('.gantt_toggle-task').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            $('.gantt_kpiClass').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            $('.gantt_task-resource').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                            Gantt.isSelected = false;
+                        }
+                    });
+                    let $LegendToggleImageId: JQuery;
+                    $LegendToggleImageId = $('#LegendToggleImage');
+                    if ($LegendToggleImageId.hasClass('visible')) {
+                        $LegendToggleImageId.removeClass('visible').addClass('notVisible');
+                        $LegendToggleImageId.attr('href', Gantt.drillDownImage);
+                        $('.gantt_legendIndicatorPanel').hide();
+                        $('.arrow').hide();
                     }
-                }
-                thisObj.selectionManager.select(selectedSelID).then((ids: ISelectionId[]) => {
-                    if (ids.length === 0) {
-                        $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                    (<Event>d3.event).stopPropagation();
+                });
+
+                d3.select('html').on('click', function (): void {
+                    if (!Gantt.isSelected) {
+                        (<Event>d3.event).stopPropagation();
+                    } else {
+                        thisObj.selectionManager.clear();
+                        bars.attr({
+                            opacity: 1
+                        });
                         $('.gantt_toggle-task').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
+                        $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
                         $('.gantt_kpiClass').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
                         $('.gantt_task-resource').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
                         Gantt.isSelected = false;
                     }
+                    let $LegendToggleImageId: JQuery;
+                    $LegendToggleImageId = $('#LegendToggleImage');
+                    if ($LegendToggleImageId.hasClass('visible')) {
+                        $LegendToggleImageId.removeClass('visible').addClass('notVisible');
+                        $LegendToggleImageId.attr('href', Gantt.drillDownImage);
+                        $('.gantt_legendIndicatorPanel').hide();
+                        $('.arrow').hide();
+                    }
                 });
 
-                let $LegendToggleImageId: JQuery;
-                $LegendToggleImageId = $('#LegendToggleImage');
-                if ($LegendToggleImageId.hasClass('visible')) {
-                    $LegendToggleImageId.removeClass('visible').addClass('notVisible');
-                    $LegendToggleImageId.attr('href', Gantt.drillDownImage);
-                    $('.gantt_legendIndicatorPanel').hide();
-                    $('.arrow').hide();
-                }
-                (<Event>d3.event).stopPropagation();
-            });
+                bars.exit()
+                    .remove();
 
-            d3.select('html').on('click', function (): void {
-                if (!Gantt.isSelected) {
-                    (<Event>d3.event).stopPropagation();
-                } else {
-                    thisObj.selectionManager.clear();
-                    bars.attr({
-                        opacity: 1
+                let taskPanelWidth: number;
+                taskPanelWidth = $('.gantt_taskPanel').width();
+                let totalCategoryLength: number;
+                totalCategoryLength = this.viewModel.tasksNew[0].name.length;
+                lastRectX = parseFloat($(headerCellClassLiteral + (totalCategoryLength - 1)).attr('x'));
+                barPanelLeft = parseFloat(d3.select('.gantt_barPanel').style('left'));
+                kpiPanelWidth = parseFloat(d3.select('.gantt_kpiPanel').style('left'));
+
+                d3.select(dotLiteral + Selectors.bottomTaskDiv.class).style({
+                    width: PixelConverter.toString(taskPanelWidth)
+                });
+
+                d3.select('.gantt_drillAllPanel2').style('width', PixelConverter.toString(taskPanelWidth));
+                if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 12) || lastRectX > barPanelLeft - 12) {
+                    d3.select(dotLiteral + Selectors.bottomTaskSvg.class).style({
+                        width: PixelConverter.toString(lastRectX + 100)
                     });
-                    $('.gantt_toggle-task').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                    $('.gantt_task-rect').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                    $('.gantt_kpiClass').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                    $('.gantt_task-resource').removeClass('gantt_loweropacity').addClass('gantt_higheropacity');
-                    Gantt.isSelected = false;
+                    d3.select('.gantt_taskSvg').style({
+                        width: PixelConverter.toString(lastRectX + 100)
+                    });
+                    d3.selectAll('.gantt_backgroundRect').attr({ width: lastRectX + 100 });
+                    d3.select('.gantt_drillAllSvg2').style({
+                        width: PixelConverter.toString(lastRectX + 100)
+                    });
+                    d3.selectAll(horizontalLineClassLiteral + (totalCategoryLength - 1)).attr('x2', lastRectX + 100);
+                } else {
+                    d3.select(dotLiteral + Selectors.bottomTaskSvg.class).style({
+                        width: PixelConverter.toString(taskPanelWidth)
+                    });
+                    d3.select('.gantt_taskSvg').style({
+                        width: PixelConverter.toString(taskPanelWidth)
+                    });
+                    d3.selectAll('.gantt_backgroundRect').attr({ width: taskPanelWidth });
+                    d3.select('.gantt_drillAllSvg2').style({
+                        width: PixelConverter.toString(taskPanelWidth)
+                    });
                 }
-
-                let $LegendToggleImageId: JQuery;
-                $LegendToggleImageId = $('#LegendToggleImage');
-                if ($LegendToggleImageId.hasClass('visible')) {
-                    $LegendToggleImageId.removeClass('visible').addClass('notVisible');
-                    $LegendToggleImageId.attr('href', Gantt.drillDownImage);
-                    $('.gantt_legendIndicatorPanel').hide();
-                    $('.arrow').hide();
-                }
-            });
-
-            bars.exit()
-                .remove();
-
-            let taskPanelWidth: number;
-            taskPanelWidth = $('.gantt_taskPanel').width();
-            let totalCategoryLength: number;
-            totalCategoryLength = this.viewModel.tasksNew[0].name.length;
-            lastRectX = parseFloat($(headerCellClassLiteral + (totalCategoryLength - 1)).attr('x'));
-            barPanelLeft = parseFloat(d3.select('.gantt_barPanel').style('left'));
-            kpiPanelWidth = parseFloat(d3.select('.gantt_kpiPanel').style('left'));
-
-            d3.select(dotLiteral + Selectors.bottomTaskDiv.class).style({
-                width: PixelConverter.toString(taskPanelWidth)
-            });
-
-            d3.select('.gantt_drillAllPanel2').style('width', PixelConverter.toString(taskPanelWidth));
-            if ((kpiPanelWidth > 0 && lastRectX > kpiPanelWidth - 12) || lastRectX > barPanelLeft - 12) {
-                d3.select(dotLiteral + Selectors.bottomTaskSvg.class).style({
-                    width: PixelConverter.toString(lastRectX + 100)
-                });
-                d3.select('.gantt_taskSvg').style({
-                    width: PixelConverter.toString(lastRectX + 100)
-                });
-                d3.selectAll('.gantt_backgroundRect').attr({ width: lastRectX + 100 });
-                d3.select('.gantt_drillAllSvg2').style({
-                    width: PixelConverter.toString(lastRectX + 100)
-                });
-                d3.selectAll(horizontalLineClassLiteral + (totalCategoryLength - 1)).attr('x2', lastRectX + 100);
             } else {
-                d3.select(dotLiteral + Selectors.bottomTaskSvg.class).style({
-                    width: PixelConverter.toString(taskPanelWidth)
+                this.taskDiv.remove();
+                this.kpiDiv.remove();
+                this.backgroundGroupBar.remove();
+                if ($('.taskRect').length > 0) {
+                    $('.taskRect').remove();
+                    $('.gantt_barPanel').not(':first').remove();
+                }
+                this.taskDiv = this.bottomDiv
+                    .append('div')
+                    .classed(Selectors.taskPanel.class, true);
+                this.taskDiv.style({
+                    width: PixelConverter.toString(Gantt.taskLabelWidth + 20),
+                    border: '1px Black',
+                    class: 'ganttTaskDiv'
                 });
-                d3.select('.gantt_taskSvg').style({
-                    width: PixelConverter.toString(taskPanelWidth)
+                this.kpiDiv = this.bottomDiv
+                    .append('div')
+                    .classed(Selectors.kpiPanel.class, true);
+                this.kpiDiv.style({
+                    width: PixelConverter.toString(Gantt.kpiLabelWidth),
+                    left: PixelConverter.toString(Gantt.taskLabelWidth + 20),
+                    class: 'ganttKpiDiv'
                 });
-                d3.selectAll('.gantt_backgroundRect').attr({ width: taskPanelWidth });
-                d3.select('.gantt_drillAllSvg2').style({
-                    width: PixelConverter.toString(taskPanelWidth)
+                this.barDiv = this.bottomDiv
+                    .append('div')
+                    .classed(Selectors.barPanel.class, true);
+                this.barDiv.style({
+                    width: PixelConverter.toString(this.viewport.width - Gantt.taskLabelWidth - Gantt.kpiLabelWidth - 20),
+                    left: PixelConverter.toString(Gantt.taskLabelWidth + Gantt.kpiLabelWidth + 20),
+                    class: 'ganttBarDiv'
                 });
+                const parentColour: string = '#C2C2C2';
+                const firstChildColour: string = '#E0E0E0';
+                const secondChildColour: string = '#F0F0F0';
+                const thirdChildColour: string = '#FFFFFF';
+                const opacityNumber1: number = 0.6;
+                const opacityNumber2: number = 0.8;
+                const categoryLen: number = Gantt.categorylength;
+                if ((this.viewModel.settings.legend.show
+                    && (this.viewport.width > $('.gantt_legendIndicatorPanel').innerWidth() + 100)
+                    && this.viewport.height > $('.gantt_legendIndicatorPanel').innerHeight() + 50
+                    && this.viewModel.kpiData.length > 0)
+                    && (parseFloat(d3.select('.gantt_legendPanel').style('left')) >
+                        parseFloat(d3.select('.gantt_barPanel').style('left')))) {
+                    $('.gantt_legendPanel').show();
+                    if ($('#LegendToggleImage').hasClass('visible')) {
+                        $('.gantt_legendIndicatorPanel').show();
+                        $('.arrow').show();
+                    } else {
+                        $('.gantt_legendIndicatorPanel').hide();
+                        $('.arrow').hide();
+                    }
+                } else {
+                    $('.arrow').hide();
+                    $('.gantt_legendPanel').hide();
+                    $('.gantt_legendIndicatorPanel').hide();
+                }
+                const textElement: Selection<HTMLElement> = this.drillAllGroup.append('text')
+                    .attr('class', categoryLiteral + spaceLiteral + taskColumnLiteral)
+                    .attr('x', 15)
+                    .attr('y', 10);
+                d3.select(categoryClassLiteral)
+                    .text('Category hierarchy')
+                    .style({
+                        'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize)
+                            / Gantt.maximumFontSize + pxLiteral,
+                        'font-family': columnHeaderFontFamily,
+                        fill: columnHeaderColor,
+                        'background-color': columnHeaderBgColor
+                    });
+                d3.select(categoryClassLiteral).append('title').text(Gantt.getLabelValuesNew(Gantt.categoriesTitle.toString(), 'text', 50));
+
+                for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
+                    let axisKPILabel1: Selection<HTMLElement>;
+                    axisKPILabel1 = this.kpiTitleGroup.append('text').classed(Selectors.label.class, true);
+                    axisKPILabel1.attr({
+                        x: 3 + (Gantt.kpiLabelWidth / totalKPIs * jCount),
+                        y: 15,
+                        'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral,
+                        'font-family': columnHeaderFontFamily,
+                        fill: columnHeaderColor,
+                        background: columnHeaderBgColor,
+                        'stroke-width': Gantt.axisLabelStrokeWidth
+                    });
+                    let sKPITitle: string;
+                    sKPITitle = tasks[0].KPIValues[jCount].name;
+                    let sFirstWord: string;
+                    sFirstWord = sKPITitle.substr(0, sKPITitle.indexOf(' '));
+                    switch (sFirstWord) {
+                        case 'First':
+                        case 'Last':
+                        case 'Earliest':
+                        case 'Latest':
+                            sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 1, sKPITitle.length);
+                            break;
+                        case 'Count':
+                        case 'Average':
+                        case 'Min':
+                        case 'Max':
+                        case 'Variance':
+                        case 'Median':
+                            sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 4, sKPITitle.length);
+                            break;
+                        case 'Standard':
+                            sKPITitle = sKPITitle.substr(sKPITitle.indexOf(' ') + 14, sKPITitle.length);
+                        default:
+                    }
+                    let numberOfCharsAllowed: number;
+                    numberOfCharsAllowed = 75 / (Gantt.iKPIHeaderSingleCharWidth);
+                    axisKPILabel1.text(Gantt.getLabelValuesNew(sKPITitle, 'text', numberOfCharsAllowed));
+                    axisKPILabel1.append('title').text(sKPITitle);
+
+                    if (jCount !== 0) {
+                        let kpiTitleVerticleLine: Selection<HTMLElement>;
+                        kpiTitleVerticleLine = this.kpiTitleGroup.append('line').classed(verticalLineSimpleLiteral, true);
+                        kpiTitleVerticleLine.attr({
+                            x1: (Gantt.kpiLabelWidth / totalKPIs * jCount),
+                            y1: 0,
+                            x2: (Gantt.kpiLabelWidth / totalKPIs * jCount),
+                            y2: 30,
+                            stroke: '#f2f2f2'
+                        });
+
+                        let kpiVerticleLine: Selection<HTMLElement>;
+                        kpiVerticleLine = this.kpiGroup.append('line').classed(verticalLineSimpleLiteral, true);
+                        kpiVerticleLine.attr({
+                            x1: (Gantt.kpiLabelWidth / totalKPIs * jCount) - 1,
+                            y1: 0,
+                            x2: (Gantt.kpiLabelWidth / totalKPIs * jCount) - 1,
+                            y2: Gantt.currentTasksNumber * chartLineHeight + 8,
+                            stroke: '#f2f2f2'
+                        });
+                    }
+                }
+                // tslint:disable-next-line:no-any
+                let yVal: number = -1;
+                for (let tasknumber: number = 0; tasknumber < tasks.length; tasknumber++) {
+                    let currentLevel: Task;
+                    currentLevel = tasks[tasknumber];
+                    let leveLength: number;
+                    leveLength = tasks[tasknumber].level;
+                    let levelMargin: number;
+                    let marginLevel: number;
+                    let textMargin: number = 10;
+                    levelMargin = (tasks[tasknumber].level * 10);
+                    if (yVal !== thisObj.getTaskLabelCoordinateY(tasknumber)) {
+                        let divWidth: number = 0;
+                        // tslint:disable-next-line:no-any
+                        const divTask: any = this.taskDiv.append('div');
+
+                        if ($($(divTask)[0]).parent().width() < 200) {
+                            divWidth = 200;
+                        } else {
+                            divWidth = $('.ganttDiv').width();
+                        }
+                        // tslint:disable-next-line:no-any
+                        const lineDiv: any = this.taskDiv.append('div')
+                            .style({
+                                width: divWidth + pxLiteral,
+                                height: '24px'
+                            })
+                            .classed('show', true)
+                            .attr({
+                                'data-level': tasks[tasknumber].level,
+                                'data-ParentId': tasks[tasknumber].parentId,
+                                'data-expanded': tasks[tasknumber].expanded,
+                                'data-RowId': tasks[tasknumber].rowId,
+                                'data-isLeaf': tasks[tasknumber].isLeaf,
+                                'data-row': tasknumber
+                            });
+                        if (categoryLen === 4) {
+                            if (leveLength === 1) {
+                                lineDiv.style({
+                                    'background-color': parentColour,
+                                    opacity: 0.8
+                                });
+                            } else if (leveLength === 2) {
+                                lineDiv.style({
+                                    'background-color': firstChildColour,
+                                    opacity: 0.8
+                                });
+                            } else if (leveLength === 3) {
+                                lineDiv.style({
+                                    'background-color': secondChildColour,
+                                    opacity: 0.8
+                                });
+                            } else if (leveLength === 4) {
+                                lineDiv.style({
+                                    'background-color': thirdChildColour,
+                                    opacity: 0.8
+                                });
+                            }
+                        } else if (categoryLen === 3) {
+                            if (leveLength === 1) {
+                                lineDiv.style({
+                                    'background-color': firstChildColour,
+                                    opacity: 0.8
+                                });
+                            } else if (leveLength === 2) {
+                                lineDiv.style({
+                                    'background-color': secondChildColour,
+                                    opacity: 0.8
+                                });
+                            } else if (leveLength === 3) {
+                                lineDiv.style({
+                                    'background-color': thirdChildColour,
+                                    opacity: 0.8
+                                });
+                            }
+                        } else if (categoryLen === 2) {
+                            if (leveLength === 1) {
+                                lineDiv.style({
+                                    'background-color': secondChildColour,
+                                    opacity: 0.8
+                                });
+                            } else if (leveLength === 2) {
+                                lineDiv.style({
+                                    'background-color': thirdChildColour,
+                                    opacity: 0.8
+                                });
+                            }
+                        } else {
+                            const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
+                            lineDiv.style({
+                                'background-color': backgroundBarColor,
+                                opacity: 0.8
+                            });
+                        }
+                        yVal = thisObj.getTaskLabelCoordinateY(tasknumber);
+                        if (!tasks[tasknumber].isLeaf) {
+                            marginLevel = levelMargin;
+                            if (tasks[tasknumber].level !== 1) {
+                                marginLevel = levelMargin + (tasks[tasknumber].level * 5) + (tasks[tasknumber].level - 1) * 4;
+                            }
+                            axisLabelImg = lineDiv.append('img')
+                                .style('margin-left', (marginLevel + pxLiteral))
+                                .attr('src', tasks[tasknumber].expanded ? Gantt.minusIcon : Gantt.plusIcon);
+                            // tslint:disable-next-line:typedef
+                            axisLabelImg.on('click', function (this) {
+                                let sRowId: string;
+                                // tslint:disable-next-line
+                                let selectionId: any = thisObj.selectionManager;
+                                // tslint:disable-next-line
+                                let selectionIdLen: any = selectionId.selectedIds;
+                                // tslint:disable-next-line
+                                let selectionIdLen1: number = selectionIdLen.length;
+                                // tslint:disable-next-line:no-any
+                                let selobjchildrencncierarchy: any = [];
+                                sRowId = $(this).parent().attr('data-RowId');
+                                // tslint:disable-next-line:no-any
+                                if ($.grep(tasks, function (e: any): any { return e.rowId.toString() === sRowId; })[0].expanded) {
+                                    this.src = Gantt.plusIcon;
+                                    $(this).parent().attr('data-expanded', 'false');
+                                    thisObj.collapseFunctinality(tasks, sRowId);
+                                } else {
+                                    this.src = Gantt.minusIcon;
+                                    $(this).parent().attr('data-expanded', 'true');
+                                    thisObj.expandFunctinality(tasks, sRowId);
+                                }
+
+                                if (selectionIdLen1 !== 0) {
+                                    thisObj.selectionManager.clear();
+                                    Gantt.lastSelectedbar = null;
+                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                    d3.selectAll('.taskRect.show').style({
+                                        opacity: 1
+                                    });
+                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                        opacity: 1
+                                    });
+                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 1 });
+                                    }
+                                }
+                                // tslint:disable-next-line:no-any
+                                function getDirectChildInHierarchy(sRowID: any): any {
+                                    // tslint:disable-next-line:no-any
+                                    $.map(tasks, function (sObj: any): void {
+                                        if (sObj.parentId === sRowID) {
+                                            selobjchildrencncierarchy.push(sObj);
+                                            getDirectChildInHierarchy(sObj.rowId);
+                                        }
+                                    });
+
+                                    return selobjchildrencncierarchy;
+                                }
+                                if (Object.keys(Gantt.arrGantt).length === undefined) {
+                                    Gantt.arrGantt = JSON.parse(Gantt.stateValue);
+                                }
+                                for (let i: number = 0; i < tasks.length; i++) {
+                                    if (Object.keys(Gantt.arrGantt).length === undefined) {
+                                        if (!(sRowId === tasks[i].rowId.toString())) {
+                                            Gantt.expandCollapseStates[tasks[i].rowId] = false;
+                                        }
+                                    }
+                                    if (parseInt(sRowId, 10) === tasks[i].rowId && tasks[i].expanded !== true) {
+                                        Gantt.arrGantt[tasks[i].rowId] = true;
+                                    }
+                                    if (parseInt(sRowId, 10) === tasks[i].rowId && tasks[i].expanded === true) {
+                                        selobjchildrencncierarchy.push(tasks[i]);
+                                        selobjchildrencncierarchy = getDirectChildInHierarchy(parseInt(sRowId, 10));
+                                        let j: number = 0;
+                                        for (let ijIterator: number = 0; ijIterator < tasks.length; ijIterator++) {
+                                            if (selobjchildrencncierarchy[j].rowId === tasks[ijIterator].rowId) {
+                                                Gantt.arrGantt[tasks[ijIterator].rowId] = false;
+                                                j++;
+                                                if (selobjchildrencncierarchy.length === j) {
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                thisObj.persistExpandCollapseState(Gantt.arrGantt);
+                            });
+                        } else {
+                            if (tasks[tasknumber].level === 1) {
+                                textMargin = levelMargin;
+                            } else {
+                                textMargin = levelMargin + (tasks[tasknumber].level * 5) + (tasks[tasknumber].level - 1) * 9;
+                            }
+                            scrollWidth = textMargin;
+                        }
+                        axisLabel = lineDiv.append('text').text(tasks[tasknumber].name)
+                            .attr('title', tasks[tasknumber].name);
+                        axisLabel
+                            .style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily)
+                            .style('margin-left', textMargin + pxLiteral)
+                            .style('color', taskLabelsColor)
+                            // tslint:disable-next-line:typedef
+                            .on('click', function () {
+                                let sRowId: number;
+                                // tslint:disable-next-line:typedef
+                                let obj = {};
+                                sRowId = parseInt($(this).parent().attr('data-rowid'), 10);
+                                obj = tasks;
+                                let j: number = 0;
+                                // tslint:disable-next-line:no-any
+                                let selobjchildrencncierarchy: any = [];
+                                // tslint:disable-next-line:typedef
+                                function getDirectChildInHierarchy(sRowID) {
+                                    // tslint:disable-next-line:typedef
+                                    $.map(tasks, function (sObj) {
+                                        if (sObj.parentId === sRowID) {
+                                            selobjchildrencncierarchy.push(sObj);
+                                            getDirectChildInHierarchy(sObj.rowId);
+                                        }
+                                    });
+
+                                    return selobjchildrencncierarchy;
+                                }
+                                for (let i: number = 0; i < tasks.length; i++) {
+                                    if (tasks[i].rowId === sRowId) {
+                                        // tslint:disable-next-line:no-any
+                                        const selectionId: any = tasks[i].selectionId;
+                                        let parentRowId: number;
+                                        parentRowId = tasks[i].rowId;
+                                        selobjchildrencncierarchy.push(tasks[i]);
+                                        selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                        if (Gantt.lastSelectedbar === null) {
+                                            Gantt.lastSelectedbar = parseInt($($(this).parent()[0]).attr('data-rowid'), 10);
+                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                if ($(this).parent().attr('data-isleaf') === 'true') {
+                                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                                    d3.selectAll('.taskRect.show').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    d3.select($(this).parent()[0])
+                                                        .classed('selected', true)
+                                                        .style({
+                                                            opacity: 1
+                                                        });
+                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                        // tslint:disable-next-line:max-line-length
+                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                    }
+                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                            selobjchildrencncierarchy[j].rowId) {
+                                                            // tslint:disable-next-line:typedef
+                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i])).css('opacity', '1');
+                                                            thisk.addClass('selected');
+                                                            // tslint:disable-next-line:typedef
+                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
+                                                            j++;
+                                                        }
+                                                        if (j === selobjchildrencncierarchy.length) {
+                                                            break;
+                                                        }
+                                                    }
+                                                } else {
+                                                    let selobjindex: number = 0;
+                                                    d3.selectAll('.taskRect.show').style({
+                                                        opacity: 0.3
+                                                    })
+                                                        .classed('selected', false);
+                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                            .children()[kpiindex])
+                                                            .css({ opacity: 0.3 });
+                                                    }
+                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                            selobjchildrencncierarchy[selobjindex].rowId) {
+                                                            // tslint:disable-next-line:typedef
+                                                            const thisk = $(d3.selectAll('.taskRect.show'));
+                                                            $(thisk[0][i]).css({ opacity: 1 });
+                                                            // tslint:disable-next-line:typedef
+                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                            $(thiskk[0][i]).css({ opacity: 1 });
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
+                                                            selobjindex++;
+                                                        }
+                                                        if (selobjindex === selobjchildrencncierarchy.length) {
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        } else if (Gantt.lastSelectedbar ===
+                                            parseInt($($(d3.select($(this).parent()[0]))[0]).attr('data-rowid'), 10)) {
+                                            thisObj.selectionManager.clear();
+                                            d3.selectAll('.taskRect.show').classed('selected', false);
+                                            d3.selectAll('.taskRect.show').style({
+                                                opacity: 1
+                                            });
+                                            d3.selectAll('.gantt_taskPanel .show').style({
+                                                opacity: 0.8
+                                            });
+                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.8 });
+                                            }
+                                            Gantt.lastSelectedbar = null;
+                                        } else {
+                                            // tslint:disable-next-line:max-line-length
+                                            Gantt.lastSelectedbar = parseInt($($(d3.select($(this).parent()[0]))[0]).attr('data-rowid'), 10);
+                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                if ($(this).parent().attr('data-isleaf').toString() === 'true') {
+                                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                        opacity: 0.3
+                                                    })
+                                                        .classed('selected', false);
+                                                    d3.selectAll('.taskRect.show').style({
+                                                        opacity: 0.3
+                                                    })
+                                                        .classed('selected', false);
+                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                        // tslint:disable-next-line:max-line-length
+                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                    }
+                                                    d3.select($(this).parent()[0]).style({
+                                                        opacity: 1
+                                                    })
+                                                        .classed('selected', true);
+                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                        // tslint:disable-next-line:max-line-length
+                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                            selobjchildrencncierarchy[j].rowId) {
+                                                            // tslint:disable-next-line:typedef
+                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i])).css('opacity', '1');
+                                                            thisk.addClass('selected');
+                                                            // tslint:disable-next-line:typedef
+                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
+                                                            j++;
+                                                        }
+                                                        if (j === selobjchildrencncierarchy.length) {
+                                                            break;
+                                                        }
+                                                    }
+                                                } else {
+                                                    let selobjindex: number = 0;
+                                                    d3.selectAll('.taskRect.show').style({
+                                                        opacity: 0.3
+                                                    })
+                                                        .classed('selected', false);
+                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                        opacity: 0.3
+                                                    });
+                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                            .css({ opacity: 0.3 });
+                                                    }
+                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                        // tslint:disable-next-line:max-line-length
+                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                            selobjchildrencncierarchy[selobjindex].rowId) {
+                                                            // tslint:disable-next-line:typedef
+                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i])).css('opacity', '1');
+                                                            thisk.addClass('selected');
+                                                            // tslint:disable-next-line:typedef
+                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
+                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                            selobjindex++;
+                                                        }
+                                                        if (selobjindex === selobjchildrencncierarchy.length) {
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                                (<Event>d3.event).stopPropagation();
+                            });
+                        if (0 !== tasks[tasknumber].KPIValues.length) {
+                            // tslint:disable-next-line:no-any
+                            const kpiDisplayDiv: any = this.kpiDiv.append('div')
+                                .attr({
+                                    'data-level': tasks[tasknumber].level,
+                                    'data-ParentId': tasks[tasknumber].parentId,
+                                    'data-expanded': tasks[tasknumber].expanded,
+                                    'data-RowId': tasks[tasknumber].rowId,
+                                    'data-isLeaf': tasks[tasknumber].isLeaf,
+                                    'data-row': tasknumber
+                                });
+                            if (categoryLen === 4) {
+                                if (leveLength === 1) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': parentColour,
+                                        opacity: 0.8
+                                    });
+                                } else if (leveLength === 2) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': firstChildColour,
+                                        opacity: 0.8
+                                    });
+                                } else if (leveLength === 3) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: 0.8
+                                    });
+                                } else if (leveLength === 4) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: 0.8
+                                    });
+                                }
+                            } else if (categoryLen === 3) {
+                                if (leveLength === 1) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': firstChildColour,
+                                        opacity: 0.8
+                                    });
+                                } else if (leveLength === 2) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: 0.8
+                                    });
+                                } else if (leveLength === 3) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: 0.8
+                                    });
+                                }
+                            } else if (categoryLen === 2) {
+                                if (leveLength === 1) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: 0.8
+                                    });
+                                } else if (leveLength === 2) {
+                                    kpiDisplayDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: 0.8
+                                    });
+                                }
+                            } else {
+                                const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
+                                kpiDisplayDiv.style({
+                                    'background-color': backgroundBarColor,
+                                    opacity: 0.8
+                                });
+                            }
+                            if (0 !== currentLevel.KPIValues.length) {
+                                for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
+                                    let sKPITitle: string;
+                                    sKPITitle = tasks[tasknumber].KPIValues[jCount].name;
+                                    if (jCount === 0) {
+                                        kpiDisplayDiv
+                                            .style({
+                                                height: '24px'
+                                            });
+
+                                    }
+                                    const indicatorWidth: number = 75;
+                                    if (jCount < totalKPIs - 1) {
+                                        kpiDisplayDiv.append('div').classed('border', true).
+                                            style('margin-left', function (): string {
+                                                return indicatorWidth * (jCount + 1) + pxLiteral;
+                                            });
+                                    }
+                                    const iCenterSpacing: number = 60;
+                                    if (this.viewModel.kpiData[jCount].type.toLowerCase() === 'indicator') {
+                                        // tslint:disable-next-line:no-any
+                                        let axisKPILabel: any;
+                                        const iLeftSpacing: number = 5;
+                                        axisKPILabel = kpiDisplayDiv
+                                            .append('div')
+                                            .classed('circle', true);
+                                        let color: string = kpiFontColor;
+                                        let text: string = '';
+                                        let titleText: string;
+                                        titleText = currentLevel.KPIValues[jCount].value ?
+                                            currentLevel.KPIValues[jCount].value.toString() : '';
+                                        let showCircle: boolean = true;
+                                        let extraLeftPadding: number = 0;
+                                        const iLeftAlignSpacing: number = 30.5;
+                                        switch (currentLevel.KPIValues[jCount].value ?
+                                            currentLevel.KPIValues[jCount].value.toString() : '') {
+                                            case '1':
+                                                color = '#ad1717';
+                                                text = 'R';
+                                                extraLeftPadding = 1.5;
+                                                break;
+                                            case '2':
+                                                color = '#d15d0d';
+                                                text = 'O';
+                                                extraLeftPadding = 1;
+                                                break;
+                                            case '3':
+                                                color = '#ff9d00';
+                                                text = 'Y';
+                                                extraLeftPadding = 2;
+
+                                                break;
+                                            case '4':
+                                                color = '#116836';
+                                                text = 'G';
+                                                extraLeftPadding = 0.5;
+                                                break;
+                                            default:
+
+                                                showCircle = false;
+                                                break;
+                                        }
+                                        if (showCircle) {
+
+                                            axisKPILabel.style('font-size', kpiFontSize + pxLiteral)
+                                                .style('background-color', color)
+                                                //   tslint:disable-next-line:typedef
+                                                .style('margin-top', 5 + pxLiteral)
+                                                .style('margin-left', function (): string {
+                                                    if (text === undefined) {
+                                                        return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+                                                    } else {
+                                                        return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+
+                                                    }
+                                                });
+                                            axisKPILabel.append('title').text(titleText);
+                                            axisKPILabel.append('div')
+                                                .append('text').text(text)
+                                                .style({
+                                                    'stroke-width': Gantt.axisLabelStrokeWidth,
+                                                    color: '#fff'
+                                                }).style('font-size', kpiFontSize + pxLiteral)
+                                                .style('margin-left', function (): string {
+                                                    if (text === undefined) {
+                                                        return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+                                                    } else {
+                                                        return iLeftSpacing + pxLiteral;
+
+                                                    }
+                                                })
+                                                ;
+                                            axisKPILabel.append('title').text(titleText);
+                                        } else {
+                                            axisKPILabel.style('margin-left', (jCount * (iCenterSpacing + 15))
+                                                + iLeftAlignSpacing + pxLiteral);
+                                        }
+
+                                    } else if (thisObj.viewModel.kpiData[jCount].type.toLowerCase() === 'type') {
+                                        // tslint:disable-next-line:no-any
+                                        let axisKPILabel: any;
+                                        axisKPILabel = kpiDisplayDiv
+                                            .append('div')
+                                            .classed('rectangle', true);
+                                        let color: string;
+                                        color = '#fff';
+                                        const iLeftAlignSpacing: number = 27;
+                                        let text: string = currentLevel.KPIValues[jCount].value ?
+                                            currentLevel.KPIValues[jCount].value.toString() : '';
+                                        if (!text) {
+                                            axisKPILabel.style('margin-left', (jCount * (iCenterSpacing + 15) +
+                                                iLeftAlignSpacing + pxLiteral));
+                                            continue;
+                                        }
+                                        let titleText: string;
+                                        titleText = text;
+                                        if (-1 === types.indexOf(text)) {
+                                            types.push(text);
+                                        }
+                                        let index: number;
+                                        index = types.indexOf(text);
+                                        typeColor = Gantt.typeColors[index % Gantt.typeColors.length];
+                                        text = text.charAt(0) + text.charAt(-1 !== text.indexOf(' ') ? text.indexOf(' ') + 1 : -1);
+                                        const iLeftSpacing: number = 5;
+                                        axisKPILabel.style('font-size', kpiFontSize + pxLiteral)
+                                            .style('background-color', typeColor)
+                                            .style('margin-top', 5 + pxLiteral)
+                                            .style('margin-left', function (): string {
+                                                if (text === undefined) {
+                                                    return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
+                                                } else {
+                                                    return ((jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral);
+
+                                                }
+                                            });
+                                        axisKPILabel.append('title').text(titleText);
+                                        axisKPILabel.append('div')
+                                            .append('text').text(text)
+                                            .style({
+                                                'stroke-width': Gantt.axisLabelStrokeWidth,
+                                                color: '#fff'
+                                            }).style('font-size', kpiFontSize + pxLiteral)
+                                            .style('margin-left', function (): string {
+                                                if (text === undefined) {
+                                                    return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
+                                                } else {
+                                                    return iLeftSpacing + pxLiteral;
+
+                                                }
+                                            });
+                                        axisKPILabel.append('title').text(titleText);
+                                    } else {
+                                        // tslint:disable-next-line:no-any
+                                        let axisKPILabel: any;
+                                        axisKPILabel = kpiDisplayDiv
+                                            .append('div')
+                                            .classed('textValue', true)
+                                            .append('text');
+                                        let iLeftSpacing: number = 5;
+                                        let clippedText: string;
+                                        if (typeof currentLevel.KPIValues[jCount].value === 'number') {
+                                            clippedText = currentLevel.KPIValues[jCount].value.toString();
+                                            kpiDisplayDiv.append('text')
+                                                .text(clippedText)
+                                                .classed('singleCharacter', true)
+                                                .style({
+                                                    'font-size': normalizer + pxLiteral,
+                                                    'font-family': taskLabelsFontFamily
+                                                });
+                                            let textTotalWidth: number;
+                                            textTotalWidth = $('.singleCharacter').innerWidth();
+                                            let numberOfCharactersAllowed: number;
+                                            numberOfCharactersAllowed = Math.floor(
+                                                (Gantt.kpiLabelWidth / totalKPIs) / (textTotalWidth / clippedText.length));
+                                            if (clippedText.length > numberOfCharactersAllowed) {
+                                                $('.singleCharacter').text(clippedText
+                                                    .substring(0, numberOfCharactersAllowed - 2) + ellipsisLiteral);
+                                                textTotalWidth = $('.singleCharacter').innerWidth();
+                                                let iCount: number = 0;
+                                                while (textTotalWidth < width) {
+                                                    iCount++;
+                                                    // tslint:disable-next-line:max-line-length
+                                                    $('.singleCharacter').text(clippedText.substring(0, numberOfCharactersAllowed - 2 + iCount) + ellipsisLiteral);
+                                                    textTotalWidth = $('.singleCharacter').innerWidth();
+                                                }
+                                            } else {
+                                                iLeftSpacing = Gantt.kpiLabelWidth / totalKPIs - textTotalWidth - 5;
+                                            }
+                                            d3.selectAll('.singleCharacter').remove();
+                                        }
+                                        axisKPILabel.attr({
+                                            'margin-top': thisObj.getTaskLabelCoordinateY(tasknumber) + pxLiteral,
+                                            'stroke-width': Gantt.axisLabelStrokeWidth
+                                        }).style('font-size', kpiFontSize + pxLiteral)
+                                            // tslint:disable-next-line:typedef
+                                            .style('margin-left', function () {
+                                                if (clippedText === undefined) {
+                                                    return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
+                                                } else {
+                                                    return ((jCount * (iCenterSpacing + 10)) + iCenterSpacing + pxLiteral);
+                                                }
+                                            });
+                                        axisKPILabel.text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'text'));
+                                        axisKPILabel.append('title').text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'title'));
+                                    }
+                                }
+                            }
+                        }
+                        if (!Gantt.isDateData) {
+                            // tslint:disable-next-line:no-any
+                            const currentLevel1: Task = tasks[tasknumber];
+                            // tslint:disable-next-line:no-any
+                            const barBackgroundDiv: any = this.barDiv
+                                .append('div')
+                                .classed('parentDiv', true)
+                                .datum(currentLevel1)
+                                .attr({
+                                    'data-level': tasks[tasknumber].level,
+                                    'data-ParentId': tasks[tasknumber].parentId,
+                                    'data-expanded': tasks[tasknumber].expanded,
+                                    'data-RowId': tasks[tasknumber].rowId,
+                                    'data-isLeaf': tasks[tasknumber].isLeaf,
+                                    'data-row': tasknumber
+                                })
+                                .style({
+                                    'margin-left': 0 + pxLiteral,
+                                    height: '24px',
+                                    width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10) + pxLiteral,
+                                    'border-bottom': '0.011px'
+                                });
+                            if (categoryLen === 4) {
+                                if (leveLength === 1) {
+                                    barBackgroundDiv.style({
+                                        'background-color': parentColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 2) {
+                                    barBackgroundDiv.style({
+                                        'background-color': firstChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 3) {
+                                    barBackgroundDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 4) {
+                                    barBackgroundDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                }
+                            } else if (categoryLen === 3) {
+                                if (leveLength === 1) {
+                                    barBackgroundDiv.style({
+                                        'background-color': firstChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 2) {
+                                    barBackgroundDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 3) {
+                                    barBackgroundDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                }
+                            } else if (categoryLen === 2) {
+                                if (leveLength === 1) {
+                                    barBackgroundDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: opacityNumber2
+                                    });
+                                } else if (leveLength === 2) {
+                                    barBackgroundDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: opacityNumber2
+                                    });
+                                }
+                            } else {
+                                const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
+                                barBackgroundDiv.style({
+                                    'background-color': backgroundBarColor,
+                                    opacity: opacityNumber2
+                                });
+                            }
+                            // tslint:disable-next-line:no-any
+                            let taskRect: any;
+                            taskRect = this.barDiv
+                                .append('div')
+                                .classed('taskRect', true)
+                                .datum(currentLevel)
+                                .classed('show', true)
+                                .attr({
+                                    'data-level': tasks[tasknumber].level,
+                                    'data-ParentId': tasks[tasknumber].parentId,
+                                    'data-expanded': tasks[tasknumber].expanded,
+                                    'data-RowId': tasks[tasknumber].rowId,
+                                    'data-isLeaf': tasks[tasknumber].isLeaf,
+                                    'data-row': tasknumber
+                                });
+                            let yPos: number;
+                            yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
+                            let xPos: number;
+                            xPos = 0;
+                            let xPosStart: number;
+                            xPosStart = 0;
+                            // tslint:disable-next-line:typedef
+                            let obj = {};
+                            let level1: number = 0;
+                            let parentRowId: number = 0;
+                            const rowId: number = 0;
+                            // tslint:disable-next-line:no-any
+                            let selobjchildrencncierarchy: any = [];
+                            if (currentLevel.numEnd !== null || currentLevel.numStart !== null) {
+                                if (isNaN(thisObj.taskDurationToWidth1(currentLevel))
+                                    // tslint:disable-next-line:no-any
+                                    || isNaN(thisObj.timeScale(<any>currentLevel.numStart))) {
+                                    taskRect
+                                        .style({
+                                            // tslint:disable-next-line:no-any
+                                            'margin-left': 39 + pxLiteral,
+                                            'margin-top': '-21.4444444px',
+                                            width: 3 + pxLiteral,
+                                            height: Gantt.getBarHeight() / 1.5 + pxLiteral,
+                                            'background-color': currentLevel.color,
+                                            opacity: 1,
+                                            position: 'absolute'
+                                        })
+                                        // tslint:disable-next-line:typedef
+                                        .on('click', function () {
+                                            // tslint:disable-next-line:typedef
+                                            function getDirectChildInHierarchy(sRowID) {
+                                                // tslint:disable-next-line:typedef
+                                                $.map(tasks, function (sObj) {
+                                                    if (sObj.parentId === sRowID) {
+                                                        selobjchildrencncierarchy.push(sObj);
+                                                        getDirectChildInHierarchy(sObj.rowId);
+                                                    }
+                                                });
+
+                                                return selobjchildrencncierarchy;
+                                            }
+                                            for (let i: number = 0; i < tasks.length; i++) {
+                                                if (currentLevel.id === tasks[i].id) {
+                                                    obj = tasks[i];
+                                                    level1 = tasks[i].level;
+                                                    parentRowId = tasks[i].rowId;
+                                                    selobjchildrencncierarchy.push(tasks[i]);
+                                                    selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                                    // tslint:disable-next-line:no-any
+                                                    const selectionId: any = tasks[i].selectionId;
+                                                    if (Gantt.lastSelectedbar === null) {
+                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                let j: number = 0;
+                                                                d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                }
+                                                                d3.select(this)
+                                                                    .classed('selected', true)
+                                                                    .style({
+                                                                        opacity: 1
+                                                                    });
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line:max-line-length
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                        selobjchildrencncierarchy[j].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $(thiskk[0][i]).css('opacity', '1');
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                            .css({ opacity: 1 });
+                                                                        j++;
+                                                                    }
+                                                                    if (j === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                let j: number = 0;
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                })
+                                                                    .classed('selected', false);
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                }
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line: max-line-length
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $(thiskk[0][i]).css('opacity', '1')
+                                                                            .addClass('selected');
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                            .children()[i]).css({ opacity: 1 });
+                                                                        j++;
+                                                                    }
+                                                                    if (j === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                    } else if (Gantt.lastSelectedbar === parseInt(d3.select(this).attr('data-rowid'), 10)) {
+                                                        thisObj.selectionManager.clear();
+                                                        d3.selectAll('.taskRect.show').classed('selected', false);
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 1
+                                                        });
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 1
+                                                        });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                .children()[kpiindex]).css({ opacity: 1 });
+                                                        }
+                                                        Gantt.lastSelectedbar = null;
+                                                    } else {
+                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                        let j: number = 0;
+                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                }
+                                                                d3.select(this)
+                                                                    .classed('selected', true)
+                                                                    .style({
+                                                                        opacity: 1
+                                                                    });
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line:max-line-length
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                        selobjchildrencncierarchy[j].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $(thiskk[0][i]).css('opacity', '1');
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                            .css({ opacity: 1 });
+                                                                        j++;
+                                                                    }
+                                                                    if (j === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                let selobjindex: number = 0;
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                })
+                                                                    .classed('selected', false);
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                }
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[selobjindex].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                            .css({ opacity: 1 });
+                                                                        $(thiskk[0][i]).css('opacity', '1');
+                                                                        selobjindex++;
+                                                                    }
+                                                                    if (selobjindex === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            (<Event>d3.event).stopPropagation();
+                                        });
+                                } else {
+                                    taskRect
+                                        .style({
+                                            // tslint:disable-next-line:no-any
+                                            'margin-left': thisObj.timeScale(<any>currentLevel.numStart) + 39 + pxLiteral,
+                                            width: 0 === thisObj.taskDurationToWidth1(currentLevel) ? 3 + pxLiteral :
+                                                thisObj.taskDurationToWidth1(currentLevel) + pxLiteral,
+                                            height: Gantt.getBarHeight() / 1.5 + pxLiteral,
+                                            'background-color': currentLevel.color,
+                                            opacity: 1,
+                                            position: 'absolute',
+                                            'margin-top': '-21.4444444px'
+
+                                        })
+                                        // tslint:disable-next-line:typedef
+                                        .on('click', function () {
+                                            // tslint:disable-next-line:typedef
+                                            function getDirectChildInHierarchy(sRowID) {
+                                                // tslint:disable-next-line:typedef
+                                                $.map(tasks, function (sObj) {
+                                                    if (sObj.parentId === sRowID) {
+                                                        selobjchildrencncierarchy.push(sObj);
+                                                        getDirectChildInHierarchy(sObj.rowId);
+                                                    }
+                                                });
+
+                                                return selobjchildrencncierarchy;
+                                            }
+                                            for (let i: number = 0; i < tasks.length; i++) {
+                                                if (currentLevel.id === tasks[i].id) {
+                                                    obj = tasks[i];
+                                                    level1 = tasks[i].level;
+                                                    parentRowId = tasks[i].rowId;
+                                                    selobjchildrencncierarchy.push(tasks[i]);
+                                                    selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                                    // tslint:disable-next-line:no-any
+                                                    const selectionId: any = tasks[i].selectionId;
+                                                    if (Gantt.lastSelectedbar === null) {
+                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                let j: number = 0;
+                                                                d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                }
+                                                                d3.select(this)
+                                                                    .classed('selected', true)
+                                                                    .style({
+                                                                        opacity: 1
+                                                                    });
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line: max-line-length
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $(thiskk[0][i]).css('opacity', '1');
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                            .css({ opacity: 1 });
+                                                                        j++;
+                                                                    }
+                                                                    if (j === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                let j: number = 0;
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                })
+                                                                    .classed('selected', false);
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                        .css({ opacity: 0.3 });
+                                                                }
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line: max-line-length
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $(thiskk[0][i]).css('opacity', '1')
+                                                                            .addClass('selected');
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                            .css({ opacity: 1 });
+                                                                        j++;
+                                                                    }
+                                                                    if (j === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                selobjchildrencncierarchy = [];
+                                                            }
+                                                        });
+                                                    } else if (Gantt.lastSelectedbar === parseInt(d3.select(this).attr('data-rowid'), 10)) {
+                                                        thisObj.selectionManager.clear();
+                                                        d3.selectAll('.taskRect.show').classed('selected', false);
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 1
+                                                        });
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 1
+                                                        });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                .css({ opacity: 1 });
+                                                        }
+                                                        Gantt.lastSelectedbar = null;
+                                                    } else {
+                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                        let j: number = 0;
+                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                }
+                                                                d3.select(this)
+                                                                    .classed('selected', true)
+                                                                    .style({
+                                                                        opacity: 1
+                                                                    });
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line: max-line-length
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $(thiskk[0][i]).css('opacity', '1');
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                            .css({ opacity: 1 });
+                                                                        j++;
+                                                                    }
+                                                                    if (j === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                let selobjindex: number = 0;
+                                                                d3.selectAll('.taskRect.show').style({
+                                                                    opacity: 0.3
+                                                                })
+                                                                    .classed('selected', false);
+                                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                                    opacity: 0.3
+                                                                });
+                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                        .css({ opacity: 0.3 });
+                                                                }
+                                                                // tslint:disable-next-line:no-shadowed-variable
+                                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                                    // tslint:disable-next-line:max-line-length
+                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[selobjindex].rowId) {
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                            .css('opacity', '1');
+                                                                        thisk.addClass('selected');
+                                                                        // tslint:disable-next-line:typedef
+                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                            .css({ opacity: 1 });
+                                                                        $(thiskk[0][i]).css('opacity', '1');
+                                                                        selobjindex++;
+                                                                    }
+                                                                    if (selobjindex === selobjchildrencncierarchy.length) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            (<Event>d3.event).stopPropagation();
+                                        });
+                                }
+                                yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
+                                // tslint:disable-next-line:no-any
+                                if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
+                                    // tslint:disable-next-line:no-any
+                                    xPos = thisObj.timeScale(<any>currentLevel.numEnd);
+                                    // tslint:disable-next-line:no-any
+                                    xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                                }
+                                // tslint:disable-next-line:no-any
+                                if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
+                                    // tslint:disable-next-line:no-any
+                                    xPos = thisObj.timeScale(<any>currentLevel.numEnd);
+                                    // tslint:disable-next-line:no-any
+                                    xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                                }
+                                thisObj.renderTooltip(taskRect);
+                                let labelnormalizer: number;
+                                labelnormalizer =
+                                    (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize)
+                                    / Gantt.maximumFontSize;
+                                if (taskResourceShow) {
+                                    // tslint:disable-next-line:no-any
+                                    let taskResource: any;
+                                    taskResource = barBackgroundDiv
+                                        .append('text')
+                                        .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
+                                    let titleWidth: number;
+                                    titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
+                                    d3.selectAll('.resourceLabelText').remove();
+                                    let xPosVal: number = 0;
+                                    const barStartpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('margin-left');
+                                    // tslint:disable-next-line:radix
+                                    const barStartpt1: number = parseInt(barStartpt.substring(0, barStartpt.length - 2));
+                                    const barEndpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('width');
+                                    // tslint:disable-next-line:radix
+                                    const barEndpt1: number = parseInt(barEndpt.substring(0, barEndpt.length - 2));
+                                    switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
+                                        case 'top':
+                                            xPosVal = ((barStartpt1 + (barEndpt1 / 2)));
+                                            break;
+                                        case 'left':
+                                            xPosVal = barStartpt1 - 10;
+                                            break;
+                                        case 'right':
+                                        default:
+                                            xPosVal = barStartpt1 + barEndpt1 + 5;
+                                            break;
+                                    }
+                                    taskResource
+                                        .style({
+                                            'margin-left': xPosVal + pxLiteral
+                                        })
+                                        .text(currentLevel.resource)
+                                        .style({
+                                            color: taskResourceColor,
+                                            'font-size': labelnormalizer + pxLiteral,
+                                            'font-family': dataLabelsFontFamily
+                                        });
+                                    taskResource.append('title').text(currentLevel.resource);
+                                }
+                            }
+                        } else {
+                            // tslint:disable-next-line:no-shadowed-variable
+                            let currentLevel: Task;
+                            currentLevel = tasks[tasknumber];
+                            // tslint:disable-next-line:no-any
+                            let barBackgroundDiv: any;
+                            barBackgroundDiv = thisObj.barDiv.append('div')
+                                .classed('parentDiv', true)
+                                .datum(currentLevel)
+                                .style({
+                                    'margin-left': 0 + pxLiteral,
+                                    'margin-top': thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
+                                    height: '24px',
+                                    width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10) + pxLiteral,
+                                    'border-bottom': '0.011px',
+                                    'background-color': 'grey'
+                                })
+                                .datum(currentLevel)
+                                .classed('show', true)
+                                .attr({
+                                    'data-level': tasks[tasknumber].level,
+                                    'data-ParentId': tasks[tasknumber].parentId,
+                                    'data-expanded': tasks[tasknumber].expanded,
+                                    'data-RowId': tasks[tasknumber].rowId,
+                                    'data-isLeaf': tasks[tasknumber].isLeaf,
+                                    'data-row': tasknumber
+                                });
+                            if (categoryLen === 4) {
+                                if (leveLength === 1) {
+                                    barBackgroundDiv.style({
+                                        'background-color': parentColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 2) {
+                                    barBackgroundDiv.style({
+                                        'background-color': firstChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 3) {
+                                    barBackgroundDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 4) {
+                                    barBackgroundDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                }
+                            } else if (categoryLen === 3) {
+                                if (leveLength === 1) {
+                                    barBackgroundDiv.style({
+                                        'background-color': firstChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 2) {
+                                    barBackgroundDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                } else if (leveLength === 3) {
+                                    barBackgroundDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: opacityNumber1
+                                    });
+                                }
+                            } else if (categoryLen === 2) {
+                                if (leveLength === 1) {
+                                    barBackgroundDiv.style({
+                                        'background-color': secondChildColour,
+                                        opacity: opacityNumber2
+                                    });
+                                } else if (leveLength === 2) {
+                                    barBackgroundDiv.style({
+                                        'background-color': thirdChildColour,
+                                        opacity: opacityNumber2
+                                    });
+                                }
+                            } else {
+                                const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
+                                barBackgroundDiv.style({
+                                    'background-color': backgroundBarColor,
+                                    opacity: opacityNumber2
+                                });
+                            }
+                            // tslint:disable-next-line:no-any
+                            let taskRect: any;
+                            taskRect = this.barDiv
+                                .append('div')
+                                .classed('taskRect', true)
+                                .datum(currentLevel);
+                            let yPos: number;
+                            yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
+                            let xPos: number;
+                            xPos = 0;
+                            let xPosStart: number;
+                            xPosStart = 0;
+                            // tslint:disable-next-line:typedef
+                            let obj = {};
+                            let level1: number = 0;
+                            let parentRowId: number = 0;
+                            const rowId: number = 0;
+                            taskRect
+                                .classed('show', true)
+                                .attr({
+                                    'data-level': tasks[tasknumber].level,
+                                    'data-ParentId': tasks[tasknumber].parentId,
+                                    'data-expanded': tasks[tasknumber].expanded,
+                                    'data-RowId': tasks[tasknumber].rowId,
+                                    'data-isLeaf': tasks[tasknumber].isLeaf,
+                                    'data-row': tasknumber
+                                })
+                                .style({
+                                    'margin-left': thisObj.timeScale(currentLevel.start) + 37 + pxLiteral,
+                                    width: 0 === thisObj.taskDurationToWidth(currentLevel) ? 3 +
+                                        pxLiteral : thisObj.taskDurationToWidth(currentLevel) + pxLiteral,
+                                    height: Gantt.getBarHeight() / 1.5 + pxLiteral,
+                                    'background-color': currentLevel.color,
+                                    opacity: 1,
+                                    position: 'absolute',
+                                    'margin-top': '-21.4444444px'
+                                })
+                                // tslint:disable-next-line:typedef
+                                .on('click', function () {
+                                    // tslint:disable-next-line:no-any
+                                    let selobjchildrencncierarchy: any = [];
+                                    // tslint:disable-next-line:typedef
+                                    function getDirectChildInHierarchy(sRowID) {
+                                        // tslint:disable-next-line:typedef
+                                        $.map(tasks, function (sObj) {
+                                            if (sObj.parentId === sRowID) {
+                                                selobjchildrencncierarchy.push(sObj);
+                                                getDirectChildInHierarchy(sObj.rowId);
+                                            }
+                                        });
+
+                                        return selobjchildrencncierarchy;
+                                    }
+                                    for (let i: number = 0; i < tasks.length; i++) {
+                                        if (currentLevel.id === tasks[i].id) {
+                                            obj = tasks[i];
+                                            level1 = tasks[i].level;
+                                            parentRowId = tasks[i].rowId;
+                                            selobjchildrencncierarchy.push(tasks[i]);
+                                            selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                            // tslint:disable-next-line:no-any
+                                            const selectionId: any = tasks[i].selectionId;
+                                            if (Gantt.lastSelectedbar === null) {
+                                                Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                    if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                        let j: number = 0;
+                                                        d3.selectAll('.taskRect.show').classed('selected', false);
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        d3.select(this)
+                                                            .classed('selected', true)
+                                                            .style({
+                                                                opacity: 1
+                                                            });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                .children()[kpiindex]).css({ opacity: 0.3 });
+                                                        }
+                                                        // tslint:disable-next-line:max-line-length
+                                                        for (let indexselctedobj: number = 0; indexselctedobj < tasks.length; indexselctedobj++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][indexselctedobj]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                // tslint:disable-next-line:typedef
+                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                $(thiskk[0][indexselctedobj]).css('opacity', '1')
+                                                                    .addClass('selected');
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                    .css({ opacity: 1 });
+                                                                j++;
+                                                            }
+                                                            if (j === selobjchildrencncierarchy.length) {
+                                                                break;
+                                                            }
+                                                        }
+                                                    } else {
+                                                        let j: number = 0;
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        })
+                                                            .classed('selected', false);
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                        }
+                                                        // tslint:disable-next-line:no-shadowed-variable
+                                                        for (let i: number = 0; i < tasks.length; i++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                selobjchildrencncierarchy[j].rowId) {
+                                                                // tslint:disable-next-line:typedef
+                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                    .css('opacity', '1');
+                                                                thisk.addClass('selected');
+                                                                // tslint:disable-next-line:typedef
+                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                $(thiskk[0][i]).css('opacity', '1')
+                                                                    .addClass('selected');
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                    .css({ opacity: 1 });
+                                                                j++;
+                                                            }
+                                                            if (j === selobjchildrencncierarchy.length) {
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            } else if (Gantt.lastSelectedbar === parseInt(d3.select(this).attr('data-rowid'), 10)) {
+                                                thisObj.selectionManager.clear();
+                                                d3.selectAll('.taskRect.show').classed('selected', false);
+                                                d3.selectAll('.taskRect.show').style({
+                                                    opacity: 1
+                                                });
+                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                    opacity: 0.8
+                                                });
+                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.8 });
+                                                }
+                                                Gantt.lastSelectedbar = null;
+                                            } else {
+                                                Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                    if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                        let j: number = 0;
+                                                        d3.selectAll('.taskRect.show').classed('selected', false);
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        d3.select(this)
+                                                            .classed('selected', true)
+                                                            .style({
+                                                                opacity: 1
+                                                            });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                        }
+                                                        // tslint:disable-next-line:no-shadowed-variable
+                                                        for (let i: number = 0; i < tasks.length; i++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                selobjchildrencncierarchy[j].rowId) {
+                                                                // tslint:disable-next-line:typedef
+                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                    .css('opacity', '1');
+                                                                thisk.addClass('selected');
+                                                                // tslint:disable-next-line:typedef
+                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                $(thiskk[0][i]).css('opacity', '1');
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                    .css({ opacity: 1 });
+                                                                j++;
+                                                            }
+                                                            if (j === selobjchildrencncierarchy.length) {
+                                                                break;
+                                                            }
+                                                        }
+                                                    } else {
+                                                        let j: number = 0;
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        })
+                                                            .classed('selected', false);
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                .css({ opacity: 0.3 });
+                                                        }
+                                                        // tslint:disable-next-line:no-shadowed-variable
+                                                        for (let i: number = 0; i < tasks.length; i++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                selobjchildrencncierarchy[j].rowId) {
+                                                                j++;
+                                                                // tslint:disable-next-line:typedef
+                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                    .css('opacity', '1');
+                                                                thisk.addClass('selected');
+                                                                // tslint:disable-next-line:typedef
+                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                $(thiskk[0][i]).css('opacity', '1');
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                    .css({ opacity: 1 });
+                                                            }
+                                                            if (j === selobjchildrencncierarchy.length) {
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    }
+                                    (<Event>d3.event).stopPropagation();
+                                });
+
+                            yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
+                            if (xPos < thisObj.timeScale(currentLevel.end)) {
+                                xPos = thisObj.timeScale(currentLevel.start) +
+                                    // tslint:disable-next-line:max-line-length
+                                    (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
+                                xPosStart = thisObj.timeScale(currentLevel.start);
+                            }
+                            if (xPos < thisObj.timeScale(currentLevel.end)) {
+                                xPos = thisObj.timeScale(currentLevel.start) +
+                                    // tslint:disable-next-line:max-line-length
+                                    (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
+                                xPosStart = thisObj.timeScale(currentLevel.start);
+                            }
+                            thisObj.renderTooltip(taskRect);
+                            let labelnormalizer: number;
+                            labelnormalizer =
+                                (thisObj.viewModel.settings.taskResource.fontSize *
+                                    Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
+                            if (taskResourceShow) {
+                                // tslint:disable-next-line:no-any
+                                let taskResource: any;
+                                taskResource = barBackgroundDiv
+                                    .append('text')
+                                    .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
+                                let titleWidth: number;
+                                titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
+                                d3.selectAll('.resourceLabelText').remove();
+                                let xPosVal: number = 0;
+                                const barStartpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('margin-left');
+                                // tslint:disable-next-line:radix
+                                const barStartpt1: number = parseInt(barStartpt.substring(0, barStartpt.length - 2));
+                                const barEndpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('width');
+                                // tslint:disable-next-line:radix
+                                const barEndpt1: number = parseInt(barEndpt.substring(0, barEndpt.length - 2));
+                                switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
+                                    case 'top':
+                                        xPosVal = ((barStartpt1 + (barEndpt1 / 2)));
+                                        break;
+                                    case 'left':
+                                        xPosVal = barStartpt1 - 20;
+                                        break;
+                                    case 'right':
+                                    default:
+                                        xPosVal = barStartpt1 + barEndpt1 + 5;
+                                        break;
+                                }
+                                taskResource
+                                    .style({
+                                        'margin-left': xPosVal + pxLiteral
+                                    })
+                                    .text(currentLevel.resource)
+                                    .style({
+                                        color: taskResourceColor,
+                                        'font-size': labelnormalizer + pxLiteral,
+                                        'font-family': dataLabelsFontFamily
+                                    });
+                                taskResource.append('title').text(currentLevel.resource);
+                                if (thisObj.viewModel.settings.taskResource.position.toLowerCase() === 'top') {
+                                    taskResource.remove();
+                                    let displayText: string;
+                                    displayText = null || undefined === currentLevel.resource ? '' : currentLevel.resource;
+                                    taskRect[0][0].append(displayText);
+                                    taskRect.style({
+                                        color: taskResourceColor,
+                                        'font-size': labelnormalizer + pxLiteral,
+                                        'font-family': dataLabelsFontFamily,
+                                        'text-align': 'center'
+                                    });
+                                }
+                            }
+
+                        }
+
+                        if (!tasks[tasknumber].expanded && tasks[tasknumber].parentId !== 1) {
+                            // tslint:disable-next-line:prefer-template
+                            $('div[data-row = "' + tasknumber + '"]').hide();
+                        }
+                        if (tasks[tasknumber].expanded) {
+                            expandeditems.push(tasks[tasknumber].id);
+                        }
+                        $('.gantt_legendIndicatorPanel').hide();
+                        $('.arrow').hide();
+                    }
+                    for (let jiterator: number = 0; jiterator < expandeditems.length; jiterator++) {
+                        thisObj.expandFunctinality(tasks, expandeditems[jiterator]);
+                    }
+                }
+                let chartHeight: number;
+                // tslint:disable-next-line:no-any
+                chartHeight = $('.show').filter(function (): any {
+                    return $(this).css('display') !== 'none';
+                }).length;
+                chartHeight = chartHeight / 2;
+                if (!Gantt.isDateData) {
+                    $('.gantt_barPanel').css('height', (chartHeight * 24) + pxLiteral);
+                } else {
+                    $('.gantt_barPanel').css('height', (chartHeight * 16) + pxLiteral);
+                }
+                if (this.viewModel.settings.taskLabels.isExpanded) {
+                    $('.gantt_taskPanel').show();
+                } else {
+                    $('.gantt_taskPanel').hide();
+                }
+                if (d3.select('#gantt_ToggleIcon').classed('expand')) {
+                    $('.gantt_taskPanel').hide();
+                    $('.gantt_bottomTaskDiv').hide();
+                } else {
+                    $('.gantt_taskPanel').show();
+                    $('.gantt_bottomTaskDiv').show();
+                }
+                if (d3.select('#gantt_KPIToggle').classed('expand')) {
+                    $('.gantt_kpiPanel').hide();
+                } else {
+                    $('.gantt_kpiPanel').show();
+                }
             }
         }
+        // tslint:disable-next-line
+        public collapseFunctinality(tasks: Task[], parentRowId1: any): void {
+            // tslint:disable-next-line:prefer-template
+            $('div[data-parentid = "' + parentRowId1 + '"]').hide();
+            // tslint:disable-next-line:no-any
+            const arrRowid: any = [];
+            // tslint:disable-next-line:no-any
+            const arr: any = [];
+            // tslint:disable-next-line:prefer-template
+            if (($($('div[data-parentid = \'' + parentRowId1 + '\']')).attr('data-isleaf'))) {
+                // tslint:disable-next-line:prefer-template
+                arr.push($('div[data-parentid = \'' + parentRowId1 + '\']'));
+                for (const ijterator: number = 0; iterator < arr[0].length; iterator++) {
+                    // tslint:disable-next-line:prefer-template
+                    arrRowid.push($($('div[data-parentid = \'' + parentRowId1 + '\']')[ijterator]).attr('data-rowid'));
+                }
 
+                for (let rowid1: number = 0; rowid1 < arrRowid.length; rowid1++) {
+                    this.collapseFunctinality(tasks, this.collapseFunctinality(tasks, arrRowid[rowid1]));
+                }
+            }
+
+        }
+        // tslint:disable-next-line
+        public expandFunctinality(tasks: Task[], parentRowId1: any): void {
+            // tslint:disable-next-line:prefer-template
+            $('div[data-parentid = "' + parentRowId1 + '"]').show();
+        }
         private drawMilestoneShape(
             selection: Selection<HTMLElement>, xStartPosition: number, yStartPosition: number, index: number, isForLegend: boolean): void {
+
             let shapeName: string;
             let color: string;
             let size: number;
@@ -5397,6 +8445,7 @@ module powerbi.extensibility.visual {
             }
 
             function getTriangleCoords(xStart: number, yStart: number, length: number): string {
+
                 let x1: number;
                 let x2: number;
                 let x3: number;
@@ -5421,19 +8470,21 @@ module powerbi.extensibility.visual {
             }
 
             function CalculateStarPoints(centerX: number, centerY: number, arms: number, outerRadius: number, innerRadius: number): string {
+
                 let results: string;
                 results = '';
                 let angle: number;
                 angle = Math.PI / arms;
-                for (let iIndex: number = 0; iIndex < 2 * arms; iIndex++) {
-                    let r: number;
-                    r = (iIndex % 2) === 0 ? outerRadius : innerRadius;
+                let i: number;
+                for (i = 0; i < 2 * arms; i++) {
+                    let radius: number;
+                    radius = (i % 2) === 0 ? outerRadius : innerRadius;
                     let currX: number;
-                    currX = centerX + Math.cos(iIndex * angle) * r;
+                    currX = centerX + Math.cos(i * angle) * radius;
                     let currY: number;
-                    currY = centerY + Math.sin(iIndex * angle) * r;
+                    currY = centerY + Math.sin(i * angle) * radius;
 
-                    if (iIndex === 0) {
+                    if (i === 0) {
                         results = currX + commaLiteral + currY;
                     } else {
                         results += commaLiteral + spaceLiteral + currX + commaLiteral + currY;
@@ -5499,13 +8550,13 @@ module powerbi.extensibility.visual {
         }
 
         private getTooltipForTodayLine(timestamp: number, milestoneTitle: string): VisualTooltipDataItem[] {
+
             let today: Date;
             today = new Date();
             let stringDate: string;
             stringDate = (zeroLiteral + (today.getMonth() + 1)).slice(-2)
                 + slashLiteral + (zeroLiteral + today.getDate()).slice(-2) +
-                slashLiteral + today.getFullYear() + spaceLiteral + (zeroLiteral + today.getHours()).slice(-2) +
-                colonLiteral + (zeroLiteral + today.getMinutes()).slice(-2);
+                slashLiteral + today.getFullYear() + spaceLiteral + (zeroLiteral + today.getHours()).slice(-2);
             let tooltip: VisualTooltipDataItem[];
             tooltip = [{ displayName: milestoneTitle, value: stringDate }];
 
@@ -5535,6 +8586,11 @@ module powerbi.extensibility.visual {
                 chartLineSelection
                     .enter()
                     .append('line')
+                    .style({
+                        position: 'absolute',
+                        opacity: 1,
+                        'z-index': 1000
+                    })
                     .classed(Selectors.chartLine.class, true);
                 chartLineSelection.attr({
                     // tslint:disable-next-line:typedef
@@ -5712,7 +8768,7 @@ module powerbi.extensibility.visual {
         private static enumerateBarColor(options: any, settings: IGanttSettings): VisualObjectInstance[] {
             const barSettings: IBarColor = settings.barColor;
             const limiter: number = this.viewModelNew.tasksNew.length;
-            const legendLength: number = uniqueLegend.length;
+            const legendLength: number = uniquelegend.length;
             const instances: VisualObjectInstance[] = [];
             let index: number = 0;
             instances.push({
@@ -5723,45 +8779,107 @@ module powerbi.extensibility.visual {
                 },
                 selector: null
             });
-            if (settings.barColor.showall === true) {
-                if (uniqueLegend.length === 0) {
-                    for (let iIterator: number = 0; iIterator < tasks.length; iIterator++) {
-                        if (tasks[iIterator].repeat === 0) {
-                            instances.push({
-                                objectName: 'barColor',
-                                displayName: `Bars color ${index + 1}`,
-                                properties: {
-                                    fillColor: tasks[iIterator].color
-                                },
-                                selector: tasks[iIterator].selectionId.getSelector()
-                            });
-                            index++;
+            if (!settings.taskLabels.isHierarchy) {
+                if (settings.barColor.showall === true) {
+                    if (uniquelegend.length === 0) {
+                        for (let iIterator: number = 0; iIterator < this.viewModelNew.tasksNew.length; iIterator++) {
+                            if (this.viewModelNew.tasksNew[iIterator].repeat === 1) {
+                                instances.push({
+                                    objectName: 'barColor',
+                                    displayName: `Bars color ${index + 1}`,
+                                    properties: {
+                                        fillColor: this.viewModelNew.tasksNew[iIterator].color
+                                    },
+                                    selector: this.viewModelNew.tasksNew[iIterator].selectionId.getSelector()
+                                });
+                                index++;
+                            }
+                        }
+                    } else {
+                        let categoryIndx: number = 0;
+                        // tslint:disable-next-line:no-any
+                        const categoryll: any = this.viewModelNew.dataView.categorical.categories;
+                        for (let indx: number = 0; indx < categoryll.length; indx++) {
+                            if (categoryll[indx].source.roles.hasOwnProperty('Legend')) {
+                                categoryIndx = indx;
+                                break;
+                            }
+                        }
+                        for (let iIterator: number = 0; iIterator < this.viewModelNew.tasksNew.length; iIterator++) {
+                            if (this.viewModelNew.tasksNew[iIterator].repeat === 0) {
+                                instances.push({
+                                    objectName: 'barColor',
+                                    displayName: `${this.viewModelNew.tasksNew[iIterator].name[categoryIndx]}`,
+                                    properties: {
+                                        fillColor: this.viewModelNew.tasksNew[iIterator].color
+                                    },
+                                    selector: this.viewModelNew.tasksNew[iIterator].selectionId.getSelector()
+                                });
+                            }
                         }
                     }
                 } else {
-                    for (let jIterator: number = 0; jIterator < tasks.length; jIterator++) {
-                        if (tasks[jIterator].repeat === 0) {
-                            instances.push({
-                                objectName: 'barColor',
-                                displayName: `${uniqueLegend[index]}`,
-                                properties: {
-                                    fillColor: tasks[jIterator].color
-                                },
-                                selector: tasks[jIterator].selectionId.getSelector()
-                            });
-                            index++;
-                        }
-                    }
+                    instances.push({
+                        objectName: 'barColor',
+                        displayName: `Default color`,
+                        properties: {
+                            defaultColor: settings.barColor.defaultColor
+                        },
+                        selector: null
+                    });
                 }
             } else {
-                instances.push({
-                    objectName: 'barColor',
-                    displayName: `Default color`,
-                    properties: {
-                        defaultColor: settings.barColor.defaultColor
-                    },
-                    selector: null
-                });
+                if (settings.barColor.showall) {
+                    if (uniquelegend.length === 0) {
+                        instances.push({
+                            objectName: 'barColor',
+                            displayName: `Default color`,
+                            properties: {
+                                defaultColor: settings.barColor.defaultColor
+                            },
+                            selector: null
+                        });
+                    } else {
+                        for (let iIterator: number = 0; iIterator < Gantt.tasknew.length; iIterator++) {
+                            // tslint:disable-next-line:no-any
+                            const displayName: any = Gantt.tasknew[iIterator].name;
+                            // tslint:disable-next-line
+                            let selectionId: any = Gantt.tasknew[iIterator].selectionId;
+                            // tslint:disable-next-line:prefer-const
+                            let selectionIdLen: number = selectionId.length;
+                            if (uniquelegend.indexOf(displayName.toString()) !== -1 &&
+                                Gantt.tasknew[iIterator].repeat === 0) {
+                                instances.push({
+                                    objectName: 'barColor',
+                                    displayName: displayName.toString(),
+                                    properties: {
+                                        fillColor: Gantt.tasknew[iIterator].color
+                                    },
+                                    selector: Gantt.tasknew[iIterator].selectionId.getSelector()
+                                });
+                            }
+                            index++;
+                        }
+                        instances.push({
+                            objectName: 'barColor',
+                            displayName: `Default color`,
+                            properties: {
+                                defaultColor: settings.barColor.defaultColor
+                            },
+                            selector: null
+                        });
+
+                    }
+                } else {
+                    instances.push({
+                        objectName: 'barColor',
+                        displayName: `Default color`,
+                        properties: {
+                            defaultColor: settings.barColor.defaultColor
+                        },
+                        selector: null
+                    });
+                }
             }
 
             return instances;
