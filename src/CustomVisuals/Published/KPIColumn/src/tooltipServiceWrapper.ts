@@ -1,5 +1,6 @@
 module powerbi.extensibility.visual {
 
+    // tslint:disable-next-line:interface-name
     export interface TooltipEventArgs<TData> {
         data: TData;
         coordinates: number[];
@@ -17,9 +18,11 @@ module powerbi.extensibility.visual {
         hide(): void;
     }
 
-    const DefaultHandleTouchDelay = 1000;
+    // tslint:disable-next-line:variable-name
+    const DefaultHandleTouchDelay : number = 1000;
 
-    export function createTooltipServiceWrapper(tooltipService: ITooltipService, rootElement: Element, handleTouchDelay: number = DefaultHandleTouchDelay): ITooltipServiceWrapper {
+    export function createTooltipServiceWrapper(tooltipService: ITooltipService, rootElement: Element,
+                                                handleTouchDelay: number = DefaultHandleTouchDelay): ITooltipServiceWrapper {
         return new TooltipServiceWrapper(tooltipService, rootElement, handleTouchDelay);
     }
 
@@ -45,106 +48,114 @@ module powerbi.extensibility.visual {
                 return;
             }
 
-            let rootNode = this.rootElement;
+            const rootNode: Element = this.rootElement;
 
             // Mouse events
-            selection.on("mouseover.tooltip", () => {
+            selection.on('mouseover.tooltip', () => {
                 // Ignore mouseover while handling touch events
-                if (!this.canDisplayTooltip(d3.event))
+                if (!this.canDisplayTooltip(d3.event)) {
                     return;
+                }
 
-                let tooltipEventArgs = this.makeTooltipEventArgs<T>(rootNode, true, false);
-                if (!tooltipEventArgs)
+                const tooltipEventArgs: TooltipEventArgs<T> = this.makeTooltipEventArgs<T>(rootNode, true, false);
+                if (!tooltipEventArgs) {
                     return;
+                }
 
-                let tooltipInfo = getTooltipInfoDelegate(tooltipEventArgs);
-                if (tooltipInfo == null)
+                const tooltipInfo: VisualTooltipDataItem[] = getTooltipInfoDelegate(tooltipEventArgs);
+                if (tooltipInfo == null) {
                     return;
+                }
 
-                let selectionId = getDataPointIdentity(tooltipEventArgs);
+                const selectionId: ISelectionId = getDataPointIdentity(tooltipEventArgs);
 
                 this.visualHostTooltipService.show({
                     coordinates: tooltipEventArgs.coordinates,
                     isTouchEvent: false,
                     dataItems: tooltipInfo,
-                    identities: selectionId ? [selectionId] : [],
+                    identities: selectionId ? [selectionId] : []
                 });
             });
 
-            selection.on("mouseout.tooltip", () => {
+            selection.on('mouseout.tooltip', () => {
                 this.visualHostTooltipService.hide({
                     isTouchEvent: false,
-                    immediately: false,
+                    immediately: false
                 });
             });
 
-            selection.on("mousemove.tooltip", () => {
+            selection.on('mousemove.tooltip', () => {
                 // Ignore mousemove while handling touch events
-                if (!this.canDisplayTooltip(d3.event))
+                if (!this.canDisplayTooltip(d3.event)) {
                     return;
+                }
 
-                let tooltipEventArgs = this.makeTooltipEventArgs<T>(rootNode, true, false);
-                if (!tooltipEventArgs)
+                const tooltipEventArgs: TooltipEventArgs<T> = this.makeTooltipEventArgs<T>(rootNode, true, false);
+                if (!tooltipEventArgs) {
                     return;
+                }
 
                 let tooltipInfo: VisualTooltipDataItem[];
                 if (reloadTooltipDataOnMouseMove) {
                     tooltipInfo = getTooltipInfoDelegate(tooltipEventArgs);
-                    if (tooltipInfo == null)
+                    if (tooltipInfo == null) {
                         return;
+                    }
                 }
 
-                let selectionId = getDataPointIdentity(tooltipEventArgs);
+                const selectionId: ISelectionId = getDataPointIdentity(tooltipEventArgs);
 
                 this.visualHostTooltipService.move({
                     coordinates: tooltipEventArgs.coordinates,
                     isTouchEvent: false,
                     dataItems: tooltipInfo,
-                    identities: selectionId ? [selectionId] : [],
+                    identities: selectionId ? [selectionId] : []
                 });
             });
 
             // --- Touch events ---
 
-            let touchStartEventName: string = TooltipServiceWrapper.touchStartEventName();
-            let touchEndEventName: string = TooltipServiceWrapper.touchEndEventName();
-            let isPointerEvent: boolean = TooltipServiceWrapper.usePointerEvents();
+            const touchStartEventName: string = TooltipServiceWrapper.touchStartEventName();
+            const touchEndEventName: string = TooltipServiceWrapper.touchEndEventName();
+            const isPointerEvent: boolean = TooltipServiceWrapper.usePointerEvents();
 
-            selection.on(touchStartEventName + '.tooltip', () => {
+            selection.on(`${touchStartEventName}.tooltip`, () => {
                 this.visualHostTooltipService.hide({
                     isTouchEvent: true,
-                    immediately: true,
+                    immediately: true
                 });
 
-                let tooltipEventArgs = this.makeTooltipEventArgs<T>(rootNode, isPointerEvent, true);
-                if (!tooltipEventArgs)
+                const tooltipEventArgs: TooltipEventArgs<T> = this.makeTooltipEventArgs<T>(rootNode, isPointerEvent, true);
+                if (!tooltipEventArgs) {
                     return;
+                }
 
-                let tooltipInfo = getTooltipInfoDelegate(tooltipEventArgs);
-                let selectionId = getDataPointIdentity(tooltipEventArgs);
+                const tooltipInfo: VisualTooltipDataItem[] = getTooltipInfoDelegate(tooltipEventArgs);
+                const selectionId: ISelectionId = getDataPointIdentity(tooltipEventArgs);
 
                 this.visualHostTooltipService.show({
                     coordinates: tooltipEventArgs.coordinates,
                     isTouchEvent: true,
                     dataItems: tooltipInfo,
-                    identities: selectionId ? [selectionId] : [],
+                    identities: selectionId ? [selectionId] : []
                 });
             });
 
-            selection.on(touchEndEventName + '.tooltip', () => {
+            selection.on(`${touchEndEventName}.tooltip`, () => {
                 this.visualHostTooltipService.hide({
                     isTouchEvent: true,
-                    immediately: false,
+                    immediately: false
                 });
 
-                if (this.handleTouchTimeoutId)
+                if (this.handleTouchTimeoutId) {
                     clearTimeout(this.handleTouchTimeoutId);
+                }
 
                 // At the end of touch action, set a timeout that will let us ignore the incoming mouse events for a small amount of time
                 // TODO: any better way to do this?
                 this.handleTouchTimeoutId = setTimeout(() => {
                     this.handleTouchTimeoutId = undefined;
-                }, this.handleTouchDelay);
+                },                                     this.handleTouchDelay);
             });
         }
 
@@ -153,12 +164,12 @@ module powerbi.extensibility.visual {
         }
 
         private makeTooltipEventArgs<T>(rootNode: Element, isPointerEvent: boolean, isTouchEvent: boolean): TooltipEventArgs<T> {
-            let target = <HTMLElement>(<Event>d3.event).target;
-            let data: T = d3.select(target).datum();
+            const target: HTMLElement = <HTMLElement>(<Event>d3.event).target;
+            const data: T = d3.select(target).datum();
 
-            let mouseCoordinates = this.getCoordinates(rootNode, isPointerEvent);
-            let elementCoordinates: number[] = this.getCoordinates(target, isPointerEvent);
-            let tooltipEventArgs: TooltipEventArgs<T> = {
+            const mouseCoordinates: number[] = this.getCoordinates(rootNode, isPointerEvent);
+            const elementCoordinates: number[] = this.getCoordinates(target, isPointerEvent);
+            const tooltipEventArgs: TooltipEventArgs<T> = {
                 data: data,
                 coordinates: mouseCoordinates,
                 elementCoordinates: elementCoordinates,
@@ -169,12 +180,13 @@ module powerbi.extensibility.visual {
             return tooltipEventArgs;
         }
 
+        // tslint:disable-next-line:no-any
         private canDisplayTooltip(d3Event: any): boolean {
             let canDisplay: boolean = true;
-            let mouseEvent: MouseEvent = <MouseEvent>d3Event;
+            const mouseEvent: MouseEvent = <MouseEvent>d3Event;
             if (mouseEvent.buttons !== undefined) {
                 // Check mouse buttons state
-                let hasMouseButtonPressed = mouseEvent.buttons !== 0;
+                const hasMouseButtonPressed: boolean = mouseEvent.buttons !== 0;
                 canDisplay = !hasMouseButtonPressed;
             }
 
@@ -189,13 +201,16 @@ module powerbi.extensibility.visual {
 
             if (isPointerEvent) {
                 // copied from d3_eventSource (which is not exposed)
-                let e = <any>d3.event, s;
-                while (s = e.sourceEvent) e = s;
-                let rect = rootNode.getBoundingClientRect();
+                // tslint:disable-next-line:no-any
+                let e: any = <any>d3.event;
+                // tslint:disable-next-line:no-any
+                let s: any;
+                // tslint:disable-next-line:no-conditional-assignment
+                while (s = e.sourceEvent) { e = s; }
+                const rect: ClientRect = rootNode.getBoundingClientRect();
                 coordinates = [e.clientX - rect.left - rootNode.clientLeft, e.clientY - rect.top - rootNode.clientTop];
-            }
-            else {
-                let touchCoordinates = d3.touches(rootNode);
+            } else {
+                const touchCoordinates: [number, number][] = d3.touches(rootNode);
                 if (touchCoordinates && touchCoordinates.length > 0) {
                     coordinates = touchCoordinates[0];
                 }
@@ -205,41 +220,42 @@ module powerbi.extensibility.visual {
         }
 
         private static touchStartEventName(): string {
-            let eventName: string = "touchstart";
+            let eventName: string = 'touchstart';
 
-            if (window["PointerEvent"]) {
+            if (window[`PointerEvent`]) {
                 // IE11
-                eventName = "pointerdown";
+                eventName = 'pointerdown';
             }
 
             return eventName;
         }
 
         private static touchMoveEventName(): string {
-            let eventName: string = "touchmove";
+            let eventName: string = 'touchmove';
 
-            if (window["PointerEvent"]) {
+            if (window[`PointerEvent`]) {
                 // IE11
-                eventName = "pointermove";
+                eventName = 'pointermove';
             }
 
             return eventName;
         }
 
         private static touchEndEventName(): string {
-            let eventName: string = "touchend";
+            let eventName: string = 'touchend';
 
-            if (window["PointerEvent"]) {
+            if (window[`PointerEvent`]) {
                 // IE11
-                eventName = "pointerup";
+                eventName = 'pointerup';
             }
 
             return eventName;
         }
 
         private static usePointerEvents(): boolean {
-            let eventName = TooltipServiceWrapper.touchStartEventName();
-            return eventName === "pointerdown" || eventName === "MSPointerDown";
+            const eventName: string = TooltipServiceWrapper.touchStartEventName();
+
+            return eventName === 'pointerdown' || eventName === 'MSPointerDown';
         }
     }
 }

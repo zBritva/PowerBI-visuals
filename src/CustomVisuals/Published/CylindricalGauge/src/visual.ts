@@ -75,8 +75,8 @@ module powerbi.extensibility.visual {
         private TargetRange: boolean= true;
         private labelValueFormatter: utils.formatting.IValueFormatter;
         private tickValueFormatter: utils.formatting.IValueFormatter;
-        private highlightValue: number;
-        private highlightTarget: number;
+        private highlightValue: number = 0;
+        private highlightTarget: number = 0;
         private isActual: boolean = false;
         private isMin: boolean = false;
         private isMax: boolean = false;
@@ -361,7 +361,7 @@ module powerbi.extensibility.visual {
 
             this.highlight = options.dataViews[0].categorical.values[0].highlights ? true : false;
             if (this.highlight) {
-                this.highlightValue = <number>options.dataViews[0].categorical.values[0].highlights[0];
+                this.highlightValue = options.dataViews[0].categorical.values[0].highlights[0] === null ? 0 : <number>options.dataViews[0].categorical.values[0].highlights[0];
                 if (this.isTarget)
                     this.highlightTarget = <number>options.dataViews[0].categorical.values[1].highlights[0];
             }
@@ -644,7 +644,6 @@ module powerbi.extensibility.visual {
                     stroke: this.shadeColor(fill, -20),
                     'stroke-width': '10px'
                 });
-            
             this.topCircle
                 .attr({
                     cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
@@ -740,7 +739,6 @@ module powerbi.extensibility.visual {
                         .attr('height', yscale(this.highlightValue) > yscale(yscale.domain()[0]) ? 0 : yscale(yscale.domain()[0]) - yscale(this.highlightValue))
                         .attr('y', yscale(this.highlightValue))
                         .style('fill', 'url(#gradient)');
-
                 this.highlightCircle
                     .attr({
                         cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
@@ -757,7 +755,6 @@ module powerbi.extensibility.visual {
                     .transition()
                         .duration(animationTime)
                         .attr('cy', yscale(this.highlightValue));
-
                 this.fillRect2
                     .style('fill-opacity', 0.5)
             } else {     
@@ -841,8 +838,8 @@ module powerbi.extensibility.visual {
                             fill: (zoneValues[3]< this.data1.min  && zoneValues[2] < this.data1.min && zoneValues[1] < this.data1.min)
                                 ? 'none' : colors[0]
                         });
-                        
-                this.zone4.attr({
+
+                        this.zone4.attr({
                         cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
                                                                     width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                     : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
@@ -880,7 +877,7 @@ module powerbi.extensibility.visual {
                     fill: 'transparent',
                     'stroke-width': this.highlight? this.highlightTarget >= this.data1.min && this.highlightTarget <= this.data1.max ? 1 : 0 : 1,
                     stroke: targetFill,
-                }); 
+                });
             } else {
                 this.targetCircle.style('stroke', 'transparent');
             }
