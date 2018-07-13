@@ -3,6 +3,7 @@ module powerbi.extensibility.visual {
 
     import valueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
     import tooltipUtils = powerbi.extensibility.utils.tooltip;
+    import ISelectionId = powerbi.visuals.ISelectionId;
 
     let fytargetChecker: boolean = false;
     let xAxisName: string = 'X-Axis';
@@ -574,6 +575,13 @@ module powerbi.extensibility.visual {
         public setYtdTarget: number;
         private baseDiv: d3.Selection<SVGElement>;
         private rootDiv: d3.Selection<SVGElement>;
+        // objects to handle selections
+        private barSelection: d3.selection.Update<IBarChartDataPoint>;
+        private barforecastedSelection: d3.selection.Update<IBarChartDataPoint>;
+        // tslint:disable-next-line:no-any
+        private bars: any;
+        // tslint:disable-next-line:no-any
+        private barforecasted: any;
         public measureFormat: string;
         public targetFormat: string;
         public isTargetAvailable: boolean;
@@ -594,6 +602,8 @@ module powerbi.extensibility.visual {
             yScalePadding: 0.1,
             solidOpacity: 1,
             transparentOpacity: 0.5,
+            forecastedSolidOpacity: 0.6,
+            forecastedTransparentOpacity: 0.4,
             margins: {
                 top: 0,
                 right: 0,
@@ -615,6 +625,16 @@ module powerbi.extensibility.visual {
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
+            this.selectionManager.registerOnSelectCallback(() => {
+                this.barSelection = this.bars;
+                this.barforecastedSelection = this.barforecasted;
+                this.syncSelectionState(
+                    this.barSelection,
+                    this.barforecastedSelection,
+                    this.selectionManager.getSelectionIds() as ISelectionId[]
+                );
+            });
+
             this.tooltipServiceWrapper = tooltipUtils.createTooltipServiceWrapper(this.host.tooltipService, options.element);
 
             this.rootDiv = d3.select(options.element)
@@ -651,6 +671,7 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
+            const thisObj: this = this;
             this.svg.attr({
                 width: 0,
                 height: 0
@@ -794,27 +815,21 @@ module powerbi.extensibility.visual {
                         // this is for solid line
                         let iTargetText: string = this.isITAvailable ? this.itText : '';
                         let ytdtargetTextProps: TextProperties;
-                        let sampleTargetTextProps: TextProperties;
-                        sampleTargetTextProps = {
-                            text: 'Sample Test',
-                            fontFamily: fontstyle,
-                            fontSize: legendSettings.labelSize + pxLiteral
-                        };
                         ytdtargetTextProps = {
                             text: iTargetText,
-                            fontFamily: fontstyle,
+                            fontFamily: legendSettings.fontFamily,
                             fontSize: legendSettings.labelSize + pxLiteral
                         };
                         iTargetText = textMeasurementService.getTailoredTextOrDefault(ytdtargetTextProps, legendItemWidth);
                         let ytdtargetHeight: number;
-                        ytdtargetHeight = textMeasurementService.measureSvgTextHeight(sampleTargetTextProps);
+                        ytdtargetHeight = textMeasurementService.measureSvgTextHeight(ytdtargetTextProps);
 
                         // this is for dashed line
                         let fyTargetText: string = this.isTargetAvailable ? this.targetText : '';
                         let fytargetTextProps: TextProperties;
                         fytargetTextProps = {
                             text: fyTargetText,
-                            fontFamily: fontstyle,
+                            fontFamily: legendSettings.fontFamily,
                             fontSize: legendSettings.labelSize + pxLiteral
                         };
                         fyTargetText = textMeasurementService.getTailoredTextOrDefault(fytargetTextProps, legendItemWidth);
@@ -847,7 +862,8 @@ module powerbi.extensibility.visual {
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
                                         'font-family': legendSettings.fontFamily,
-                                        'max-width': legendItemWidth + pxLiteral
+                                        'max-width': legendItemWidth + pxLiteral,
+                                        height: legendHeight + pxLiteral
                                     });
                             }
                         }
@@ -879,7 +895,8 @@ module powerbi.extensibility.visual {
                                     'font-size': legendSettings.labelSize + pxLiteral,
                                     color: legendSettings.labelColor,
                                     'font-family': legendSettings.fontFamily,
-                                    'max-width': legendItemWidth + pxLiteral
+                                    'max-width': legendItemWidth + pxLiteral,
+                                    height: fyTargetTextHeight + pxLiteral
                                 });
                         }
                         if (analytics.min) {
@@ -887,7 +904,7 @@ module powerbi.extensibility.visual {
                             let minLineProp: TextProperties;
                             minLineProp = {
                                 text: 'Min',
-                                fontFamily: fontstyle,
+                                fontFamily: legendSettings.fontFamily,
                                 fontSize: legendSettings.labelSize + pxLiteral
                             };
                             minLineText = textMeasurementService.getTailoredTextOrDefault(minLineProp, legendItemWidth);
@@ -917,7 +934,8 @@ module powerbi.extensibility.visual {
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
                                         'font-family': legendSettings.fontFamily,
-                                        'max-width': legendItemWidth + pxLiteral
+                                        'max-width': legendItemWidth + pxLiteral,
+                                        height: minLineTextHeight + pxLiteral
                                     });
                             }
                         }
@@ -926,7 +944,7 @@ module powerbi.extensibility.visual {
                             let maxLineProp: TextProperties;
                             maxLineProp = {
                                 text: 'Max',
-                                fontFamily: fontstyle,
+                                fontFamily: legendSettings.fontFamily,
                                 fontSize: legendSettings.labelSize + pxLiteral
                             };
                             maxLineText = textMeasurementService.getTailoredTextOrDefault(maxLineProp, legendItemWidth);
@@ -958,7 +976,8 @@ module powerbi.extensibility.visual {
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
                                         'font-family': legendSettings.fontFamily,
-                                        'max-width': legendItemWidth + pxLiteral
+                                        'max-width': legendItemWidth + pxLiteral,
+                                        height: maxLineTextHeight + pxLiteral
                                     });
                             }
                         }
@@ -967,7 +986,7 @@ module powerbi.extensibility.visual {
                             let avgLineProp: TextProperties;
                             avgLineProp = {
                                 text: 'Avg',
-                                fontFamily: fontstyle,
+                                fontFamily: legendSettings.fontFamily,
                                 fontSize: legendSettings.labelSize + pxLiteral
                             };
                             avgLineText = textMeasurementService.getTailoredTextOrDefault(avgLineProp, legendItemWidth);
@@ -998,7 +1017,8 @@ module powerbi.extensibility.visual {
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
                                         'font-family': legendSettings.fontFamily,
-                                        'max-width': legendItemWidth + pxLiteral
+                                        'max-width': legendItemWidth + pxLiteral,
+                                        height: avgLineTextHeight + pxLiteral
                                     });
                             }
                         }
@@ -1007,7 +1027,7 @@ module powerbi.extensibility.visual {
                             let medianLineProp: TextProperties;
                             medianLineProp = {
                                 text: 'Median',
-                                fontFamily: fontstyle,
+                                fontFamily: legendSettings.fontFamily,
                                 fontSize: legendSettings.labelSize + pxLiteral
                             };
                             medianLineText = textMeasurementService.getTailoredTextOrDefault(medianLineProp, legendItemWidth);
@@ -1038,7 +1058,8 @@ module powerbi.extensibility.visual {
                                         'font-size': legendSettings.labelSize + pxLiteral,
                                         color: legendSettings.labelColor,
                                         'font-family': legendSettings.fontFamily,
-                                        'max-width': legendItemWidth + pxLiteral
+                                        'max-width': legendItemWidth + pxLiteral,
+                                        height: medianLineTextHeight + pxLiteral
                                     });
                             }
                         }
@@ -1109,8 +1130,6 @@ module powerbi.extensibility.visual {
                         fill: xAxisConfig.fontColor
                     });
                     // tslint:disable-next-line:no-any
-                    let bars: any;
-                    // tslint:disable-next-line:no-any
                     let xScale: any;
                     let xAxis: d3.svg.Axis;
                     let barWidths: number;
@@ -1143,7 +1162,8 @@ module powerbi.extensibility.visual {
                     }
 
                     if (horizontal.show) {
-                        this.rootDiv.style('overflow-y', 'auto');
+                        // hide overflow initially
+                        this.rootDiv.style('overflow-y', 'auto').style('overflow-x', 'hidden');
                         margins.left = 30;
                         xScale = d3.scale.ordinal()
                             .domain(viewModel.dataPoints.reverse().map((d: IBarChartDataPoint) => d.category))
@@ -1193,6 +1213,8 @@ module powerbi.extensibility.visual {
                         }
                         // Y scale
                         if (width <= minWidthForHorizontal) {
+                            //set overflow to auto when width gets lower than limit
+                            this.rootDiv.style('overflow-x', 'auto');
                             const endRange: number = width;
                             yScale = d3.scale.linear()
                                 .domain([(<number>yAxisConfig.start), <number>(yAxisConfig.end) * 1.12])
@@ -1412,7 +1434,7 @@ module powerbi.extensibility.visual {
 
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xline:href', backgroundImage.imageUrl);
+                            .attr('xlink:href', backgroundImage.imageUrl);
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
@@ -1429,16 +1451,14 @@ module powerbi.extensibility.visual {
                             }
                             circleData.push(viewModel.dataPoints[i]);
                         }
-                        bars = this.barContainer.selectAll('.bar').data(barData);
-                        // tslint:disable-next-line:no-any
-                        let barforecasted: any;
-                        barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
+                        this.bars = this.barContainer.selectAll('.bar').data(barData);
+                        this.barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
                         if (animation.show) {
-                            bars.enter()
+                            this.bars.enter()
                                 .reverse()
                                 .append('rect')
                                 .classed('bar', true);
-                            bars.attr({
+                            this.bars.attr({
                                 width: 0,
                                 height: xScale.rangeBand(),
                                 // tslint:disable-next-line:no-any
@@ -1461,12 +1481,12 @@ module powerbi.extensibility.visual {
                                     width: d => d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
                                         : yScale(barOrigin) - yScale(d.value)
                                 });
-                            barforecasted.enter()
+                            this.barforecasted.enter()
                                 .reverse()
                                 .append('rect')
                                 .classed('barforecasted', true);
 
-                            barforecasted.attr({
+                            this.barforecasted.attr({
                                 width: 0,
                                 // tslint:disable-next-line:no-any
                                 height: xScale.rangeBand(),
@@ -1493,11 +1513,12 @@ module powerbi.extensibility.visual {
                                         : yScale(barOrigin) - yScale(d.value)
                                 });
                         } else {
-                            bars.enter()
+                            this.bars.enter()
                                 .reverse()
                                 .append('rect')
                                 .classed('bar', true);
-                            bars.attr({
+
+                            this.bars.attr({
                                 width: 0,
                                 height: xScale.rangeBand(),
                                 // tslint:disable-next-line:no-any
@@ -1517,12 +1538,12 @@ module powerbi.extensibility.visual {
                                     width: d => d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
                                         : yScale(barOrigin) - yScale(d.value)
                                 });
-                            barforecasted.enter()
+                            this.barforecasted.enter()
                                 .reverse()
                                 .append('rect')
                                 .classed('barforecasted', true);
 
-                            barforecasted.attr({
+                            this.barforecasted.attr({
                                 width: 0,
                                 // tslint:disable-next-line:no-any
                                 height: xScale.rangeBand(),
@@ -1548,24 +1569,13 @@ module powerbi.extensibility.visual {
                         }
 
                         // tslint:disable-next-line:no-any
-                        barforecasted.on('click', function (d: any): void {
+                        this.barforecasted.on('click', function (d: any): void {
                             // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
                             if (allowInteractions) {
                                 selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
-                                    bars.attr({
-                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
-                                    });
-
-                                    barforecasted.attr({
-                                        'fill-opacity': BarChart.config.transparentOpacity
-                                    });
-
-                                    if (ids.length > 0) {
-                                        d3.select(this).attr({
-                                            'fill-opacity': 1
-                                        });
-                                    }
-
+                                    thisObj.barSelection = thisObj.bars;
+                                    thisObj.barforecastedSelection = thisObj.barforecasted;
+                                    thisObj.syncSelectionState(thisObj.barSelection, thisObj.barforecastedSelection, ids);
                                 });
                                 (<Event>d3.event).stopPropagation();
                             }
@@ -1574,30 +1584,22 @@ module powerbi.extensibility.visual {
                         // This must be an anonymous function instead of a lambda because
                         // d3 uses 'this' as the reference to the element that was clicked.
                         // tslint:disable-next-line:no-any
-                        bars.on('click', function (d: any): void {
+                        this.bars.on('click', function (d: any): void {
                             // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
                             if (allowInteractions) {
                                 selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
-                                    bars.attr({
-                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
-                                    });
-
-                                    barforecasted.attr({
-                                        'fill-opacity': BarChart.config.transparentOpacity
-                                    });
-
-                                    d3.select(this).attr({
-                                        'fill-opacity': BarChart.config.solidOpacity
-                                    });
+                                    thisObj.barSelection = thisObj.bars;
+                                    thisObj.barforecastedSelection = thisObj.barforecasted;
+                                    thisObj.syncSelectionState(thisObj.barSelection, thisObj.barforecastedSelection, ids);
                                 });
                                 (<Event>d3.event).stopPropagation();
                             }
                         });
 
-                        bars.exit()
+                        this.bars.exit()
                             .remove();
 
-                        barforecasted.exit()
+                        this.barforecasted.exit()
                             .remove();
 
                         const imageRightMargin: number = 100 + xAxisTitleShift;
@@ -1801,7 +1803,8 @@ module powerbi.extensibility.visual {
                         allowInteractions = this.host.allowInteractions;
 
                     } else {
-                        this.rootDiv.style('overflow-y', 'hidden');
+                        //set overflow hidden initially
+                        this.rootDiv.style('overflow-y', 'hidden').style('overflow-x', 'hidden');
                         xScale = d3.scale.ordinal()
                             .domain(viewModel.dataPoints.map((d: IBarChartDataPoint) => d.category))
                             .rangeBands([margins.left, width], 0.2, 0.3);
@@ -1815,10 +1818,14 @@ module powerbi.extensibility.visual {
 
                         minVisibleBarWidth = 17;
                         if (barWidths < minVisibleBarWidth) {
+                            // setting overflow to auto when width is less
+                            this.rootDiv.style('overflow-x', 'auto');
                             dynamicWidth = width + (viewModel.dataPoints.length * (minVisibleBarWidth - barWidths)) - widthForScroll;
                             xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
                             this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
                             this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
+                            // shifting up to give space to scroll bar
+                            height = height - widthForScroll;
                         } else {
                             dynamicWidth = width;
                             xScale.rangeBands([margins.left, dynamicWidth], 0.2, 0.3);
@@ -1828,6 +1835,10 @@ module powerbi.extensibility.visual {
                         yScale = d3.scale.linear()
                             .domain([(<number>yAxisConfig.start), <number>yAxisConfig.end * 1.1])
                             .range([(<number>height), horizontalEndRange]);
+
+                        if (d3.select('.rootDiv')[0][0] !== null || d3.select('.rootDiv')[0][0] !== undefined) {
+                            this.rootDiv.select('.barChart').style('height', $(d3.select('.rootDiv')[0][0]).height() + pxLiteral);
+                        }
 
                         let xTargetAxis: d3.Selection<SVGElement>;
                         xTargetAxis = this.targetLines.append('line')
@@ -2036,7 +2047,7 @@ module powerbi.extensibility.visual {
                         }
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xline:href', backgroundImage.imageUrl);
+                            .attr('xlink:href', backgroundImage.imageUrl);
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
@@ -2059,15 +2070,13 @@ module powerbi.extensibility.visual {
                             add = (height - yScale(Math.abs(this.yMin)));
                         }
 
-                        bars = this.barContainer.selectAll('.bar').data(barData);
-                        // tslint:disable-next-line:no-any
-                        let barforecasted: any;
-                        barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
+                        this.bars = this.barContainer.selectAll('.bar').data(barData);
+                        this.barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
                         if (animation.show) {
-                            bars.enter()
+                            this.bars.enter()
                                 .append('rect')
                                 .classed('bar', true);
-                            bars.attr({
+                            this.bars.attr({
                                 width: xScale.rangeBand(),
                                 height: 0,
                                 // tslint:disable-next-line:typedef
@@ -2087,11 +2096,11 @@ module powerbi.extensibility.visual {
                                     height: d => (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
                                         : yScale(barOrigin) - yScale(<number>d.value)
                                 });
-                            barforecasted.enter()
+                            this.barforecasted.enter()
                                 .append('rect')
                                 .classed('barforecasted', true);
 
-                            barforecasted.attr({
+                            this.barforecasted.attr({
                                 width: xScale.rangeBand(),
                                 // tslint:disable-next-line:no-any
                                 height: 0,
@@ -2115,10 +2124,11 @@ module powerbi.extensibility.visual {
                                         : yScale(barOrigin) - yScale(<number>d.value)
                                 });
                         } else {
-                            bars.enter()
+                            this.bars.enter()
                                 .append('rect')
                                 .classed('bar', true);
-                            bars.attr({
+
+                            this.bars.attr({
                                 width: xScale.rangeBand(),
                                 height: 0,
                                 // tslint:disable-next-line:typedef
@@ -2135,11 +2145,11 @@ module powerbi.extensibility.visual {
                                     height: d => (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
                                         : yScale(barOrigin) - yScale(<number>d.value)
                                 });
-                            barforecasted.enter()
+                            this.barforecasted.enter()
                                 .append('rect')
                                 .classed('barforecasted', true);
 
-                            barforecasted.attr({
+                            this.barforecasted.attr({
                                 width: xScale.rangeBand(),
                                 // tslint:disable-next-line:no-any
                                 height: 0,
@@ -2162,24 +2172,13 @@ module powerbi.extensibility.visual {
                         }
 
                         // tslint:disable-next-line:no-any
-                        barforecasted.on('click', function (d: any): void {
+                        this.barforecasted.on('click', function (d: any): void {
                             // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
                             if (allowInteractions) {
                                 selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
-                                    bars.attr({
-                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
-                                    });
-
-                                    barforecasted.attr({
-                                        'fill-opacity': BarChart.config.transparentOpacity
-                                    });
-
-                                    if (ids.length > 0) {
-                                        d3.select(this).attr({
-                                            'fill-opacity': 1
-                                        });
-                                    }
-
+                                    thisObj.barSelection = thisObj.bars;
+                                    thisObj.barforecastedSelection = thisObj.barforecasted;
+                                    thisObj.syncSelectionState(thisObj.barSelection, thisObj.barforecastedSelection, ids);
                                 });
                                 (<Event>d3.event).stopPropagation();
                             }
@@ -2188,30 +2187,22 @@ module powerbi.extensibility.visual {
                         // This must be an anonymous function instead of a lambda because
                         // d3 uses 'this' as the reference to the element that was clicked.
                         // tslint:disable-next-line:no-any
-                        bars.on('click', function (d: any): void {
+                        this.bars.on('click', function (d: any): void {
                             // Allow selection only if the visual is rendered in a view that supports interactivity (e.g. Report)
                             if (allowInteractions) {
                                 selectionManager.select(d.selectionId).then((ids: ISelectionId[]) => {
-                                    bars.attr({
-                                        'fill-opacity': ids.length > 0 ? BarChart.config.transparentOpacity : BarChart.config.solidOpacity
-                                    });
-
-                                    barforecasted.attr({
-                                        'fill-opacity': BarChart.config.transparentOpacity
-                                    });
-
-                                    d3.select(this).attr({
-                                        'fill-opacity': BarChart.config.solidOpacity
-                                    });
+                                    thisObj.barSelection = thisObj.bars;
+                                    thisObj.barforecastedSelection = thisObj.barforecasted;
+                                    thisObj.syncSelectionState(thisObj.barSelection, thisObj.barforecastedSelection, ids);
                                 });
                                 (<Event>d3.event).stopPropagation();
                             }
                         });
 
-                        bars.exit()
+                        this.bars.exit()
                             .remove();
 
-                        barforecasted.exit()
+                        this.barforecasted.exit()
                             .remove();
 
                         chartBackground.attr({
@@ -2405,9 +2396,70 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
+            this.barSelection = this.bars;
+            this.barforecastedSelection = this.barforecasted;
+            this.syncSelectionState(
+                this.barSelection,
+                this.barforecastedSelection,
+                this.selectionManager.getSelectionIds() as ISelectionId[]
+            );
             this.svg.on(
                 'click',
-                () => this.selectionManager.clear().then(() => this.svg.selectAll('.bar').attr('fill-opacity', 1)));
+                () => this.selectionManager.clear().then(() => {
+                    this.barSelection = this.bars;
+                    this.barforecastedSelection = this.barforecasted;
+                    this.syncSelectionState(this.barSelection, this.barforecastedSelection, []);
+                }));
+        }
+
+        // method to sync the ISelectionID and apply formatting based on selection
+        private syncSelectionState(
+            selection1: d3.Selection<IBarChartDataPoint>,
+            selection2: d3.Selection<IBarChartDataPoint>,
+            selectionIds: ISelectionId[]
+        ): void {
+            if (!selection1 || !selection2 || !selectionIds) {
+
+                return;
+            }
+
+            if (!selectionIds.length) {
+                selection1.style('fill-opacity', null);
+                selection2.style('fill-opacity', null);
+
+                return;
+            }
+
+            const self: this = this;
+
+            selection1.each(function (barDataPoint: IBarChartDataPoint): void {
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
+                // add changes to the selection here
+                d3.select(this).style({
+                    'fill-opacity': isSelected ? BarChart.config.solidOpacity : BarChart.config.transparentOpacity
+                });
+            });
+
+            selection2.each(function (barDataPoint: IBarChartDataPoint): void {
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
+                // add changes to the selection here
+                d3.select(this).style({
+                    'fill-opacity': isSelected ? BarChart.config.forecastedSolidOpacity : BarChart.config.forecastedTransparentOpacity
+                });
+            });
+
+            return;
+        }
+
+        // method to return boolean value if given ISelectionID is selected from the given ISelectionID array
+        private isSelectionIdInArray(selectionIds: ISelectionId[], selectionId: ISelectionId): boolean {
+            if (!selectionIds || !selectionId) {
+                return false;
+            }
+
+            return selectionIds.some((currentSelectionId: ISelectionId) => {
+                return currentSelectionId.includes(selectionId);
+            });
         }
 
         // method to set the display units when selected as auto
@@ -2706,12 +2758,15 @@ module powerbi.extensibility.visual {
 
             if (!dataView.metadata || !dataView.metadata.objects) { return backgroundImageSettings; }
             objects = dataView.metadata.objects;
-            backgroundImageSettings.show = DataViewObjects.getValue
-                (objects, chartProperties.backgroundImage.show, backgroundImageSettings.show);
-            backgroundImageSettings.imageUrl = DataViewObjects.getValue
-                (objects, chartProperties.backgroundImage.imageUrl, backgroundImageSettings.imageUrl);
-            backgroundImageSettings.transparency = DataViewObjects.getValue
-                (objects, chartProperties.backgroundImage.transparency, backgroundImageSettings.transparency);
+            // tslint:disable-next-line:max-line-length
+            if (dataView.metadata.objects.hasOwnProperty('backgroundImage') && objects.backgroundImage.show) { //checks for the backgroundimage index in objects. if present then only it is liable to check condition objects.backgroundImage.show
+                backgroundImageSettings.show = DataViewObjects.getValue
+                    (objects, chartProperties.backgroundImage.show, backgroundImageSettings.show);
+                backgroundImageSettings.imageUrl = DataViewObjects.getValue
+                    (objects, chartProperties.backgroundImage.imageUrl, backgroundImageSettings.imageUrl);
+                backgroundImageSettings.transparency = DataViewObjects.getValue
+                    (objects, chartProperties.backgroundImage.transparency, backgroundImageSettings.transparency);
+            }
 
             return backgroundImageSettings;
         }

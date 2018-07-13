@@ -279,6 +279,38 @@
                 }
             }
         },
+        "negativeArcSettings": {
+            "displayName": "Negative value arc settings",
+            "description": "Settings for negative value arc",
+            "properties": {
+                "arcPosition":{
+                    "displayName": "Arc position",
+                    "type": {
+                        "enumeration":[
+                            {
+                                "value": "normal",
+                                "displayName": "Default"
+                            },
+                            {
+                                "value": "popOut",
+                                "displayName": "Pop out"
+                            },
+                            {
+                                "value": "dropIn",
+                                "displayName": "Drop in"
+                            }
+                        ]
+                    }   
+                },
+                "patternFill": {
+                    "displayName": "Pattern fill toggle",
+                    "description": "Pattern fill toggle for negative values",
+                    "type": {
+                        "bool": true
+                    }
+                }
+            }
+        },
         "labels": {
             "displayName": "Detail labels",
             "description": "Display data label options",
@@ -453,8 +485,8 @@
                 }
             }
         },
-        "GMODonutTitle": {
-            "displayName": "Donut title",
+        "RingTitle": {
+            "displayName": "Ring title",
             "properties": {
                 "show": {
                     "displayName": "Show",
@@ -471,7 +503,7 @@
                 },
                 "fill1": {
                     "displayName": "Font color",
-                    "description": "Font color for the donut title",
+                    "description": "Font color for the ring title",
                     "type": {
                         "fill": {
                             "solid": {
@@ -482,7 +514,7 @@
                 },
                 "fontSize": {
                     "displayName": "Text size",
-                    "description": "Font size for the donut title",
+                    "description": "Font size for the ring title",
                     "type": {
                         "formatting": {
                             "fontSize": true
@@ -491,7 +523,7 @@
                 },
                 "backgroundColor": {
                     "displayName": "Background color",
-                    "description": "Background color for the donut title",
+                    "description": "Background color for the ring title",
                     "type": {
                         "fill": {
                             "solid": {
@@ -502,7 +534,7 @@
                 },
                 "tooltipText": {
                     "displayName": "Tooltip text",
-                    "description": "Tooltip text for the donut title",
+                    "description": "Tooltip text for the ring title",
                     "type": {
                         "text": true
                     }

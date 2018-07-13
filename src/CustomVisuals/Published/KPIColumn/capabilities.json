@@ -513,7 +513,7 @@
                     }
                 },
                 "strokeSize": {
-                    "displayName": "Stroke Width",
+                    "displayName": "Stroke width",
                     "description": "Set the stroke width between 1 to 5",
                     "type": {
                         "numeric": true
@@ -712,7 +712,7 @@
             "displayName": "Legend",
             "properties": {
                 "show": {
-                    "displayName": "Show or hide Legend",
+                    "displayName": "Show or hide legend",
                     "type": {
                         "bool": true
                     }
@@ -728,7 +728,7 @@
                     }
                 },
                 "fontSize": {
-                    "displayName": "Text Size",
+                    "displayName": "Text size",
                     "type": {
                         "formatting": {
                             "fontSize": true
@@ -844,10 +844,10 @@
             }
         },
         "dataLabels": {
-            "displayName": "Data Labels",
+            "displayName": "Data labels",
             "properties": {
                 "show": {
-                    "displayName": "Show or hide Lables",
+                    "displayName": "Show or hide lables",
                     "type": {
                         "bool": true
                     }
@@ -863,7 +863,7 @@
                     }
                 },
                 "fontSize": {
-                    "displayName": "Text Size",
+                    "displayName": "Text size",
                     "type": {
                         "formatting": {
                             "fontSize": true
@@ -900,7 +900,7 @@
                     }
                 },
                 "valueDecimal": {
-                    "displayName": "Decimal Places",
+                    "displayName": "Decimal places",
                     "description": "Select the number of decimal places to display",
                     "type": {
                         "numeric": true
