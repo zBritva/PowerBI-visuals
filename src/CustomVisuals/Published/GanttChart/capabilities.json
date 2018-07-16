@@ -3,6 +3,7 @@
     {
       "name": "Category",
       "displayName": "Category",
+      "description": "Maximum 4 columns",
       "kind": "Grouping"
     },
     {
@@ -39,6 +40,7 @@
     {
       "name": "Tooltip",
       "displayName": "Tooltip",
+      "description": "Maximum 4 columns",
       "kind": "Measure"
     }
   ],
@@ -76,7 +78,7 @@
           },
           "Tooltip": {
             "min": 0,
-            "max": 10
+            "max": 4
           }
         }
       ],
