@@ -42,7 +42,7 @@ module powerbi.extensibility.visual {
     import SelectionManager = powerbi.extensibility.ISelectionManager;
     import DataViewObjects = powerbi.extensibility.utils.dataview.DataViewObjects;
     import pixelConverter = powerbi.extensibility.utils.type.PixelConverter;
-    import SelectionId = powerbi.visuals.ISelectionId;
+    import ISelectionId = powerbi.visuals.ISelectionId;
     //tooltip
     import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
     import tooltip = powerbi.extensibility.utils.tooltip;
@@ -172,12 +172,12 @@ module powerbi.extensibility.visual {
         toolTipInfo?: ITooltipDataItem[];
         categories?: ICategoryViewModel[];
         values?: IValueViewModel[];
-        identity?: SelectionId;
+        identity?: ISelectionId;
     }
     export interface ICategoryViewModel {
         value: string;
         color: string;
-        identity?: SelectionId;
+        identity?: ISelectionId;
     }
     export interface IValueViewModel {
         // tslint:disable-next-line:no-any
@@ -239,7 +239,7 @@ module powerbi.extensibility.visual {
 
     export function getCategoricalObjectValue<T>(
         category: DataViewCategoryColumn, index: number, objectName: string, propertyName: string, defaultValue: T): T {
-        let categoryObjects:  DataViewObjects[];
+        let categoryObjects: DataViewObjects[];
         categoryObjects = category.objects;
         if (categoryObjects) {
             const categoryObject: DataViewObject = categoryObjects[index];
@@ -284,10 +284,15 @@ module powerbi.extensibility.visual {
             this.host = options.host;
             this.root = d3.select(options.element).style('cursor', 'default');
             this.style = options.element.style;
-            // tslint:disable-next-line:no-any
             horizontalFunnelProps.cPalette = options.host.colorPalette;
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
             this.selectionManager = options.host.createSelectionManager();
+            // function call to handle selections on bookmarks
+            this.selectionManager.registerOnSelectCallback(() => {
+                // tslint:disable-next-line:no-any
+                const selection: any = this.root.selectAll('.hf_datapoint');
+                this.syncSelectionState(selection, this.selectionManager.getSelectionIds() as ISelectionId[]);
+            });
         }
 
         public static getDefaultData(): IFunnelViewModel {
@@ -337,7 +342,7 @@ module powerbi.extensibility.visual {
                     categorical = dataView.categorical;
                     if (categorical) {
                         // tslint:disable-next-line:no-any
-                        let unsortcategoriesvalues : any;
+                        let unsortcategoriesvalues: any;
                         unsortcategoriesvalues = JSON.parse(JSON.stringify(categorical.categories[0].values));
                         // tslint:disable-next-line:no-any
                         let unsortcategories: any;
@@ -360,7 +365,7 @@ module powerbi.extensibility.visual {
                         switch (sort) {
                             case 'Auto':
                                 // tslint:disable-next-line:no-any
-                                let arrValuesToBeSorted : any;
+                                let arrValuesToBeSorted: any;
                                 arrValuesToBeSorted = [];
                                 let iSmallestValue: string;
                                 let iIndex: number = 0;
@@ -369,14 +374,14 @@ module powerbi.extensibility.visual {
                                 let arrTempYAxisValues1: PrimitiveValue[];
                                 arrTempYAxisValues1 = categorical.values[0].values;
                                 // tslint:disable-next-line:no-any
-                                let arrTempYAxisValues2 : any = [];
+                                let arrTempYAxisValues2: any = [];
                                 // tslint:disable-next-line:no-any
                                 let iValueToBeSorted: any;
                                 // tslint:disable-next-line:no-any
-                                let arrIntegerValuesSortIndexes : any;
+                                let arrIntegerValuesSortIndexes: any;
                                 arrIntegerValuesSortIndexes = [];
                                 // tslint:disable-next-line:no-any
-                                let arrTextValuesSortIndexes : any;
+                                let arrTextValuesSortIndexes: any;
                                 arrTextValuesSortIndexes = {
                                     textValue: [],
                                     textIndex: []
@@ -578,9 +583,9 @@ module powerbi.extensibility.visual {
                         series = categorical.values;
                         let catDv: DataViewCategorical;
                         catDv = dataView.categorical;
-                        let cat : DataViewCategoryColumn;
+                        let cat: DataViewCategoryColumn;
                         cat = catDv.categories[0];
-                        let values : DataViewValueColumns;
+                        let values: DataViewValueColumns;
                         values = catDv.values;
                         let formatStringProp: DataViewObjectPropertyIdentifier;
                         formatStringProp = <DataViewObjectPropertyIdentifier>{
@@ -594,9 +599,9 @@ module powerbi.extensibility.visual {
                             let toolTipItems: any;
                             toolTipItems = [];
                             // tslint:disable-next-line:no-any
-                            let formattedCategoryValue : any;
+                            let formattedCategoryValue: any;
                             // tslint:disable-next-line:no-any
-                            let value : any;
+                            let value: any;
                             let categoryColumn: DataViewCategoryColumn;
                             categoryColumn = categorical.categories[0];
                             let catLength: number;
@@ -658,7 +663,7 @@ module powerbi.extensibility.visual {
                             let colorPalette: IColorPalette;
                             colorPalette = host.colorPalette;
                             // create object for colors
-                            let colorObj : {};
+                            let colorObj: {};
                             colorObj = {};
                             for (let i: number = 0; i < catLength; i++) {
                                 let currentElement: string;
@@ -673,16 +678,16 @@ module powerbi.extensibility.visual {
                                     categoryColumn, i, 'dataPoint', 'fill', defaultColor).solid.color;
                             }
                             for (let iLoop: number = 0; iLoop < catLength; iLoop++) {
-                                for (let unLoop : number = 0; unLoop < catLength; unLoop++) {
+                                for (let unLoop: number = 0; unLoop < catLength; unLoop++) {
                                     if (unsortcategoriesvalues[unLoop] === xAxisSortedValues[iLoop]) {
                                         objects = categoryColumn.objects && categoryColumn.objects[unLoop];
                                         // tslint:disable-next-line:no-any
-                                        let dataPointObject : any;
+                                        let dataPointObject: any;
                                         if (objects) {
                                             dataPointObject = categoryColumn.objects[unLoop];
                                         }
                                         // tslint:disable-next-line:no-any
-                                        let color : any;
+                                        let color: any;
                                         //checks whether any of the color is changed from format pane
                                         if (objects && dataPointObject
                                             && dataPointObject.dataPoint &&
@@ -696,7 +701,7 @@ module powerbi.extensibility.visual {
                                             color = colorPlt.colorPalette[currentElement];
                                         }
                                         unsortindex = unLoop;
-                                        let categorySelectionId : SelectionId;
+                                        let categorySelectionId: ISelectionId;
                                         categorySelectionId = host.createSelectionIdBuilder()
                                             .withCategory(unsortcategories, unsortindex)
                                             .createSelectionId();
@@ -728,7 +733,7 @@ module powerbi.extensibility.visual {
         }
 
         // tslint:disable-next-line:no-any
-        private static getTooltipData(value : any): VisualTooltipDataItem[] {
+        private static getTooltipData(value: any): VisualTooltipDataItem[] {
             return [{
                 displayName: value[0].displayName.toString(),
                 value: value[0].value.toString()
@@ -740,14 +745,14 @@ module powerbi.extensibility.visual {
         }
 
         // tslint:disable-next-line:cyclomatic-complexity
-        public update(options: VisualUpdateOptions) : void {
+        public update(options: VisualUpdateOptions): void {
             let host: IVisualHost;
             host = this.host;
             if (!options.dataViews || (options.dataViews.length < 1) || !options.dataViews[0] || !options.dataViews[0].categorical) {
                 return;
             }
 
-            let dataView : DataView ;
+            let dataView: DataView;
             dataView = this.dataView = options.dataViews[0];
             let ymax: number;
             let ytot: number = 0;
@@ -775,7 +780,7 @@ module powerbi.extensibility.visual {
             let dimension: string;
             // tslint:disable-next-line:no-any
             let color: any;
-            let fontsize : number;
+            let fontsize: number;
             // tslint:disable-next-line:no-any
             let titlecolor: any;
             let titlefontsize: number;
@@ -791,7 +796,7 @@ module powerbi.extensibility.visual {
             let showDefaultText: number;
             let viewport: IViewport;
             // tslint:disable-next-line:no-any
-            let dataPoints : any;
+            let dataPoints: any;
             let catLength: number;
             let parentWidth: number;
             let parentHeight: number;
@@ -805,7 +810,7 @@ module powerbi.extensibility.visual {
             let val: number = 1;
             let evensvg: d3.Selection<SVGElement>;
             // tslint:disable-next-line:no-any
-            let selection : any;
+            let selection: any;
             let nextyheight: number;
             let prevyheight: number;
             // tslint:disable-next-line:no-any
@@ -826,7 +831,7 @@ module powerbi.extensibility.visual {
                 let objects: DataViewObjects;
                 objects = dataViewMetadata.objects;
                 if (objects) {
-                    const labelString : string = 'labels';
+                    const labelString: string = 'labels';
                     labelSettings = this.cardFormatSetting.labelSettings;
                     labelSettings.labelColor = DataViewObjects.getFillColor(objects, cardProps.labels.color, labelSettings.labelColor);
                     labelSettings.precision = DataViewObjects.getValue(objects, cardProps.labels.labelPrecision, labelSettings.precision);
@@ -848,9 +853,9 @@ module powerbi.extensibility.visual {
             showLegendProp = this.getLegendSettings(this.dataView);
             let funnelTitleSettings: IFunnelTitle;
             funnelTitleSettings = this.getFunnelTitleSettings(this.dataView);
-            let showConnectorsProp : IShowConnectorsSettings;
+            let showConnectorsProp: IShowConnectorsSettings;
             showConnectorsProp = this.getConnectorsSettings(this.dataView);
-            let props : utils.chart.dataLabel.VisualDataLabelsSettings;
+            let props: utils.chart.dataLabel.VisualDataLabelsSettings;
             props = dataLabelUtils.getDefaultColumnLabelSettings(false);
             let dataLabelSettings: ILabelSettings;
             dataLabelSettings = this.getDataLabelSettings(this.dataView);
@@ -878,7 +883,7 @@ module powerbi.extensibility.visual {
             }
 
             //find max y value
-            for (let iLoop : number = 0; iLoop < this.viewModel.categories.length; iLoop++) {
+            for (let iLoop: number = 0; iLoop < this.viewModel.categories.length; iLoop++) {
                 yarr.push(this.viewModel.values[iLoop].values[0]);
                 ytot += this.viewModel.values[iLoop].values[0];
                 ymax = Math.max.apply(Math, yarr);
@@ -988,7 +993,7 @@ module powerbi.extensibility.visual {
                 };
                 let occupiedWidth: number;
                 occupiedWidth = TextMeasurementService.measureSvgTextWidth(textProps);
-                const maxWidth : string = `${totalWidth - occupiedWidth}px`;
+                const maxWidth: string = `${totalWidth - occupiedWidth}px`;
                 if (!titleText) {
                     let titleDiv: d3.Selection<SVGElement>;
                     titleDiv = this.root.select('.hf_Title_Div_Text');
@@ -1014,7 +1019,7 @@ module powerbi.extensibility.visual {
                         .text('(?)')
                         .attr('title', tooltiptext);
                 } else {
-                    let titleTextDiv : d3.Selection<SVGElement>;
+                    let titleTextDiv: d3.Selection<SVGElement>;
                     titleTextDiv = this.root.select('.hf_Title_Div_Text');
 
                     titleTextDiv
@@ -1090,10 +1095,10 @@ module powerbi.extensibility.visual {
                     .classed('hf_legend_item', true)
                     .text('s');
 
-                let textSize : number = parseInt(fontsize.toString(), 10);
+                let textSize: number = parseInt(fontsize.toString(), 10);
 
-                let length : number = ((textSize * (this.viewModel.primaryColumn.length)) /
-                ((parentWidth - width) / (1.8 * catLength))) * 100;
+                let length: number = ((textSize * (this.viewModel.primaryColumn.length)) /
+                    ((parentWidth - width) / (1.8 * catLength))) * 100;
                 // ellipses for overflow text
                 textProperties = {
                     text: this.viewModel.primaryColumn,
@@ -1343,7 +1348,7 @@ module powerbi.extensibility.visual {
                     sKMBValueY1Axis = this.format(
                         this.viewModel.values[i].values[0],
                         displayunitValue, precisionValue, this.dataView.categorical.values[0].source.format);
-                    let decimalPlaces : number;
+                    let decimalPlaces: number;
                     decimalPlaces = HorizontalFunnel.getDecimalPlacesCount(this.viewModel.values[i].values[0]);
                     // tooltip values
                     let sKMBValueY1AxisTooltip: string;
@@ -1375,7 +1380,7 @@ module powerbi.extensibility.visual {
                         .text(this.trimString(title, width / 10));
                 }
                 if (this.viewModel.values[i].values.length > 1) {
-                    let sKMBValueY2AxisTooltip : string;
+                    let sKMBValueY2AxisTooltip: string;
                     if (this.viewModel.values[i].values[1] !== null) {
                         //let PM = [];
                         if (displayunitValue2 === 0) { //auto option selected then
@@ -1490,7 +1495,7 @@ module powerbi.extensibility.visual {
                 svgElement[0][i]['cust-tooltip'] = this.viewModel.values[i].toolTipInfo;
             }
             for (let i: number = 0; i < percentageVal.length; i++) {
-                let polygonColor : string;
+                let polygonColor: string;
                 if (this.defaultDataPointColor) {
                     polygonColor = this.defaultDataPointColor;
                 } else {
@@ -1529,15 +1534,15 @@ module powerbi.extensibility.visual {
                 }
                 val += 2;
             }
-            this.root.selectAll('.fillcolor').style('fill', (d: {}, i : number) => this.colors[i + 1].value);
+            this.root.selectAll('.fillcolor').style('fill', (d: {}, i: number) => this.colors[i + 1].value);
 
-            this.root.selectAll('.hf_dataColor').style('fill', (d: {}, i : number) => this.viewModel.categories[i].color.value);
+            this.root.selectAll('.hf_dataColor').style('fill', (d: {}, i: number) => this.viewModel.categories[i].color.value);
             // This is for the dotted line
             this.root.selectAll('.hf_dataColor').style('stroke', (d: {}, i: number) => this.viewModel.categories[i].color.value);
             selection = this.root.selectAll('.hf_datapoint')
                 .data(dataPoints, (d: {}, idx: number) => (dataPoints[idx] === 0) ? String(idx) : String(idx + 1));
             // tslint:disable-next-line:no-any
-            let viewModel : any;
+            let viewModel: any;
             viewModel = this.viewModel;
             this.tooltipServiceWrapper.addTooltip(
                 d3.selectAll('.hf_datapoint'),
@@ -1545,7 +1550,21 @@ module powerbi.extensibility.visual {
                     return tooltipEvent.context['cust-tooltip'];
                 },
                 (tooltipEvent: TooltipEventArgs<number>) => null, true);
-            this.setSelectHandler(selection);
+            selection.on('click', (data: IFunnelViewModel) => {
+                // tslint:disable-next-line:no-any
+                let ev: any;
+                ev = d3.event;
+                this.selectionManager.select(data.identity, ev.ctrlKey).then((selectionIds: ISelectionId[]) => {
+                    this.syncSelectionState(selection, selectionIds);
+                });
+                ev.stopPropagation();
+            });
+            this.root.on('click', () => {
+                this.selectionManager.clear();
+                this.syncSelectionState(selection, this.selectionManager.getSelectionIds() as ISelectionId[]);
+            });
+
+            this.syncSelectionState(selection, this.selectionManager.getSelectionIds() as ISelectionId[]);
         }
 
         public getDefaultLegendSettings(): IShowLegendSettings {
@@ -1565,7 +1584,7 @@ module powerbi.extensibility.visual {
             }
             objects = dataView.metadata.objects;
             // tslint:disable-next-line:no-any
-            const legendProperties : any = horizontalFunnelProps;
+            const legendProperties: any = horizontalFunnelProps;
             legendSetting.show = DataViewObjects.getValue(objects, legendProperties.ShowLegend.show, legendSetting.show);
 
             return legendSetting;
@@ -1588,7 +1607,7 @@ module powerbi.extensibility.visual {
             }
             objects = dataView.metadata.objects;
             // tslint:disable-next-line:no-any
-            const showConnectorsProps : any = horizontalFunnelProps;
+            const showConnectorsProps: any = horizontalFunnelProps;
             connectorsSetting.show = DataViewObjects.getValue(objects, showConnectorsProps.ShowConnectors.show, connectorsSetting.show);
 
             return connectorsSetting;
@@ -1614,7 +1633,7 @@ module powerbi.extensibility.visual {
             }
             objects = dataView.metadata.objects;
             // tslint:disable-next-line:no-any
-            const labelProperties : any = horizontalFunnelProps.LabelSettings;
+            const labelProperties: any = horizontalFunnelProps.LabelSettings;
             dataLabelSetting.color = DataViewObjects.getFillColor(objects, labelProperties.color, dataLabelSetting.color);
             dataLabelSetting.displayUnits = DataViewObjects.getValue(
                 objects, labelProperties.labelDisplayUnits, dataLabelSetting.displayUnits);
@@ -1640,7 +1659,7 @@ module powerbi.extensibility.visual {
                 && dataView.categorical.values[0].source
                 && dataView.categorical.values[0].source.displayName) {
                 const measureName: string = dataView.categorical.values[0].source.displayName;
-                const catName : string = dataView.categorical.categories[0].source.displayName;
+                const catName: string = dataView.categorical.categories[0].source.displayName;
                 titleText = `${measureName} by ${catName} `;
             }
 
@@ -1664,7 +1683,7 @@ module powerbi.extensibility.visual {
 
             objects = dataView.metadata.objects;
             // tslint:disable-next-line:no-any
-            const titleProps : any = horizontalFunnelProps.funnelTitle;
+            const titleProps: any = horizontalFunnelProps.funnelTitle;
             fTitleSettings.show = DataViewObjects.getValue(objects, titleProps.show, fTitleSettings.show);
             fTitleSettings.titleText = DataViewObjects.getValue(objects, titleProps.titleText, fTitleSettings.titleText);
             fTitleSettings.tooltipText = DataViewObjects.getValue(objects, titleProps.tooltipText, fTitleSettings.tooltipText);
@@ -1691,7 +1710,7 @@ module powerbi.extensibility.visual {
             }
             objects = dataView.metadata.objects;
             // tslint:disable-next-line:no-any
-            const sortProps : any = horizontalFunnelProps.sort;
+            const sortProps: any = horizontalFunnelProps.sort;
             sortSettings.sortBy = DataViewObjects.getValue(objects, sortProps.sortBy, sortSettings.sortBy);
             // Check if Secondary measure exists before selecting it
             // If exists sort by secondary measure, otherwise sort by 'Auto'
@@ -1814,7 +1833,7 @@ module powerbi.extensibility.visual {
         }
 
         // tslint:disable-next-line:no-any
-        public getDefaultLabelSettings(show : any , labelColor: any, labelPrecision : any, format : any):  {
+        public getDefaultLabelSettings(show: any, labelColor: any, labelPrecision: any, format: any): {
             // tslint:disable-next-line:no-any
             show: any;
             position: number;
@@ -1829,7 +1848,7 @@ module powerbi.extensibility.visual {
             defaultDecimalLabelPrecision = 2;
             let defaultLabelColor: string;
             defaultLabelColor = '#333333';
-            let precision : number = 0;
+            let precision: number = 0;
             if (precision > 4) {
                 precision = 4;
             }
@@ -1852,7 +1871,7 @@ module powerbi.extensibility.visual {
 
         // This function is to trim numbers if it exceeds number of digits.
         // tslint:disable-next-line:no-any
-        public trimString(sValue : any, iNumberOfDigits : number) : string {
+        public trimString(sValue: any, iNumberOfDigits: number): string {
             if (null === sValue) {
                 return 'null';
             }
@@ -1863,7 +1882,7 @@ module powerbi.extensibility.visual {
             }
         }
 
-        private ColorLuminance(hex : string) : string {
+        private ColorLuminance(hex: string): string {
             let lum: number = 0.50;
             // validate hex string
             hex = String(hex).replace(/[^0-9a-f]/gi, '');
@@ -1875,8 +1894,8 @@ module powerbi.extensibility.visual {
             // convert to decimal and change luminosity
             let rgb: string = '#';
             // tslint:disable-next-line:no-any
-            let c : any;
-            let i : number;
+            let c: any;
+            let i: number;
             for (i = 0; i < 3; i++) {
                 c = parseInt(hex.substr(i * 2, 2), 16);
                 c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
@@ -1886,15 +1905,15 @@ module powerbi.extensibility.visual {
             return rgb;
         }
 
-        private enumerateDataPoints(enumeration: VisualObjectInstance[]) : void {
+        private enumerateDataPoints(enumeration: VisualObjectInstance[]): void {
             // tslint:disable-next-line:no-any
             const data: any = this.viewModel.categories;
             if (!data) {
                 return;
             }
-            const dataPointsLength : number = data.length;
+            const dataPointsLength: number = data.length;
 
-            const primaryValues : number = this.viewModel.values;
+            const primaryValues: number = this.viewModel.values;
             for (let i: number = 0; i < dataPointsLength; i++) {
                 if (primaryValues[i].values[0]) {
                     if (!data[i].color.value) {
@@ -1922,10 +1941,10 @@ module powerbi.extensibility.visual {
         // This function returns the tool tip text given for the tooltip in the format window
         private getTooltipText(dataView: DataView): IDataLabelSettings {
             const funnelTitleString: string = 'FunnelTitle';
-            const tooltipTextString : string = 'tooltipString';
+            const tooltipTextString: string = 'tooltipString';
             if (dataView && dataView.metadata && dataView.metadata.objects) {
                 if (dataView.metadata.objects && dataView.metadata.objects.hasOwnProperty('FunnelTitle')) {
-                    let tooltiptext : DataViewObject;
+                    let tooltiptext: DataViewObject;
                     tooltiptext = dataView.metadata.objects[funnelTitleString];
                     if (tooltiptext && tooltiptext.hasOwnProperty(tooltipTextString)) {
                         return <IDataLabelSettings>tooltiptext[tooltipTextString];
@@ -1939,7 +1958,7 @@ module powerbi.extensibility.visual {
         }
 
         // This function is to perform KMB formatting on values.
-        private format(d: number, displayunitValue: number, precisionValue: number, format: string) : string {
+        private format(d: number, displayunitValue: number, precisionValue: number, format: string): string {
 
             let displayUnits: number;
             displayUnits = displayunitValue;
@@ -1957,7 +1976,7 @@ module powerbi.extensibility.visual {
                     primaryFormatterVal = 10;
                 }
             }
-            let formatter : IValueFormatter;
+            let formatter: IValueFormatter;
             if (format) {
                 if (format.indexOf('%') >= 0) {
                     formatter = ValueFormatter.create({
@@ -1985,39 +2004,41 @@ module powerbi.extensibility.visual {
             return formattedValue;
         }
 
+        // method to set opacity based on the selections in visual
         // tslint:disable-next-line:no-any
-        private setSelectHandler(selection : any): void {
-            this.setSelection(selection);
-            selection.on('click', (data: IFunnelViewModel) => {
-                // tslint:disable-next-line:no-any
-                let ev: any;
-                ev = d3.event;
-                this.selectionManager.select(data.identity, ev.ctrlKey).then((selectionIds: SelectionId[]) => {
-                    this.setSelection(selection, selectionIds);
-                });
-                ev.stopPropagation();
-            });
-            this.root.on('click', () => {
-                this.selectionManager.clear();
-                this.setSelection(selection);
+        private syncSelectionState(selection: any, selectionIds?: ISelectionId[]): void {
+            const self: this = this;
+
+            if (!selection || !selectionIds) {
+                return;
+            }
+
+            if (!selectionIds.length) {
+                selection.transition()
+                .duration(this.durationAnimations)
+                .style('fill-opacity', HorizontalFunnel.maxOpacity);
+
+                return;
+            }
+
+            selection.each(function (dataPoint: IFunnelViewModel): void {
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, dataPoint.identity);
+
+                d3.select(this).transition()
+                    .duration(self.durationAnimations)
+                    .style('fill-opacity', isSelected ? HorizontalFunnel.maxOpacity : HorizontalFunnel.minOpacity);
             });
         }
 
-        // tslint:disable-next-line:no-any
-        private setSelection(selection : any, selectionIds?: SelectionId[]): void {
-            selection.transition()
-                .duration(this.durationAnimations)
-                .style('fill-opacity', HorizontalFunnel.maxOpacity);
-            if (!selectionIds || !selectionIds.length) {
-                return;
+        // method to return boolean based on presence of value in array
+        private isSelectionIdInArray(selectionIds: ISelectionId[], selectionId: ISelectionId): boolean {
+            if (!selectionIds || !selectionId) {
+                return false;
             }
-            selection
-                .filter((selectionData: IFunnelViewModel) => {
-                    return !selectionIds.some((selectionId: SelectionId) => { return selectionData.identity === selectionId; });
-                })
-                .transition()
-                .duration(this.durationAnimations)
-                .style('fill-opacity', HorizontalFunnel.minOpacity);
+
+            return selectionIds.some((currentSelectionId: ISelectionId) => {
+                return currentSelectionId.includes(selectionId);
+            });
         }
     }
 }
