@@ -31,11 +31,6 @@
       "name": "KPIValueBag",
       "displayName": "KPI",
       "kind": "Grouping"
-    },    
-    {
-      "name": "Color",
-      "displayName": "Color",
-      "kind": "Grouping"
     },
     {
       "name": "Tooltip",
@@ -72,10 +67,6 @@
             "min": 0,
             "max": 10
           },
-          "Color": {
-            "min": 0,
-            "max": 1
-          },
           "Tooltip": {
             "min": 0,
             "max": 4
@@ -93,12 +84,6 @@
             {
               "for": {
                 "in": "Legend"
-              }
-            },
-
-            {
-              "for": {
-                "in": "Color"
               }
             },
             {
