@@ -1,5 +1,6 @@
 module powerbi.extensibility.visual {
 
+    import ISelectionId = powerbi.visuals.ISelectionId;
     import IColorPalette = powerbi.extensibility.IColorPalette;
     import ValueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
     import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
@@ -102,9 +103,22 @@ module powerbi.extensibility.visual {
         private currentViewport: IViewport;
         // tslint:disable-next-line:no-any
         private rootElement: any;
+        // objects to handle selections
+        private bubbleSelection: d3.selection.Update<IQuadrantChartDataPoint>;
+        private legendSelection: d3.selection.Update<IQuadrantChartDataPoint>;
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
+            // function to sync selections on bookmarks
+            this.selectionManager.registerOnSelectCallback(() => {
+                this.bubbleSelection = this.rootElement.selectAll('svg .MAQCharts-plotArea circle');
+                this.legendSelection = this.rootElement.selectAll('.legendItem');
+                this.syncSelectionState(
+                    this.bubbleSelection,
+                    this.legendSelection,
+                    this.selectionManager.getSelectionIds() as ISelectionId[]
+                );
+            });
             this.rootElement = d3.select(options.element);
             // tslint:disable-next-line:no-any
             const svg: any = this.svg = this.rootElement.append('div').classed('container', true);
@@ -118,7 +132,7 @@ module powerbi.extensibility.visual {
         public getLegendData(dataView: DataView, quadrantChartDataPoints: any, host: IVisualHost): LegendData {
             let sTitle: string = '';
             if (dataView && dataView.categorical && dataView.categorical.categories
-                && dataView.categorical.categories[0] && dataView.categorical.categories[0].source) {
+                 && dataView.categorical.categories[0] && dataView.categorical.categories[0].source) {
                 sTitle = dataView.categorical.categories[0].source.displayName;
             }
             const legendData: LegendData = {
@@ -186,9 +200,9 @@ module powerbi.extensibility.visual {
                 $('#container').removeAttr('style');
                 d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                 d3.select('svg')
-                    .append('text')
-                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                    .text('Please select both x-axis and y-axis values');
+                .append('text')
+                .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                .text('Please select both x-axis and y-axis values');
 
                 return;
             } else {
@@ -216,9 +230,9 @@ module powerbi.extensibility.visual {
                 $('#container').removeAttr('style');
                 d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                 d3.select('svg')
-                    .append('text')
-                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                    .text('Only null values present for X axis');
+                .append('text')
+                .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                .text('Only null values present for X axis');
 
                 return;
             }
@@ -228,16 +242,16 @@ module powerbi.extensibility.visual {
             while (loopctr < iColLength && (dataViewObject.values[assignData[0]].values[loopctr] === null
                 || dataViewObject.values[assignData[0]].values[loopctr] === ''
                 || (typeof (dataViewObject.values[assignData[0]].values[loopctr]) === 'number'
-                    && (dataViewObject.values[assignData[0]].values[loopctr] >= 0)))) {
+                && (dataViewObject.values[assignData[0]].values[loopctr] >= 0)))) {
                 loopctr++;
             }
             if (loopctr !== iColLength) {
                 $('#container').removeAttr('style');
                 d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                 d3.select('svg')
-                    .append('text')
-                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                    .text('Data not supported');
+                .append('text')
+                .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                .text('Data not supported');
 
                 return;
             }
@@ -261,9 +275,9 @@ module powerbi.extensibility.visual {
                 $('#container').removeAttr('style');
                 d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                 d3.select('svg')
-                    .append('text')
-                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                    .text('Only null values present for Y axis');
+                .append('text')
+                .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                .text('Only null values present for Y axis');
 
                 return;
             }
@@ -273,16 +287,16 @@ module powerbi.extensibility.visual {
             while (loopctr < iColLength && (dataViewObject.values[assignData[1]].values[loopctr] === null
                 || dataViewObject.values[assignData[1]].values[loopctr] === ''
                 || (typeof (dataViewObject.values[assignData[1]].values[loopctr]) === 'number'
-                    && (dataViewObject.values[assignData[1]].values[loopctr] >= 0)))) {
+                && (dataViewObject.values[assignData[1]].values[loopctr] >= 0)))) {
                 loopctr++;
             }
             if (loopctr !== iColLength) {
                 $('#container').removeAttr('style');
                 d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                 d3.select('svg')
-                    .append('text')
-                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                    .text('Data not supported');
+                .append('text')
+                .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                .text('Data not supported');
 
                 return;
             }
@@ -309,27 +323,27 @@ module powerbi.extensibility.visual {
                     $('#container').removeAttr('style');
                     d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                     d3.select('svg')
-                        .append('text')
-                        .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                        .text('Only null values present for Radius axis');
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Only null values present for Radius axis');
 
                     return;
                 }
                 // check for negative numbers
                 loopctr = 0;
                 while (loopctr < iColLength && (dataViewObject.values[assignData[2]].values[loopctr] === ''
-                    || dataViewObject.values[assignData[2]].values[loopctr] === null
-                    || (typeof (dataViewObject.values[assignData[2]].values[loopctr]) === 'number'
-                        && (dataViewObject.values[assignData[2]].values[loopctr] >= 0)))) {
+                || dataViewObject.values[assignData[2]].values[loopctr] === null
+                || (typeof (dataViewObject.values[assignData[2]].values[loopctr]) === 'number'
+                && (dataViewObject.values[assignData[2]].values[loopctr] >= 0)))) {
                     loopctr++;
                 }
                 if (loopctr !== iColLength) {
                     $('#container').removeAttr('style');
                     d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                     d3.select('svg')
-                        .append('text')
-                        .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                        .text('Data not supported');
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Data not supported');
 
                     return;
                 }
@@ -356,9 +370,9 @@ module powerbi.extensibility.visual {
                     $('#container').removeAttr('style');
                     d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                     d3.select('svg')
-                        .append('text')
-                        .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                        .text('Only null values present for Legend axis');
+                    .append('text')
+                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                    .text('Only null values present for Legend axis');
 
                     return;
                 }
@@ -374,9 +388,9 @@ module powerbi.extensibility.visual {
                     || (assignData[2] !== -1
                         && (dataViewObject.values[assignData[2]].values[loopctr] === null
                             || dataViewObject.values[assignData[2]].values[loopctr] === ''))
-                    || (assignData[3] !== -1
-                        && (dataViewObject.categories[assignData[3]].values[loopctr] === null
-                            || dataViewObject.categories[assignData[3]].values[loopctr] === ''))) {
+                            || (assignData[3] !== -1
+                                && (dataViewObject.categories[assignData[3]].values[loopctr] === null
+                                    || dataViewObject.categories[assignData[3]].values[loopctr] === ''))) {
                     skipFlag++;
                 }
                 loopctr++;
@@ -385,9 +399,9 @@ module powerbi.extensibility.visual {
                 $('#container').removeAttr('style');
                 d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                 d3.select('svg')
-                    .append('text')
-                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                    .text('No data available');
+                .append('text')
+                .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                .text('No data available');
 
                 return;
             }
@@ -404,28 +418,28 @@ module powerbi.extensibility.visual {
                         'radius': any[];
                     };
                 } = {
-                        name: '',
-                        data: {
-                            scaleX: [],
-                            scaleY: [],
-                            radius: []
-                        }
-                    };
+                    name: '',
+                    data: {
+                        scaleX: [],
+                        scaleY: [],
+                        radius: []
+                    }
+                };
                 let legendIndex: number;
                 if (options.dataViews[0].categorical.categories !== undefined) {
                     if (dataViewObject.categories[0].values[jCounter] !== null && dataViewObject.categories[0].values[jCounter] !== '') {
-                        legendIndex = findLegend(series, legendNumbers,
-                            (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA'));
+                         legendIndex = findLegend(series, legendNumbers,
+                                                  (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA'));
 
-                        if (legendIndex === -1) {
+                         if (legendIndex === -1) {
                             objSeries.name = (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA');
                             series[legendNumbers] = objSeries;
                             legendIndex = legendNumbers;
                             legendNumbers++;
                         }
-                        series[legendIndex].data.scaleX.push(dataViewObject.values[assignData[0]].values[jCounter]);
-                        series[legendIndex].data.scaleY.push(dataViewObject.values[assignData[1]].values[jCounter]);
-                        series[legendIndex].data.radius.push((isRadius ? dataViewObject.values[assignData[2]].values[jCounter] : 4));
+                         series[legendIndex].data.scaleX.push(dataViewObject.values[assignData[0]].values[jCounter]);
+                         series[legendIndex].data.scaleY.push(dataViewObject.values[assignData[1]].values[jCounter]);
+                         series[legendIndex].data.radius.push((isRadius ? dataViewObject.values[assignData[2]].values[jCounter] : 4));
                     }
                 } else {
                     legendIndex = findLegend(series, legendNumbers, (isLegends ? dataViewObject.categories[0].values[jCounter] : 'NA'));
@@ -453,9 +467,9 @@ module powerbi.extensibility.visual {
                 $('#container').removeAttr('style');
                 d3.select('#container').append('svg').classed('errorMessage', true).attr({ width: width, height: height });
                 d3.select('svg')
-                    .append('text')
-                    .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
-                    .text('No data available');
+                .append('text')
+                .attr({ x: width / 2, y: height / 2, 'font-size': '20px', 'text-anchor': 'middle' })
+                .text('No data available');
 
                 return;
             }
@@ -464,11 +478,11 @@ module powerbi.extensibility.visual {
             // workaround because of sdk bug that doesn't notify when only style has changed
             this.renderLegend(viewModel);
             if (!this.bubbleChartWithAxis || settingsChanged
-                // tslint:disable-next-line:no-bitwise
+            // tslint:disable-next-line:no-bitwise
                 || ((options.type & VisualUpdateType.Resize) || options.type & VisualUpdateType.ResizeEnd)) {
                 this.svg.selectAll('*').remove();
                 this.bubbleChartWithAxis =
-                    MAQDrawChart(this.dataView, this.settings, viewModel, series, assignData, ValueFormatter, textMeasurementService);
+                MAQDrawChart(this.dataView, this.settings, viewModel, series, assignData, ValueFormatter, textMeasurementService);
             }
 
             this.addBubbleSelection(this.selectionManager, viewModel);
@@ -479,43 +493,36 @@ module powerbi.extensibility.visual {
             });
 
             this.rootElement
-                .on('click',
+            .on('click',
                 () => this.selectionManager.clear().then(() => this.rootElement.selectAll('.legendItem').attr('opacity', 1),
-                    this.rootElement.selectAll('svg .MAQCharts-plotArea circle').attr('opacity', 1)));
+                                                         this.rootElement.selectAll('svg .MAQCharts-plotArea circle').attr('opacity', 1)));
+
+            this.bubbleSelection = this.rootElement.selectAll('svg .MAQCharts-plotArea circle');
+            this.legendSelection = this.rootElement.selectAll('.legendItem');
+            this.syncSelectionState(
+                this.bubbleSelection,
+                this.legendSelection,
+                this.selectionManager.getSelectionIds() as ISelectionId[]
+            );
         }
 
         // tslint:disable-next-line:no-any
         private addBubbleSelection(selectionManager: any, viewModel: any): void {
             // tslint:disable-next-line:variable-name
             const THIS: this = this;
-            const bubbles: d3.selection.Update<{}> = this.svg.selectAll('svg .MAQCharts-plotArea circle').data(viewModel.dataPoints);
-
+            const bubbles: d3.selection.Update<{}>  = this.svg.selectAll('svg .MAQCharts-plotArea circle').data(viewModel.dataPoints);
             // tslint:disable-next-line:no-any
             bubbles.on('click', function (d: any): void {
                 // tslint:disable-next-line:no-any
                 selectionManager.select(d.selectionId).then((ids: any[]) => {
-                    // tslint:disable-next-line:no-any
-                    function CompareIds(legendData: any): number {
-                        if (ids.length) {
-                            if (legendData.identity.key === ids[0].key) {
-                                return 1;
-                            } else {
-                                return 0.5;
-                            }
-                        } else {
-                            return 1;
-                        }
-                    }
-                    // tslint:disable-next-line:no-any
-                    const legendOnBubble: any = THIS.rootElement.selectAll('.legendItem');
-                    // tslint:disable-next-line:no-any
-                    legendOnBubble.attr('opacity', (g: any) => {
-                        return CompareIds(g);
-                    });
+                    this.bubbleSelection = bubbles;
+                    this.legendSelection = THIS.rootElement.selectAll('.legendItem');
+                    THIS.syncSelectionState(
+                        this.bubbleSelection,
+                        this.legendSelection,
+                        ids
+                    );
 
-                    bubbles.attr({
-                        opacity: ids.length > 0 ? 0.5 : 1
-                    });
                     d3.select(this).attr({
                         opacity: 1
                     });
@@ -534,27 +541,13 @@ module powerbi.extensibility.visual {
             legends.on('click', function (d: any): void {
                 // tslint:disable-next-line:no-any
                 selectionManager.select(d.identity).then((ids: any[]) => {
-                    // tslint:disable-next-line:no-any
-                    function CompareIds(arcData: any): number {
-                        if (ids.length) {
-                            if (arcData.selectionId.key === ids[0].key) {
-                                return 1;
-                            } else {
-                                return 0.5;
-                            }
-                        } else {
-                            return 1;
-                        }
-                    }
-                    // tslint:disable-next-line:no-any
-                    const arcs: any = THIS.rootElement.selectAll('svg .MAQCharts-plotArea circle');
-                    // tslint:disable-next-line:no-any
-                    arcs.attr('opacity', (e: any) => {
-                        return CompareIds(e);
-                    });
-                    legends.attr({
-                        opacity: ids.length > 0 ? 0.5 : 1
-                    });
+                    this.bubbleSelection = THIS.rootElement.selectAll('svg .MAQCharts-plotArea circle');
+                    this.legendSelection = legends;
+                    THIS.syncSelectionState(
+                        this.bubbleSelection,
+                        this.legendSelection,
+                        ids
+                    );
 
                     d3.select(this).attr({
                         opacity: 1
@@ -564,13 +557,99 @@ module powerbi.extensibility.visual {
             });
         }
 
+        // method to update visuals based on given selection & Ids
+        private syncSelectionState(
+            selection1: d3.Selection<IQuadrantChartDataPoint>,
+            selection2: d3.Selection<IQuadrantChartDataPoint>,
+            // tslint:disable-next-line:no-any
+            selectionIds: any[]
+        ): void {
+            if (!selection1 || !selection2 || !selectionIds) {
+                return;
+            }
+
+            if (!selectionIds.length) {
+                selection1.attr('opacity', 1);
+                selection2.attr('opacity', 1);
+
+                return;
+            }
+
+            // tslint:disable-next-line:no-any
+            function CompareIds(data: any, type: number): number {
+                switch (type) {
+                    case 1:
+                    {
+                        if (selectionIds.length > 0) {
+                            if (data.selectionId.key === selectionIds[0].key) {
+                                return 1;
+                            } else {
+                                return 0.5;
+                            }
+                        } else {
+                            return 1;
+                        }
+                    }
+                    case 2:
+                    {
+                        if (selectionIds.length > 0) {
+                            if (data.identity.key === selectionIds[0].key) {
+                                return 1;
+                            } else {
+                                return 0.5;
+                            }
+                        } else {
+                            return 1;
+                        }
+                    }
+                    default:
+                }
+            }
+
+            const self: this = this;
+            // tslint:disable-next-line:no-any
+
+            selection1.each(function (barDataPoint: IQuadrantChartDataPoint): void {
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
+
+                d3.select(this).attr(
+                    'opacity',
+                    // tslint:disable-next-line:no-any
+                    (e: any) => {
+                        return CompareIds(e, 1); }
+                );
+            });
+
+            selection2.each(function (barDataPoint: IQuadrantChartDataPoint): void {
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
+
+                d3.select(this).attr(
+                    'opacity',
+                    // tslint:disable-next-line:no-any
+                    (e: any) => {
+                        return CompareIds(e, 2); }
+                );
+            });
+        }
+
+        // method to return boolean based on presence of value in array
+        private isSelectionIdInArray(selectionIds: ISelectionId[], selectionId: ISelectionId): boolean {
+            if (!selectionIds || !selectionId) {
+                return false;
+            }
+
+            return selectionIds.some((currentSelectionId: ISelectionId) => {
+                return currentSelectionId.includes(selectionId);
+            });
+        }
+
         private renderLegend(viewModel: IQuadrantChartViewModel): void {
             if (!viewModel || !viewModel.legendData) {
                 return;
             }
             if (this.dataView && this.dataView.metadata) {
                 this.legendObjectProperties = powerbi.extensibility.utils.dataview.DataViewObjects
-                    .getObject(this.dataView.metadata.objects, 'legend', {});
+                .getObject(this.dataView.metadata.objects, 'legend', {});
             }
             const legendData: LegendData = viewModel.legendData;
             const legendDataTorender: LegendData = {
@@ -629,11 +708,11 @@ module powerbi.extensibility.visual {
                             show: this.settings.showLegend,
                             position: LegendPosition[this.legend.getOrientation()],
                             showTitle: powerbi.extensibility.utils.dataview.DataViewObject
-                                .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.showTitle, true),
+                            .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.showTitle, true),
                             labelColor: powerbi.extensibility.utils.dataview.DataViewObject
-                                .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.labelColor, null),
+                            .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.labelColor, null),
                             fontSize: powerbi.extensibility.utils.dataview.DataViewObject
-                                .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.fontSize, 8)
+                            .getValue(this.legendObjectProperties, powerbi.extensibility.utils.chart.legend.legendProps.fontSize, 8)
                         }
                     });
                     break;
@@ -736,14 +815,14 @@ module powerbi.extensibility.visual {
                     yDisplayUnits: getValue<number>(objects, 'yAxis', 'displayUnits', 0),
                     xTextPrecision: getValue<number>(objects, 'xAxis', 'textPrecision', 0) < 0 ? 0
                         : getValue<number>(objects, 'xAxis', 'textPrecision', 0) > 4 ? 4
-                            : getValue<number>(objects, 'xAxis', 'textPrecision', 0) % 1 !== 0 ?
-                                getValue<number>(objects, 'xAxis', 'textPrecision', 0) - getValue<number>(objects, 'xAxis', 'textPrecision', 0) % 1
-                                : getValue<number>(objects, 'xAxis', 'textPrecision', 0),
+                        : getValue<number>(objects, 'xAxis', 'textPrecision', 0) % 1 !== 0 ?
+                        getValue<number>(objects, 'xAxis', 'textPrecision', 0) - getValue<number>(objects, 'xAxis', 'textPrecision', 0) % 1
+                            : getValue<number>(objects, 'xAxis', 'textPrecision', 0),
                     yTextPrecision: getValue<number>(objects, 'yAxis', 'textPrecision', 0) < 0 ? 0
                         : getValue<number>(objects, 'yAxis', 'textPrecision', 0) > 4 ? 4
-                            : getValue<number>(objects, 'yAxis', 'textPrecision', 0) % 1 !== 0 ?
-                                getValue<number>(objects, 'yAxis', 'textPrecision', 0) - getValue<number>(objects, 'yAxis', 'textPrecision', 0) % 1
-                                : getValue<number>(objects, 'yAxis', 'textPrecision', 0),
+                        : getValue<number>(objects, 'yAxis', 'textPrecision', 0) % 1 !== 0 ?
+                         getValue<number>(objects, 'yAxis', 'textPrecision', 0) - getValue<number>(objects, 'yAxis', 'textPrecision', 0) % 1
+                            : getValue<number>(objects, 'yAxis', 'textPrecision', 0),
                     // Quadrant division lines
                     quadrantDivisionX: getValue<number>(objects, 'quadrantNames', 'quadrantDivisionX', -1),
                     quadrantDivisionY: getValue<number>(objects, 'quadrantNames', 'quadrantDivisionY', -1)
