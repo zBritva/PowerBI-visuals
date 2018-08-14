@@ -1,0 +1,23 @@
+{
+  "name": "textenhancer",
+  "version": "1.0.0",
+  "description": "Text Enhancer",
+  "main": "index.js",
+  "dependencies": {
+    "d3": "^3.5.5",
+    "d3-selection": "^1.0.2",
+    "jquery": "^3.3.1",
+    "lodash": "^4.15.0",
+    "powerbi-visuals-utils-formattingutils": "^0.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "\"http://github.com/npm/npm.git\""
+  },
+  "author": "MAQ Software",
+  "license": "ISC"
+}
