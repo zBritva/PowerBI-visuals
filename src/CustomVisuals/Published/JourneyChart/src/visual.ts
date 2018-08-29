@@ -395,7 +395,6 @@ module powerbi.extensibility.visual {
                 const len: number = Math.max(categoryValues.values.length, dataValue.values.length);
                 for (let jCounter: number = 0; jCounter < len; jCounter++) {
                     selection.push({
-
                         selectionId: host.createSelectionIdBuilder()
                             .withCategory(categoryValues, jCounter)
                             .createSelectionId()
