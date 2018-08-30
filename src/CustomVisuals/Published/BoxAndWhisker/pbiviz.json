@@ -4,12 +4,12 @@
     "displayName": "Box and Whisker by MAQ Software",
     "guid": "BoxandWhiskerByMAQ1823AD39DT234AB532063E128AX",
     "visualClassName": "Visual",
-    "version": "3.1.1",
+    "version": "3.1.2",
     "description": "This visual displays data distribution into quartiles in a box with a thin line going through it (whiskers) indicating variability outside the upper and lower quartiles.",
     "supportUrl": "https://github.com/maqsoftware/PowerBI-visuals/issues",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals/"
   },
-  "apiVersion": "1.11.0",
+  "apiVersion": "2.1.0",
   "author": {
     "name": "MAQ Software",
     "email": "support@maqsoftware.com"
