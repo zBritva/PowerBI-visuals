@@ -29,6 +29,8 @@ module powerbi.extensibility.visual {
     import TextProperties = powerbi.extensibility.utils.formatting.TextProperties;
     import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
     import textMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
+    // tslint:disable-next-line:prefer-const
+    let formatter : IValueFormatter;
 
     export module DataViewObjects {
         /** Gets the value of the given object/property pair. */
@@ -36,11 +38,9 @@ module powerbi.extensibility.visual {
 
             if (!objects) { return defaultValue; }
 
-            let objectOrMap: DataViewObject;
-            objectOrMap = objects[propertyId.objectName];
+            const objectOrMap: DataViewObject = objects[propertyId.objectName];
 
-            let object: DataViewObject;
-            object = <DataViewObject>objectOrMap;
+            const object: DataViewObject = <DataViewObject>objectOrMap;
 
             return DataViewObject.getValue(object, propertyId.propertyName, defaultValue);
         }
@@ -48,8 +48,7 @@ module powerbi.extensibility.visual {
         /** Gets an object from objects. */
         export function getObject(objects: DataViewObjects, objectName: string, defaultValue?: DataViewObject): DataViewObject {
             if (objects && objects[objectName]) {
-                let object: DataViewObject;
-                object = <DataViewObject>objects[objectName];
+                const object: DataViewObject = <DataViewObject>objects[objectName];
 
                 return object;
             } else {
@@ -60,8 +59,7 @@ module powerbi.extensibility.visual {
         /** Gets a map of user-defined objects. */
         export function getUserDefinedObjects(objects: DataViewObjects, objectName: string): DataViewObjectMap {
             if (objects && objects[objectName]) {
-                let map: DataViewObjectMap;
-                map = <DataViewObjectMap>objects[objectName];
+                const map: DataViewObjectMap = <DataViewObjectMap>objects[objectName];
 
                 return map;
             }
@@ -70,8 +68,7 @@ module powerbi.extensibility.visual {
         /** Gets the solid color from a fill property. */
         export function getFillColor(
             objects: DataViewObjects, propertyId: DataViewObjectPropertyIdentifier, defaultColor?: string): string {
-            let value: Fill;
-            value = getValue(objects, propertyId);
+            const value: Fill = getValue(objects, propertyId);
             if (!value || !value.solid) { return defaultColor; }
 
             return value.solid.color;
@@ -84,26 +81,21 @@ module powerbi.extensibility.visual {
             if (!object) { return defaultValue; }
 
             // tslint:disable-next-line:no-any
-            let propertyValue: any;
-            propertyValue = <T>object[propertyName];
+            const propertyValue: any = <T>object[propertyName];
             if (propertyValue === undefined) { return defaultValue; }
 
             return propertyValue;
         }
         /** Gets the solid color from a fill property using only a propertyName */
         export function getFillColorByPropertyName(objects: DataViewObjects, propertyName: string, defaultColor?: string): string {
-            let value: Fill;
-            value = DataViewObject.getValue(objects, propertyName);
+            const value: Fill = DataViewObject.getValue(objects, propertyName);
             if (!value || !value.solid) { return defaultColor; }
 
             return value.solid.color;
         }
     }
-
     // tslint:disable-next-line:no-any
-    let d3: any;
-    // tslint:disable-next-line:no-any
-    d3 = (<any>window).d3;
+    const d3Test: any = (<any>window).d3;
 
     interface IJourneyData {
         nodes: INodes[];
@@ -118,6 +110,8 @@ module powerbi.extensibility.visual {
         numberofleads: number;
         percentage: number;
         color: string;
+        // tslint:disable-next-line:no-any
+        selectionId: any[];
     }
     interface ILinks {
         source: string;
@@ -125,7 +119,9 @@ module powerbi.extensibility.visual {
         value: number;
         Activity: string;
     }
-
+    interface INodeDataPoint {
+        selectionId: powerbi.visuals.ISelectionId;
+    }
     interface ILegendDataPoint {
         category: string;
         value: number;
@@ -138,14 +134,20 @@ module powerbi.extensibility.visual {
     }
 
     interface IRootSettings {
+        showDataLabel: boolean;
         text: string;
+        rootOption: string;
         color: string;
     }
 
     interface ILabelSettings {
         show: boolean;
+        labelStyle: string;
         color: string;
         fontSize: number;
+        fontFamily: string;
+        labelDisplayUnits: number;
+        labelDecimalPlace: number;
     }
 
     export class Visual implements IVisual {
@@ -156,7 +158,6 @@ module powerbi.extensibility.visual {
         private svg: d3.Selection<HTMLElement>;
         private svgLegend: d3.Selection<HTMLElement>;
         public host: IVisualHost;
-        // private colors: any;
         private data: IJourneyData;
         private legendDataPoints: ILegendDataPoint[];
         private dataViews: DataView;
@@ -171,6 +172,10 @@ module powerbi.extensibility.visual {
         private height: number;
         private formatString: string;
         private measureData: DataViewValueColumns;
+        private selectionManager: ISelectionManager;
+        public selectionArrayIndex: number;
+        public measureDataLengthCount: number;
+        public rootCount: number;
 
         public getDefaultData(): IJourneyData {
             return {
@@ -186,10 +191,8 @@ module powerbi.extensibility.visual {
         public calAggregate(combinedID: string, totalValues: number): number {
             let sum: number = 0;
             if (combinedID !== 'none') {
-                let hierarchyArray: string[];
-                hierarchyArray = combinedID.split('***');
-                let level: number;
-                level = hierarchyArray.length - 1;
+                const hierarchyArray: string[] = combinedID.split('***');
+                const level: number = hierarchyArray.length - 1;
                 let counter: number;
                 for (let iRow: number = 0; iRow < totalValues; iRow++) {
                     counter = 0;
@@ -215,12 +218,12 @@ module powerbi.extensibility.visual {
 
         public calNodesNLinks(
             // tslint:disable-next-line:no-any
-            data: any, catDataset: DataViewCategoricalColumn[],
-            combinedID: string, level: number, parentId: number, parentSum: number): number {
+            data: any, catDataset: DataViewCategoryColumn[],
+            // tslint:disable-next-line:no-any
+            combinedID: string, level: number, parentId: number, parentSum: number, selection: any[]): number {
             if (!catDataset[level]) {
-                if (this.measureData.length > 1) {
-                    let splitId: string[];
-                    splitId = combinedID.split('***');
+                if (this.measureData.length > 1 && this.measureDataLengthCount > 1) {
+                    const splitId: string[] = combinedID.split('***');
                     let cnt: number = 0;
                     for (let iRow: number = 0; iRow < this.totalValues; iRow++) {
                         cnt = 0;
@@ -237,28 +240,35 @@ module powerbi.extensibility.visual {
                                             color = '#000';
                                         }
                                     }
+
                                     for (let iCounter: number = 0; iCounter < this.measureData.length; iCounter++) {
-                                        let measureNewId: string;
-                                        measureNewId = (++this.measureIdGen).toString();
-                                        data.nodes.push({
-                                            id: measureNewId,
-                                            program: this.measureData[iCounter].source.displayName,
-                                            name: this.measureData[iCounter].source.displayName,
-                                            group: (level + 1).toString(),
-                                            numberofleads: this.measureData[iCounter].values[iRow],
-                                            percentage: iCounter === 0 ? 1 : (
-                                                parseFloat(this.measureData[iCounter].values[iRow].toString()) /
-                                                parseFloat(this.measureData[iCounter - 1].values[iRow].toString())),
-                                            description: this.measureData[iCounter].source.displayName,
-                                            color: color
-                                        });
-                                        data.links.push({
-                                            source: iCounter === 0 ? parentId.toString() : this.measureIdGen - 1,
-                                            target: measureNewId,
-                                            value: this.measureData[iCounter].values[iRow],
-                                            Activity: ''
-                                        });
+                                        if (!this.measureData[iCounter].source.roles.root) {
+                                            const measureNewId: string = (++this.measureIdGen).toString();
+                                            // tslint:disable-next-line:no-any
+                                            const measureValue: any = isNaN(+(this.measureData[iCounter].values[iRow])) ? '0'
+                                                : this.measureData[iCounter].values[iRow];
+                                            data.nodes.push({
+                                                id: measureNewId,
+                                                program: this.measureData[iCounter].source.displayName,
+                                                name: this.measureData[iCounter].source.displayName,
+                                                group: (level + 1).toString(),
+                                                numberofleads: measureValue,
+                                                percentage: iCounter === 0 ? 1 : (
+                                                    parseFloat(measureValue.toString()) /
+                                                    parseFloat(this.measureData[iCounter - 1].values[iRow].toString())),
+                                                description: this.measureData[iCounter].source.displayName,
+                                                color: color,
+                                                selectionId: selection[this.selectionArrayIndex]
+                                            });
+                                            data.links.push({
+                                                source: iCounter === 0 ? parentId.toString() : this.measureIdGen - 1,
+                                                target: measureNewId,
+                                                value: measureValue,
+                                                Activity: ''
+                                            });
+                                        }
                                     } //end for this.measureData
+                                    this.selectionArrayIndex++;
                                 } //end if cnt == level
                             } //end if catDataset[cat].values[iRow] == splitId[cat]
                         } //end for cat
@@ -268,11 +278,9 @@ module powerbi.extensibility.visual {
                 return 0;
             } else { // end if !catDataset[level]
                 let uniqueElements: PrimitiveValue[];
-                let splitId: string[];
-                splitId = combinedID.split('***');
+                const splitId: string[] = combinedID.split('***');
                 if (combinedID !== '') {
-                    let filteredData: PrimitiveValue[];
-                    filteredData = [];
+                    const filteredData: PrimitiveValue[] = [];
                     let cnt: number = 0;
                     for (let iRow: number = 0; iRow < this.totalValues; iRow++) {
                         cnt = 0;
@@ -286,11 +294,14 @@ module powerbi.extensibility.visual {
                         }
                     }
                     uniqueElements = filteredData.filter(this.getDistinctElements);
+
                 } else {
                     uniqueElements = catDataset[0].values.filter(this.getDistinctElements);
                 }
 
                 uniqueElements.forEach((element: PrimitiveValue) => {
+                    // tslint:disable-next-line:no-any
+                    const selectionIndId: any[]  = [];
                     let color: string;
                     for (let iCounter: number = 0; iCounter < this.legendDataPoints.length; iCounter++) {
                         if (this.legendDataPoints[iCounter].category === splitId[0] ||
@@ -303,8 +314,7 @@ module powerbi.extensibility.visual {
                     }
 
                     let newCombinedID: string;
-                    let newId: string;
-                    newId = (this.idGen++).toString();
+                    const newId: string = (this.idGen++).toString();
                     if (level === 0) {
                         newCombinedID = element.toString();
                     } else {
@@ -312,8 +322,7 @@ module powerbi.extensibility.visual {
                         newCombinedID += '***';
                         newCombinedID += element;
                     }
-                    let calNumberOfLeads: number;
-                    calNumberOfLeads = this.calAggregate(newCombinedID, this.totalValues);
+                    const calNumberOfLeads: number = this.calAggregate(newCombinedID, this.totalValues);
 
                     data.links.push({
                         source: parentId.toString(),
@@ -330,72 +339,79 @@ module powerbi.extensibility.visual {
                         numberofleads: calNumberOfLeads,
                         percentage: calNumberOfLeads / parentSum,
                         description: newCombinedID,
-                        color: color
+                        color: color,
+                        selectionId: selectionIndId
                     });
-                    this.calNodesNLinks(data, catDataset, newCombinedID, level + 1, parseFloat(newId), calNumberOfLeads);
+                    this.calNodesNLinks(data, catDataset, newCombinedID, level + 1, parseFloat(newId), calNumberOfLeads, selection);
+
                 });
             }
         }
 
         public converter(dataView: DataView, host: IVisualHost, rootSettings: IRootSettings): IJourneyData {
-            let data: IJourneyData;
-            data = this.getDefaultData();
+            let data: IJourneyData = this.getDefaultData();
             if (dataView && dataView.categorical && dataView.categorical.categories && dataView.categorical.categories.length > 0
                 && dataView.categorical.values && dataView.categorical.values.length > 0) {
                 this.totalValues = dataView.categorical.values[0].values.length;
+                this.selectionArrayIndex = 0;
+                this.measureDataLengthCount = 0;
+                this.rootCount = 0;
                 this.catLength = dataView.categorical.categories[0].values.filter(this.getDistinctElements).length;
                 this.idGen = 1;
                 this.measureIdGen = 10000000;
                 this.measureData = dataView.categorical.values;
-                let arrIDs: number[];
-                arrIDs = [];
-                let arrCombinedIDs: string[];
-                arrCombinedIDs = [];
-                let arrLevel: number[];
-                arrLevel = [];
-                let divider: string;
-                divider = '***';
-                let combinedID: string;
-                combinedID = '';
-                let category: string;
-                category = '';
-                let catData: DataViewCategoricalColumn[];
-                catData = dataView.categorical.categories;
-                let catLength: number;
-                catLength = dataView.categorical.categories.length;
-                let rootNode: string;
-                rootNode = '';
-                let totalValues: number;
-                totalValues = dataView.categorical.categories[0].values.length;
-                let rootNodeIndex: number;
-                rootNodeIndex = 0;
-                let arrCategoriesMapping: number[];
-                arrCategoriesMapping = [];
+                const arrIDs: number[] = [];
+                const arrCombinedIDs: string[] = [];
+                const arrLevel: number[] = [];
+                const divider: string = '***';
+                const combinedID: string = '';
+                const category: string = '';
+                const catData: DataViewCategoryColumn[] = dataView.categorical.categories;
+                const catLength: number = dataView.categorical.categories.length;
+                const rootNode: string = '';
+                const totalValues: number = dataView.categorical.categories[0].values.length;
+                const rootNodeIndex: number = 0;
+                const arrCategoriesMapping: number[] = [];
                 this.formatString = dataView.categorical.values[0].source.format;
                 // Level 0 mappings
-                let rootSum: number;
-                rootSum = this.calAggregate('none', totalValues);
+                const rootSum: number = this.calAggregate('none', totalValues);
 
-                let rootText: string;
-                rootText = rootSettings.text;
-                let rootTextProperties: TextProperties;
-                rootTextProperties = {
+                const rootText: string  = rootSettings.text;
+                const rootLabel: string = rootSettings.rootOption;
+                const rootTextProperties: TextProperties = {
                     text: rootText,
                     fontFamily: 'Segoe UI,wf_segoe-ui_semibold,helvetica,arial,sans-serif',
                     fontSize: '15px'
                 };
 
+                const selection: INodeDataPoint[] = [];
+
+                // tslint:disable-next-line:no-any
+                const categorical: any = dataView.categorical;
+                // tslint:disable-next-line:no-any
+                const categoryValues: any = categorical.categories[0];
+                // tslint:disable-next-line:no-any
+                const dataValue: any = categorical.values[0];
+                const len: number = Math.max(categoryValues.values.length, dataValue.values.length);
+                for (let jCounter: number = 0; jCounter < len; jCounter++) {
+                    selection.push({
+                        selectionId: host.createSelectionIdBuilder()
+                            .withCategory(categoryValues, jCounter)
+                            .createSelectionId()
+                    });
+                }
+
                 data.nodes.push({
                     id: '0',
                     program: textMeasurementService.getTailoredTextOrDefault(rootTextProperties, 140),
-                    name: textMeasurementService.getTailoredTextOrDefault(rootTextProperties, 140),
+                    name: null,
                     group: '0',
                     numberofleads: rootSum,
                     percentage: 1.00,
                     description: combinedID,
-                    color: rootSettings.color
+                    color: rootSettings.color,
+                    selectionId: selection
                 });
-
                 data.links.push({
                     source: '0',
                     target: '0',
@@ -403,20 +419,15 @@ module powerbi.extensibility.visual {
                     Activity: ''
                 });
 
-                // Creating Colors for Nodes
                 this.legendDataPoints = [];
-                let colorPalette: IColorPalette;
-                colorPalette = host.colorPalette;
+                const colorPalette: IColorPalette = host.colorPalette;
                 // tslint:disable-next-line:no-any
-                let categories: any;
-                categories = jQuery.extend({}, dataView.categorical.categories[0]);
+                const categories: any = jQuery.extend({}, dataView.categorical.categories[0]);
                 // tslint:disable-next-line:no-any
-                let catValues: any;
-                catValues = categories.values.filter(this.getDistinctElements);
+                const catValues: any = categories.values.filter(this.getDistinctElements);
                 categories.values = catValues;
                 for (let iIterator: number = 0; iIterator < categories.values.length; iIterator++) {
-                    let defaultColor: Fill;
-                    defaultColor = {
+                    const defaultColor: Fill = {
                         solid: {
                             color: colorPalette.getColor(categories.values[iIterator].toString()).value
                         }
@@ -430,63 +441,310 @@ module powerbi.extensibility.visual {
                             .createSelectionId()
                     });
                 }
-
-                this.calNodesNLinks(data, catData, '', 0, 0, rootSum);
+                //to add root text from Root Data Bag value.
+                for (let iCounter: number = 0; iCounter < this.measureData.length; iCounter++) {
+                    if (this.measureData[iCounter].source.roles.root) {
+                        this.rootCount++;
+                    } else {
+                        this.measureDataLengthCount++;
+                    }
+                }
+                if (this.rootCount === 1) {
+                    if (rootLabel === 'First') {
+                        data.nodes[0].name = this.dataViews.categorical.values[this.measureData.length - 1].values[0].toString();
+                    } else if (rootLabel === 'Last') {
+                        const length: number = this.dataViews.categorical.values[this.measureData.length - 1].values.length;
+                        data.nodes[0].name = this.dataViews.categorical.values[this.measureData.length - 1].values[length - 1].toString();
+                    }
+                } else {
+                    data.nodes[0].name = textMeasurementService.getTailoredTextOrDefault(rootTextProperties, 140);
+                }
+                this.calNodesNLinks(data, catData, '', 0, 0, rootSum, selection);
+                data = this.addSelection(catData, data, selection);
 
                 return data;
             }
 
             return data;
+
         }
 
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.target = options.element;
             this.updateCount = 0;
-
-            this.root = d3.select(options.element);
+            this.selectionManager = options.host.createSelectionManager();
+            this.root = d3Test.select(options.element);
+            //div to display error message for category null values.
+            // tslint:disable-next-line:no-any
+            d3Test.select(options.element).append('div').attr('id', 'errorMessage');
             this.svgLegend = this.root.append('svg');
             this.svg = this.root.append('svg');
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
-
-            this.width = 1500,
+            this.width = 1000,
                 this.height = 500;
+            this.minXView = -1 * (this.width / 2.3);
+            this.minYView = -1 * (this.height / 2);
+        }
 
-            this.minXView = -1 * (this.width / 3);
-            this.minYView = -1 * (this.height / 2.5);
+        //Function to add selection Ids to each node
+        // tslint:disable-next-line:no-any
+        public addSelection(catData: DataViewCategoryColumn[], data: any, selection: any[]): IJourneyData {
+            const catLen: number = catData.length;
+            const measureDataLen: number = this.dataViews.categorical.values.length;
+            let jCounter: number = 0;
+            let yCounter: number = 0;
+            if (measureDataLen === 1 || this.measureDataLengthCount <= 1) {
+                for (let iCounter: number = 1; iCounter < data.nodes.length; iCounter++) {
+                    if (data.nodes[iCounter].program.toString() ===
+                        catData[catLen - 1].source.displayName.toString()) {
+                        data.nodes[iCounter].selectionId.push(selection[jCounter]);
+                        jCounter++;
+                    }
+                }
+            } else {
+                let kCounter: number = 0;
+                for (let nCounter: number = 1; nCounter < data.nodes.length; nCounter++) {
+                    kCounter = nCounter;
+                    if (data.nodes[nCounter].program.toString() ===
+                        catData[catLen - 1].source.displayName.toString()) {
+                        while (data.nodes[++kCounter].program.toString() !==
+                            catData[catLen - 1].source.displayName.toString()) {
+                            data.nodes[nCounter].selectionId.push(selection[yCounter]);
+                            if (kCounter === data.nodes.length - 1) {
+                                break;
+                            }
+                        }
+                        yCounter++;
+                    }
+                }
+            }
+            if (catLen > 1) {
+                data = this.catLen1(catData, data, catLen, measureDataLen); //for category length grater than 1,
+                //add selection ids under that category.
+            }
+            if (catLen > 2) {
+                data = this.catLen2(catData, data, catLen, measureDataLen); //for category length grater than 2.
+                //add selection ids under that category.
+            }
+            if (catLen > 3) {
+                data = this.catLen3(catData, data, catLen, measureDataLen); //for category length grater than 3.
+                //add selection ids under that category.
+            }
+
+            return data;
+        }
+
+        // tslint:disable-next-line:no-any
+        public catLen1(catData: DataViewCategoryColumn[], data: any, catLen: number, measureDataLen: number): IJourneyData {
+            if (measureDataLen === 1 || this.measureDataLengthCount <= 1) {
+                let kCounter: number = 0;
+                for (let iCounter: number = 1; iCounter < data.nodes.length; iCounter++) {
+                    kCounter = iCounter;
+                    if (data.nodes[iCounter].program.toString() ===
+                        catData[catLen - 2].source.displayName.toString()) {
+                        while (data.nodes[++kCounter].program.toString() ===
+                            catData[catLen - 1].source.displayName.toString()) {
+                            data.nodes[iCounter].selectionId.push(data.nodes[kCounter].selectionId);
+                            if (kCounter === data.nodes.length - 1) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                let kCounter: number = 0;
+                for (let iCounter: number = 1; iCounter < data.nodes.length; iCounter++) {
+                    kCounter = iCounter;
+                    if (data.nodes[iCounter].program.toString() ===
+                        catData[catLen - 2].source.displayName.toString()) {
+                        while (data.nodes[++kCounter].program.toString() !==
+                            catData[catLen - 2].source.displayName.toString()) {
+                            if (data.nodes[kCounter].program.toString() ===
+                                catData[catLen - 1].source.displayName.toString()) {
+                                data.nodes[iCounter].selectionId.push(data.nodes[kCounter].selectionId);
+                            }
+                            if (kCounter === data.nodes.length - 1) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return data;
+        }
+        // tslint:disable-next-line:no-any
+        public catLen2(catData: DataViewCategoryColumn[], data: any, catLen: number, measureDataLen: number): IJourneyData {
+            if (measureDataLen === 1 || this.measureDataLengthCount <= 1) {
+                let mCounter: number = 0;
+                for (let iCounter: number = 1; iCounter < data.nodes.length; iCounter++) {
+                    mCounter = iCounter;
+                    if (data.nodes[iCounter].program.toString() ===
+                        catData[catLen - 3].source.displayName.toString()) {
+                        while (data.nodes[++mCounter].program.toString() !==
+                            catData[catLen - 3].source.displayName.toString()) {
+                            if (data.nodes[mCounter].program.toString() ===
+                                catData[catLen - 2].source.displayName.toString()) {
+                                data.nodes[iCounter].selectionId.push(data.nodes[mCounter].selectionId);
+                            }
+                            if (mCounter === data.nodes.length - 1) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                let mCounter: number = 0;
+                for (let iCounter: number = 1; iCounter < data.nodes.length; iCounter++) {
+                    mCounter = iCounter;
+                    if (data.nodes[iCounter].program.toString() ===
+                        catData[catLen - 3].source.displayName.toString()) {
+                        while (data.nodes[++mCounter].program.toString() !==
+                            catData[catLen - 3].source.displayName.toString()) {
+                            if (data.nodes[mCounter].program.toString() ===
+                                catData[catLen - 2].source.displayName.toString()) {
+                                data.nodes[iCounter].selectionId.push(data.nodes[mCounter].selectionId);
+                            }
+                            if (mCounter === data.nodes.length - 1) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        // tslint:disable-next-line:no-any
+        public catLen3(catData: DataViewCategoryColumn[], data: any, catLen: number, measureDataLen: number): IJourneyData {
+            if (measureDataLen === 1 || this.measureDataLengthCount <= 1) {
+                let mCounter: number = 0;
+                for (let iCounter: number = 1; iCounter < data.nodes.length; iCounter++) {
+                    mCounter = iCounter;
+                    if (data.nodes[iCounter].program.toString() ===
+                        catData[catLen - 4].source.displayName.toString()) {
+                        while (data.nodes[++mCounter].program.toString() !==
+                            catData[catLen - 4].source.displayName.toString()) {
+                            if (data.nodes[mCounter].program.toString() ===
+                                catData[catLen - 3].source.displayName.toString()) {
+                                data.nodes[iCounter].selectionId.push(data.nodes[mCounter].selectionId);
+                            }
+                            if (mCounter === data.nodes.length - 1) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                let mCounter: number = 0;
+                for (let iCounter: number = 1; iCounter < data.nodes.length; iCounter++) {
+                    mCounter = iCounter;
+                    if (data.nodes[iCounter].program.toString() ===
+                        catData[catLen - 4].source.displayName.toString()) {
+                        while (data.nodes[++mCounter].program.toString() !==
+                            catData[catLen - 4].source.displayName.toString()) {
+                            if (data.nodes[mCounter].program.toString() ===
+                                catData[catLen - 3].source.displayName.toString()) {
+                                data.nodes[iCounter].selectionId.push(data.nodes[mCounter].selectionId);
+                            }
+                            if (mCounter === data.nodes.length - 1) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return data;
         }
 
         public update(options: VisualUpdateOptions): void {
-            let dataView: DataView;
-            this.dataViews = dataView = options.dataViews[0];
-            let rootSettings: IRootSettings;
-            rootSettings = this.getRootSettings(this.dataViews);
-            let labelSettings: ILabelSettings;
-            labelSettings = this.getLabelSettings(this.dataViews);
-            let legendSettings: ILegendSettings;
-            legendSettings = this.getLegendSettings(this.dataViews);
-            let data: IJourneyData;
-            data = this.data = this.converter(dataView, this.host, rootSettings);
-            let pxLiteral: string;
-            pxLiteral = 'px';
-            let spaceLiteral: string;
-            spaceLiteral = ' ';
+            // tslint:disable-next-line:prefer-const
+            let secondaryFormatterVal: number = 0;
             this.svg.selectAll('*').remove();
             this.svgLegend.selectAll('*').remove();
+            $('#errorMessage').css('display', 'none');
 
+            const THIS1: this = this;
+            let dataView: DataView;
+            this.dataViews = dataView = options.dataViews[0];
+            // tslint:disable-next-line:no-any
+            const categorical: any = dataView.categorical;
+            const errorMessageCategory: string = 'Please select Category Data.';
+            const errorMessageMeasure: string = 'Please select Measure Data.';
+            const errorMessageCategoryNull: string = 'Category value is null.';
+            const errorMessageMeasureNull: string = 'Measure value is null.';
+            if (categorical.categories === undefined) {  //to display error message if category bag is empty.
+                $('#errorMessage').show();
+                $('#errorMessage').text(`${errorMessageCategory}`).css({
+                    hieght: `${options.viewport.height}px`,
+                    width: `${options.viewport.width}px`,
+                    'text-align': 'Center',
+                    'margin-top': `${options.viewport.height / 3}px`
+                });
+            } else {  //to display error message for category data having null value.
+                for (let iCounter: number = 0; iCounter < categorical.categories.length; iCounter++) {
+                    // tslint:disable-next-line:no-any
+                    const categoryValues: any = categorical.categories[iCounter];
+                    for (let jCounter: number = 0; jCounter < categoryValues.values.length; jCounter++) {
+                        if (categoryValues.values[jCounter] === null) {
+                            $('#errorMessage').show();
+                            $('#errorMessage').text(`${errorMessageCategoryNull}`).css({
+                                hieght: `${options.viewport.height}px`,
+                                width: `${options.viewport.width}px`,
+                                'text-align': 'Center',
+                                'margin-top': `${options.viewport.height / 3}px`
+                            });
+                        }
+                    }
+                }
+            }
+            if (categorical.values === undefined) { //to display error message if measure bag is empty.
+                $('#errorMessage').show();
+                $('#errorMessage').text(`${errorMessageMeasure}`).css({
+                    hieght: `${options.viewport.height}px`,
+                    width: `${options.viewport.width}px`,
+                    'text-align': 'Center',
+                    'margin-top': `${options.viewport.height / 3}px`
+                });
+            } else {  //to display error message for measure data having null value.
+                for (let iCount: number = 0; iCount < categorical.values.length; iCount++) {
+                    // tslint:disable-next-line:no-any
+                    const measureValues: any = categorical.values[iCount];
+                    for (let jCount: number = 0; jCount < measureValues.values.length; jCount++) {
+                        if (measureValues.values[jCount] === null) {
+                            $('#errorMessage').show();
+                            $('#errorMessage').text(`${errorMessageMeasureNull}`).css({
+                                hieght: `${options.viewport.height}px`,
+                                width: `${options.viewport.width}px`,
+                                'text-align': 'Center',
+                                'margin-top': `${options.viewport.height / 3}px`
+                            });
+                        }
+                    }
+                }
+            }
+            const rootSettings: IRootSettings = this.getRootSettings(this.dataViews);
+            const labelSettings: ILabelSettings = this.getLabelSettings(this.dataViews);
+            const legendSettings: ILegendSettings = this.getLegendSettings(this.dataViews);
+            const data: IJourneyData = this.data = this.converter(dataView, this.host, rootSettings);
+            const pxLiteral: string = 'px';
+            const spaceLiteral: string = ' ';
+            this.svg.selectAll('*').remove();
+            this.svgLegend.selectAll('*').remove();
             this.svgLegend
                 .attr('width', options.viewport.width)
                 .attr('style', 'position: absolute; top: 0; display: inherit; background-color: white');
 
-            let thisObj: Visual;
-            thisObj = this;
+            const thisObj: Visual = this;
 
             if (legendSettings.show) {
                 this.svgLegend.attr('height', '26.6666');
                 let legendWidth: number = (options.viewport.width / (this.catLength + 1));
                 legendWidth = legendWidth > 100 ? 100 : legendWidth;
-                let group: d3.Selection<HTMLElement>;
-                group = this.svgLegend
+                const group: d3.Selection<HTMLElement> = this.svgLegend
                     .append('g');
                 group.selectAll('circle')
                     .data(this.legendDataPoints)
@@ -520,8 +778,7 @@ module powerbi.extensibility.visual {
                     })
                     .attr('y', 15)
                     .text(function (d: ILegendDataPoint): string {
-                        let textProperties: TextProperties;
-                        textProperties = {
+                        const textProperties: TextProperties  = {
                             text: d.category,
                             fontFamily: 'Segoe UI,wf_segoe-ui_semibold,helvetica,arial,sans-serif',
                             fontSize: '15px'
@@ -536,49 +793,38 @@ module powerbi.extensibility.visual {
             } else {
                 this.svgLegend.attr('height', '0');
             }
-            let max: number;
             // tslint:disable-next-line:no-any
-            max = d3.max(data.nodes, function (d: any): number {
+            const max: number = d3Test.max(data.nodes, function (d: any): number {
                 if (d.name === 'Root') { return 1; }
 
                 return d.numberofleads;
             });
             // tslint:disable-next-line:no-any
-            let linearScale: any;
-            linearScale = d3.scaleLinear().domain([0, max]).range([10, 30]);
+            const linearScale: any = d3Test.scaleLinear().domain([0, max]).range([10, 30]);
             // tslint:disable-next-line:no-any
-            let linkLinearScale: any;
-            linkLinearScale = d3.scaleLinear().domain([0, max]).range([2, 10]);
+            const linkLinearScale: any = d3Test.scaleLinear().domain([0, max]).range([2, 10]);
             // tslint:disable-next-line:no-any
-            let linkStrengthLevel1Scale: any;
-            linkStrengthLevel1Scale = d3.scaleLog().domain([1, 42500]).range([1, 0.1]).clamp(true);
+            const linkStrengthLevel1Scale: any = d3Test.scaleLog().domain([1, 42500]).range([1, 0.1]).clamp(true);
             // tslint:disable-next-line:no-any
-            let linkStrengthLevel2Scale: any;
-            linkStrengthLevel2Scale = d3.scaleLog().domain([1, 42500]).range([1, 0.4]).clamp(true);
+            const linkStrengthLevel2Scale: any = d3Test.scaleLog().domain([1, 42500]).range([1, 0.4]).clamp(true);
 
-            let svg: d3.Selection<HTMLElement>;
-            svg = this.svg;
+            const svg: d3.Selection<HTMLElement> = this.svg;
             svg.attr('width', options.viewport.width) // resizes based on window
                 .attr('height', options.viewport.height)
                 .attr('viewBox', this.minXView + spaceLiteral + this.minYView + spaceLiteral + this.width + spaceLiteral + this.height)
                 .attr('preserveAspectRatio', 'xMidYMid meet');
 
-            let linkDistance: number;
-            linkDistance = 150;
-            let manyBodyStrength: number;
-            manyBodyStrength = -200;
-            let linkIterations: number;
-            linkIterations = 20;
+            const linkDistance: number = 150;
+            const manyBodyStrength: number = -200;
+            const linkIterations: number = 20;
 
             // tslint:disable-next-line:no-any
-            let color: any;
-            color = d3.scaleOrdinal(d3.schemeCategory20);
+            const color: any = d3Test.scaleOrdinal(d3Test.schemeCategory20);
 
             // tslint:disable-next-line:no-any
-            let simulation: any;
-            simulation = d3.forceSimulation()
+            const simulation: any = d3Test.forceSimulation()
                 // tslint:disable-next-line:no-any
-                .force('link', d3.forceLink().id(function (d: any): any {
+                .force('link', d3Test.forceLink().id(function (d: any): any {
                     return d.id;
                     // tslint:disable-next-line:no-any
                 }).strength(function (d: any): any {
@@ -592,39 +838,103 @@ module powerbi.extensibility.visual {
                     }
                 })
                 )
-                .force('charge', d3.forceManyBody().strength(-200))
-                .force('center', d3.forceCenter(0, 0));
-
-            let link: d3.Selection<ILinks>;
-            link = svg.append('g')
+                .force('charge', d3Test.forceManyBody().strength(-200))
+                .force('center', d3Test.forceCenter(0, 0));
+            const link: d3.Selection<ILinks> = svg.append('g')
                 .attr('class', 'links')
                 .selectAll('line')
                 .data(data.links)
                 .enter().append('line')
                 // tslint:disable-next-line:no-any
                 .attr('stroke-width', function (d: ILinks): any { return linkLinearScale(d.value); });
-
             let node: d3.Selection<INodes>;
+            const selectionManager: ISelectionManager = THIS1.selectionManager;
             node = svg.append('g')
                 .attr('class', 'nodes')
                 .selectAll('circle')
                 .data(data.nodes)
                 .enter().append('circle')
+                .on('click', function (d: INodes): void {     //cross filtering
+                    selectionManager.clear();
+                    // tslint:disable-next-line:no-any
+                    const array: any[] = d.selectionId;
+                    // tslint:disable-next-line:no-any
+                    const array1: any[] = [];
+                    // tslint:disable-next-line:no-any
+                    const array2: any[] = [];
+                    const j: number = 0;
+                    if (array.length === undefined) {
+
+                        array2.push(array);
+                        array1.push(array2[0].selectionId);
+                    } else {
+                        for (let iIndex: number = 0; iIndex < array.length; iIndex++) {
+                            if (array[iIndex][0] === undefined) {
+                                array1.push(array[iIndex].selectionId);
+                            } else if (array[iIndex][0][0] === undefined) {
+                                array1.push(array[iIndex][0].selectionId);
+                            } else if (array[iIndex][0][0][0] === undefined) {
+                                array1.push(array[iIndex][0][0].selectionId);
+                            } else if (array[iIndex][0][0][0][0] === undefined) {
+                                array1.push(array[iIndex][0][0][0].selectionId);
+                            } else if (array[iIndex][0][0][0][0][0] === undefined) {
+                                array1.push(array[iIndex][0][0][0][0].selectionId);
+                            }
+                        }
+                    }
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected');
+                        $('circle').css('opacity', '1');
+                    } else {
+                        $('circle').removeClass('selected');
+                        $(this).addClass('selected');
+                        // tslint:disable-next-line:no-any
+                        selectionManager.select(array1).then((ids: any[]) => {
+                            $('circle').css('opacity', ids.length > 0 ? 0.5 : 1);
+                            $(this).css('opacity', '1');
+                        });
+                    }
+                    (<Event>d3Test.event).stopPropagation();
+                })
+
                 // tslint:disable-next-line:no-any
                 .attr('r', function (d: INodes): any {
                     if (d.name === 'Root') {
-                        return linearScale(max);
+                        return (isNaN(linearScale(max)) ? 0 : linearScale(max));
                     }
 
-                    return linearScale(d.numberofleads);
+                    return isNaN(linearScale(d.numberofleads)) ? 0 : (d.numberofleads < 0 ? 0 : linearScale(d.numberofleads));
                 })
                 .attr('fill', function (d: INodes): string {
                     return d.color;
                 })
-                .call(d3.drag()
+                .call(d3Test.drag()
                     .on('start', dragstarted)
                     .on('drag', dragged)
                     .on('end', dragended));
+
+            //to clear selection when clicked on viewport
+            this.root.on('click', () => this.selectionManager.clear().then(
+                () => $('circle').css('opacity', '1')
+            ));
+            if (labelSettings.labelDisplayUnits === 0) {
+                // get length of value
+                const alternateFormatter: number = parseInt(this.dataViews.categorical.values[0].values.toString(), 10).toString().length;
+                // add custom logic according to the length of value
+                if (alternateFormatter > 9) {
+                    secondaryFormatterVal = 1e9;
+                } else if (alternateFormatter <= 9 && alternateFormatter > 6) {
+                    secondaryFormatterVal = 1e6;
+                } else if (alternateFormatter <= 6 && alternateFormatter >= 4) {
+                    secondaryFormatterVal = 1e3;
+                } else {
+                    secondaryFormatterVal = 10;
+                }
+            }
+            const formatter2: IValueFormatter = ValueFormatter.create({
+                value: labelSettings.labelDisplayUnits === 0 ? secondaryFormatterVal : labelSettings.labelDisplayUnits,
+                precision: labelSettings.labelDecimalPlace
+            });
             let text: d3.Selection<INodes>;
             if (labelSettings.show) {
                 text = svg.append('g')
@@ -634,11 +944,27 @@ module powerbi.extensibility.visual {
                     .enter().append('text')
                     .attr('fill', labelSettings.color)
                     .attr('font-size', labelSettings.fontSize + pxLiteral)
+                    .attr('font-family', labelSettings.fontFamily)
                     .text(function (d: INodes): string {
-                        return d.name;
+                        if (d.id === '0') {
+                            if (rootSettings.showDataLabel === true) {
+                                return d.name;
+                            }
+                        } else {
+                            if (labelSettings.labelStyle === 'ShowBoth') {
+                                const templateLiteral: string = `${formatter2.format(d.numberofleads)}`;
+                                const oBracket: string = ' (';
+                                const cBracket: string = ' )';
+
+                                return d.name + oBracket + templateLiteral + cBracket;
+                            } else if (labelSettings.labelStyle === 'ShowData') {
+                                return d.name;
+                            } else if (labelSettings.labelStyle === 'ShowValue') {
+                                return `${formatter2.format(d.numberofleads)}`;
+                            }
+                        }
                     });
             }
-
             simulation
                 .nodes(data.nodes)
                 .on('tick', ticked);
@@ -649,16 +975,13 @@ module powerbi.extensibility.visual {
 
             // Register events
             svg.on('wheel.zoom', svgMouseWheelHandler);
-            svg.call(d3.drag().on('drag', svgDragHandler));
+            svg.call(d3Test.drag().on('drag', svgDragHandler));
 
             // tslint:disable-next-line:no-any
             function svgMouseWheelHandler(event: any): void {
-                let wheelDelta: number;
-                wheelDelta = d3.event.wheelDeltaY || d3.event.deltaY;
-                let tempWidth: number;
-                tempWidth = (thisObj.width) + (wheelDelta * -2);
-                let tempHeight: number;
-                tempHeight = (thisObj.height) + (wheelDelta * -2);
+                const wheelDelta: number = d3Test.event.wheelDeltaY || d3Test.event.deltaY;
+                const tempWidth: number = (thisObj.width) + (wheelDelta * -2);
+                const tempHeight: number = (thisObj.height) + (wheelDelta * -2);
 
                 if (tempWidth > 0 && tempHeight > 0) {
                     thisObj.minXView = thisObj.minXView + (wheelDelta);
@@ -672,65 +995,123 @@ module powerbi.extensibility.visual {
             }
 
             function svgDragHandler(): void {
-                thisObj.minXView += -1 * d3.event.dx;
-                thisObj.minYView += -1 * d3.event.dy;
+                thisObj.minXView += -1 * d3Test.event.dx;
+                thisObj.minYView += -1 * d3Test.event.dy;
                 svg.attr('viewBox', thisObj.minXView + spaceLiteral + thisObj.minYView +
                     spaceLiteral + thisObj.width + spaceLiteral + thisObj.height);
             }
+             // tslint:disable-next-line
+             let rootx : any;
+             // tslint:disable-next-line
+             let rooty : any;
 
             function ticked(): void {
                 link
                     // tslint:disable-next-line:no-any
-                    .attr('x1', function (d: any): number { return d.source.x; })
+                    .attr('x1', function (d: any): number { return (isNaN(d.source.x) ? 0 : d.source.x); })
                     // tslint:disable-next-line:no-any
-                    .attr('y1', function (d: any): number { return d.source.y; })
+                    .attr('y1', function (d: any): number { return (isNaN(d.source.y) ? 0 : d.source.y); })
                     // tslint:disable-next-line:no-any
-                    .attr('x2', function (d: any): number { return d.target.x; })
+                    .attr('x2', function (d: any): number { return (isNaN(d.target.x) ? 0 : d.target.x); })
                     // tslint:disable-next-line:no-any
-                    .attr('y2', function (d: any): number { return d.target.y; });
+                    .attr('y2', function (d: any): number { return (isNaN(d.target.y) ? 0 : d.target.y); });
 
                 node
                     // tslint:disable-next-line:no-any
-                    .attr('cx', function (d: any): number { return d.x; })
+                    .attr('cx', function (d: any): number { return (isNaN(d.x) ? 0 : d.x); })
                     // tslint:disable-next-line:no-any
-                    .attr('cy', function (d: any): number { return d.y; });
+                    .attr('cy', function (d: any): number { return (isNaN(d.y) ? 0 : d.y); });
 
                 if (labelSettings.show) {
-                    // tslint:disable-next-line:no-any
+                    // tslint:disable-next-line
                     text.attr('x', function (d: any): number {
-                        if (d.name === 'Root') {
-                            return d.x + linearScale(max);
-                        }
+                        // tslint:disable-next-line:prefer-const
+                        let abc: string;
+                        if (d.id === '0') {
+                            if (rootSettings.showDataLabel === true) {
+                                abc = d.name;
+                            }
+                        } else {
+                            if (labelSettings.labelStyle === 'ShowBoth') {
+                                const templateLiteral: string = `${formatter2.format(d.numberofleads)}`;
+                                const oBracket: string = ' (';
+                                const cBracket: string = ' )';
 
-                        return d.x + linearScale(d.numberofleads);
-                    })
-                        // tslint:disable-next-line:no-any
-                        .attr('y', function (d: any): number { return d.y - 10; });
+                                abc = d.name + oBracket + templateLiteral + cBracket;
+                            } else if (labelSettings.labelStyle === 'ShowData') {
+                                abc = d.name;
+                            } else if (labelSettings.labelStyle === 'ShowValue') {
+                                abc =  `${formatter2.format(d.numberofleads)}`;
+                            }
+                        }
+                       // tslint:disable-next-line
+                        let textProperties: TextProperties = {
+                            text: abc,
+                            fontFamily: labelSettings.fontFamily,
+                            // tslint:disable-next-line:prefer-template
+                            fontSize: labelSettings.fontSize.toString() + 'px'
+                        };
+                        if (d.program === 'Root' || d.id === '0') {
+                            rootx = d.x;
+                            rooty = d.y;
+                            d3.select(this).attr('y', d.y - 10);
+
+                            return d.x + linearScale(max) + textMeasurementService.measureSvgTextWidth(textProperties) / 20;
+                        } else {
+                            // Check if Left
+                            if (d.x < rootx) {
+                                // tslint:disable-next-line
+                                let diff = Math.abs(d.x - rootx);
+                                // Top and bottom
+                                if (diff < 50) {
+                                    // Bottom
+                                    if (d.y > rooty) {
+                                        d3.select(this).attr('y', d.y + 30 +
+                                        textMeasurementService.measureSvgTextHeight(textProperties));
+                                    } else {
+                                        // Top
+                                        d3.select(this).attr('y', d.y - 10 - textMeasurementService.measureSvgTextHeight(textProperties));
+                                    }
+
+                                    return d.x - 10;
+                                } else {
+                                    // Left
+                                    d3.select(this).attr('y', d.y + 10);
+
+                                    return d.x - linearScale(d.numberofleads) - textMeasurementService.measureSvgTextWidth(textProperties);
+                                }
+                            } else {
+                                // Right
+                                d3.select(this).attr('y', d.y + 10);
+
+                                return d.x + 5 + textMeasurementService.measureSvgTextWidth(textProperties) / 8;
+                            }
+                        }
+                    });
                 }
             }
-
             // tslint:disable-next-line:no-any
             function dragstarted(d: any): void {
-                if (!d3.event.active) { simulation.alphaTarget(0.3).restart(); }
+                if (!d3Test.event.active) { simulation.alphaTarget(0.3).restart(); }
                 d.fx = d.x;
                 d.fy = d.y;
             }
 
             // tslint:disable-next-line:no-any
             function dragged(d: any): void {
-                d.fx = d3.event.x;
-                d.fy = d3.event.y;
+                d.fx = d3Test.event.x;
+                d.fy = d3Test.event.y;
             }
 
             // tslint:disable-next-line:no-any
             function dragended(d: any): void {
-                if (!d3.event.active) { simulation.alphaTarget(0.5); }
+                if (!d3Test.event.active) { simulation.alphaTarget(0.5); }
                 d.fx = null;
                 d.fy = null;
             }
 
             this.tooltipServiceWrapper.addTooltip(
-                this.svg.selectAll('circle'),
+                d3.selectAll('circle'),
                 (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
                 (tooltipEvent: TooltipEventArgs<number>) => null);
 
@@ -738,10 +1119,8 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:no-any
         private getTooltipData(value: any): VisualTooltipDataItem[] {
-            let formatter: IValueFormatter;
             formatter = ValueFormatter.create({ format: this.formatString, value: 0, allowFormatBeautification: true, precision: 2 });
-            let percentageLiteral: string;
-            percentageLiteral = '%';
+            const percentageLiteral: string  = '%';
 
             return [{
                 displayName: value.name,
@@ -753,10 +1132,8 @@ module powerbi.extensibility.visual {
         }
 
         public getLegendSettings(dataView: DataView): ILegendSettings {
-            let objects: DataViewObjects;
-            objects = null;
-            let settings: ILegendSettings;
-            settings = this.getDefaultLegendSettings();
+            let objects: DataViewObjects = null;
+            const settings: ILegendSettings = this.getDefaultLegendSettings();
 
             if (!dataView || !dataView.metadata || !dataView.metadata.objects) { return settings; }
             objects = dataView.metadata.objects;
@@ -765,16 +1142,22 @@ module powerbi.extensibility.visual {
 
             return settings;
         }
-
         public getRootSettings(dataView: DataView): IRootSettings {
             let objects: DataViewObjects = null;
-            let settings: IRootSettings;
-            settings = this.getDefaultRootSettings();
+            const settings: IRootSettings = this.getDefaultRootSettings();
 
             if (!dataView || !dataView.metadata || !dataView.metadata.objects) { return settings; }
             objects = dataView.metadata.objects;
             settings.text = DataViewObjects.getValue(
                 objects, <DataViewObjectPropertyIdentifier>{ objectName: 'rootSettings', propertyName: 'text' }, settings.text);
+            settings.showDataLabel = DataViewObjects.getValue(
+                objects, <DataViewObjectPropertyIdentifier>{
+                    objectName: 'rootSettings',
+                    propertyName: 'showDataLabel'
+                },
+                settings.showDataLabel);
+            settings.rootOption = DataViewObjects.getValue(
+                objects, <DataViewObjectPropertyIdentifier>{ objectName: 'rootSettings', propertyName: 'rootOption' }, settings.rootOption);
             settings.color = DataViewObjects.getFillColor(
                 objects, <DataViewObjectPropertyIdentifier>{ objectName: 'rootSettings', propertyName: 'color' }, settings.color);
 
@@ -782,18 +1165,36 @@ module powerbi.extensibility.visual {
         }
 
         public getLabelSettings(dataView: DataView): ILabelSettings {
+            const secondaryFormatterVal: number = 0;
             let objects: DataViewObjects = null;
-            let settings: ILabelSettings;
-            settings = this.getDefaultLabelSettings();
-
+            const settings: ILabelSettings = this.getDefaultLabelSettings();
             if (!dataView || !dataView.metadata || !dataView.metadata.objects) { return settings; }
             objects = dataView.metadata.objects;
             settings.show = DataViewObjects.getValue(
                 objects, <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'show' }, settings.show);
+            settings.labelStyle = DataViewObjects.getValue(
+                objects, <DataViewObjectPropertyIdentifier>{ objectName:
+                     'labelSettings', propertyName: 'labelStyle' },
+                settings.labelStyle);
             settings.color = DataViewObjects.getFillColor(
                 objects, <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'color' }, settings.color);
             settings.fontSize = DataViewObjects.getValue(
                 objects, <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'fontSize' }, settings.fontSize);
+            settings.fontFamily = DataViewObjects.getValue(
+                objects, <DataViewObjectPropertyIdentifier>{
+                    objectName: 'labelSettings', propertyName: 'fontFamily'
+                },
+                settings.fontFamily);
+            settings.labelDisplayUnits = DataViewObjects.getValue(
+                    objects, <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'labelDisplayUnits' },
+                    settings.labelDisplayUnits);
+            settings.labelDecimalPlace = DataViewObjects.getValue(
+                    objects, <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'labelDecimalPlace' },
+                    settings.labelDecimalPlace);
+            settings.labelDecimalPlace = settings.labelDecimalPlace < 0 ? 0
+             : settings.labelDecimalPlace > 4 ? 4
+             : settings.labelDecimalPlace % 1 !== 0 ? settings.labelDecimalPlace - settings.labelDecimalPlace % 1
+            : settings.labelDecimalPlace;
 
             return settings;
         }
@@ -806,7 +1207,9 @@ module powerbi.extensibility.visual {
 
         public getDefaultRootSettings(): IRootSettings {
             return {
+                showDataLabel: true,
                 text: 'Root',
+                rootOption: 'First',
                 color: '#000000'
             };
         }
@@ -814,22 +1217,21 @@ module powerbi.extensibility.visual {
         public getDefaultLabelSettings(): ILabelSettings {
             return {
                 show: true,
+                labelStyle: 'ShowData',
                 color: '#000000',
-                fontSize: 25
+                fontSize: 25,
+                fontFamily: 'Segoe UI',
+                labelDisplayUnits: 0,
+                labelDecimalPlace: 0
             };
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
-            let objectName: string;
-            objectName = options.objectName;
-            let rootSettings: IRootSettings;
-            rootSettings = this.getRootSettings(this.dataViews);
-            let labelSettings: ILabelSettings;
-            labelSettings = this.getLabelSettings(this.dataViews);
-            let legendSettings: ILegendSettings;
-            legendSettings = this.getLegendSettings(this.dataViews);
-            let objectEnumeration: VisualObjectInstance[];
-            objectEnumeration = [];
+            const objectName: string = options.objectName;
+            const rootSettings: IRootSettings = this.getRootSettings(this.dataViews);
+            const labelSettings: ILabelSettings = this.getLabelSettings(this.dataViews);
+            const legendSettings: ILegendSettings = this.getLegendSettings(this.dataViews);
+            const objectEnumeration: VisualObjectInstance[] = [];
             switch (objectName) {
                 case 'legendSettings':
                     objectEnumeration.push({
@@ -859,28 +1261,76 @@ module powerbi.extensibility.visual {
                     }
                     break;
                 case 'rootSettings':
-                    objectEnumeration.push({
-                        objectName: objectName,
-                        displayName: 'Root Settings',
-                        selector: null,
-                        properties: {
-                            text: rootSettings.text,
-                            color: rootSettings.color
+                    if (this.rootCount === 1) {
+                        objectEnumeration.push({
+                            objectName: objectName,
+                            displayName: 'Root Settings',
+                            selector: null,
+                            properties: {
+                                rootOption: rootSettings.rootOption,
+                                color: rootSettings.color
+                            }
+                        });
+
+                    } else {
+                        if (rootSettings.showDataLabel) {
+                            objectEnumeration.push({
+                                objectName: objectName,
+                                displayName: 'Root Settings',
+                                selector: null,
+                                properties: {
+                                    showDataLabel: rootSettings.showDataLabel,
+                                    text: rootSettings.text,
+                                    color: rootSettings.color
+                                }
+                            });
+                        } else {
+                            objectEnumeration.push({
+                                objectName: objectName,
+                                displayName: 'Root Settings',
+                                selector: null,
+                                properties: {
+                                    showDataLabel: rootSettings.showDataLabel,
+                                    color: rootSettings.color
+                                }
+                            });
                         }
-                    });
+                    }
+
                     break;
                 case 'labelSettings':
+                if (labelSettings.labelStyle === 'ShowData') {
                     objectEnumeration.push({
                         objectName: objectName,
                         displayName: 'Label Settings',
                         selector: null,
                         properties: {
                             show: labelSettings.show,
+                            labelStyle: labelSettings.labelStyle,
                             color: labelSettings.color,
-                            fontSize: labelSettings.fontSize
+                            fontSize: labelSettings.fontSize,
+                            fontFamily: labelSettings.fontFamily
+
                         }
                     });
-                    break;
+                } else {
+                    objectEnumeration.push({
+                        objectName: objectName,
+                        displayName: 'Label Settings',
+                        selector: null,
+                        properties: {
+                            show: labelSettings.show,
+                            labelStyle: labelSettings.labelStyle,
+                            labelDisplayUnits: labelSettings.labelDisplayUnits,
+                            labelDecimalPlace: labelSettings.labelDecimalPlace,
+                            color: labelSettings.color,
+                            fontSize: labelSettings.fontSize,
+                            fontFamily: labelSettings.fontFamily
+
+                        }
+                    });
+                }
+                break;
                 default:
                     break;
             }

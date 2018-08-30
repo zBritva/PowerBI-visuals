@@ -4,12 +4,12 @@
     "displayName": "Journey Chart by MAQ Software",
     "guid": "journeyGraph1859AB39DB23421488ADF752BCB05167",
     "visualClassName": "Visual",
-    "version": "3.1.1",
+    "version": "3.1.2",
     "description": "Transform dense statistical data into clear networks of categories and relationships.",
     "supportUrl": "https://github.com/maqsoftware/PowerBI-visuals/issues",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals"
   },
-  "apiVersion": "1.4.0",
+  "apiVersion": "2.1.0",
   "author": {
     "name": "MAQ Software",
     "email": "support@maqsoftware.com"
