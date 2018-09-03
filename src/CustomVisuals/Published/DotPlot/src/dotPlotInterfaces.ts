@@ -25,7 +25,6 @@
  */
 
 module powerbi.extensibility.visual {
-    import ISelectionId = powerbi.visuals.ISelectionId;
     export interface IDotPlotDataPoints {
         dataPoints: IDotPlotViewModel[];
         xTitleText: string;
