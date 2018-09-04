@@ -432,7 +432,7 @@ plotOutput <- plot_ly() %>%
   add_ribbons(x = ribbonFrame$xValues, ymin = ribbonFrame$yMin, ymax = ribbonFrame$yMax, color = I(confCol), name = ConfText)%>%
    add_segments(x = segStartx, xend = segEndx, y = segStarty, yend = segEndy, showlegend = FALSE, color = I(forecastLineCol)) %>%
   add_lines(x = forecastedDates, y = forecastedValues$mean, color = I(forecastLineCol), name = forecastLineText)%>%
-  layout(title = title,
+  layout(title = '',
          xaxis = xAesthetics, 
          yaxis = yAesthetics,
          margin = list(l = 50,
@@ -454,7 +454,7 @@ plotOutput <- plot_ly() %>%
 
   add_segments(x = segStartx, xend = segEndx, y = segStarty, yend = segEndy, showlegend = FALSE, color = I(forecastLineCol)) %>%
   add_lines(x = forecastedDates, y = forecastedValues$mean, color = I(forecastLineCol), name = forecastLineText)%>%
-  layout(title = title,
+  layout(title = '',
          xaxis = xAesthetics, 
          yaxis = yAesthetics,
          margin = list(l = 50,
