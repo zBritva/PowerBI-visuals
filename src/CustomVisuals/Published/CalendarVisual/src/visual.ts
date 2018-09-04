@@ -824,7 +824,8 @@ module powerbi.extensibility.visual {
     public getDatawithDescription(options: any, startDateArray: any[], endDateArray: any[], eventArray: string[], eventColors: string[], workHours: any[], descriptionArray: string[], eventGroupArray: string[], startWeekDay: number): void {
       const thisObj:  this = this;
       const today : Date = new Date();
-      const todayString : string = today.getDate() + dashLiteral + monthName[(today.getMonth() + 1 )] + dashLiteral + today.getFullYear();
+      // tslint:disable-next-line:max-line-length
+      const todayString : string = monthName[(today.getMonth() + 1)] + spaceLiteral + today.getDate() + comaLiteral + spaceLiteral + today.getFullYear();
       const persistedDate : string =  this.retrieveDate();
       let showCalendarDate : string;
       if (persistedDate === null || persistedDate === '') {
@@ -1078,7 +1079,8 @@ module powerbi.extensibility.visual {
     public getData(options: any, startDateArray: any[], endDateArray: any[], eventArray: string[], eventColors: string[], workHours: any[], eventGroupArray: string[], startWeekDay: number): void {
       const thisObj:  this = this;
       const today : Date = new Date();
-      const todayString : string = today.getDate() + dashLiteral + monthName[(today.getMonth() + 1 )] + dashLiteral + today.getFullYear();
+      // tslint:disable-next-line:max-line-length
+      const todayString : string = monthName[(today.getMonth() + 1)] + spaceLiteral + today.getDate() + comaLiteral + spaceLiteral + today.getFullYear();
       const persistedDate : string =  this.retrieveDate();
       let showCalendarDate : string;
       if (persistedDate === null || persistedDate === '') {
@@ -1304,13 +1306,13 @@ module powerbi.extensibility.visual {
             objectName: options.objectName,
             selector: null,
             properties: {
+              weekendSunday: this.settings.workDays.weekendSunday,
               weekdayMonday: this.settings.workDays.weekdayMonday,
               weekdayTuesday: this.settings.workDays.weekdayTuesday,
               weekdayWednesday: this.settings.workDays.weekdayWednesday,
               weekdayThursday: this.settings.workDays.weekdayThursday,
               weekdayFriday: this.settings.workDays.weekdayFriday,
-              weekendSaturday: this.settings.workDays.weekendSaturday,
-              weekendSunday: this.settings.workDays.weekendSunday
+              weekendSaturday: this.settings.workDays.weekendSaturday
             }
           });
           break;

@@ -116,29 +116,29 @@
             }
         },
         "buttons":{
-            "displayName": "Buttons",
+            "displayName": "Views",
             "description": "Settings to show or hide 'week', 'day' and 'list' button",
             "properties": {
                 "month": {
-                    "displayName": "Month",
+                    "displayName": "Show month view",
                     "type": {
                         "bool":true
                     }
                 },
                 "week": {
-                    "displayName": "Week",
+                    "displayName": "Show week view",
                     "type": {
                         "bool":true
                     }
                 },
                 "day": {
-                    "displayName": "Day",
+                    "displayName": "Show day view",
                     "type": {
                         "bool":true
                     }
                 },
                 "list": {
-                    "displayName": "List",
+                    "displayName": "Show list view",
                     "type": {
                         "bool":true
                     }
@@ -360,7 +360,7 @@
             }
         },
         "workDays":{
-            "displayName": "Work days",
+            "displayName": "Work week",
             "description": "Set active work days",
             "properties": {
                 "weekdayMonday": {
@@ -412,7 +412,7 @@
             "description": "General calendar settings",
             "properties": {
                 "startingWeekDay": {
-                    "displayName": "Week start day",
+                    "displayName": "Start week on",
                     "description": "Select week name to set start day of the week",
                     "type": {
                         "enumeration": [ 
@@ -448,28 +448,28 @@
                     }
                 },
                 "currentTimeLine": {
-                    "displayName": "Current time line",
+                    "displayName": "Show current time",
                     "description": "Show current time line for 'day' and 'week' view",
                     "type": {
                         "bool":true
                     }
                 },
                 "navLink": {
-                    "displayName": "Navigation link",
+                    "displayName": "Enable navigation link",
                     "description": "Click on 'dates' or 'week Number' to navigate to day or week",
                     "type": {
                         "bool":true
                     }
                 },
                 "weekNumber": {
-                    "displayName": "Week number ",
+                    "displayName": "Show week numbers",
                     "description": "Display week number",
                     "type": {
                         "bool":true
                     }
                 },
                 "rtl": {
-                    "displayName": "Right to left ",
+                    "displayName": "Enable right-to-left layout",
                     "description": "Display calendar orientation from right to left",
                     "type": {
                         "bool":true

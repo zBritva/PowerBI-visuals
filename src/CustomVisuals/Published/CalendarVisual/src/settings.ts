@@ -59,7 +59,7 @@ module powerbi.extensibility.visual {
 
   // tslint:disable-next-line:max-classes-per-file
   export class CalendarSettings {
-    public startingWeekDay: string = 'Monday';
+    public startingWeekDay: string = 'Sunday';
     public currentTimeLine: boolean = true;
     public navLink: boolean = true;
     public weekNumber: boolean = false;
