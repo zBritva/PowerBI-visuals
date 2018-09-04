@@ -106,11 +106,13 @@ module powerbi.extensibility.visual {
                 }
 
             }
-
+            
+            debugger;
             const legendDataPoints: ILegendDataPoints[] = grouped.map((group: DataViewValueColumnGroup, index: number) => {
                 const defaultColor: Fill = {
                     solid: {
-                        color: colorPalette.getColor(group.identity ? group.identity.key : '').value
+                        // tslint:disable-next-line:no-any
+                        color: colorPalette.getColor(group.name ? <any> group.name : '').value
                     }
                 };
                 let catFormatter: utils.formatting.IValueFormatter;

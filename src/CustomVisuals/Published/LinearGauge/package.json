@@ -1,6 +1,7 @@
 {
   "name": "visual",
   "dependencies": {
+    "@types/d3": "^5.0.0",
     "d3": "^3.5.5",
     "globalize": "^0.1.1",
     "jquery": "^3.3.1",

@@ -66,14 +66,36 @@ module powerbi.extensibility.visual {
         };
 
         const category: DataViewCategoryColumn = dataViews[0].categorical.categories[0];
-        const rows: DataViewTableRow[] = dataViews[0].table.rows;
+        //const rows: any[] = dataViews[0].categorical.categories[0].values;
+        const len: number  = dataViews[0].categorical.categories[0].values.length;
+        const categoriesLength: number = dataViews[0].categorical.categories.length;
+        const valuesLength: number = dataViews[0].categorical.values.length;
+        const cLength: number = dataViews[0].metadata.columns.length;
+        let rows1: any[] = [] ;
+        let iRow : number;
+        let iColumn : number ;
+        let k:number = 0;
+        let j:number = 0;
 
+        for (iRow = 0; iRow < len; iRow++) {
+            rows1[iRow] = [];
+            k = 0 , j = 0;
+            for (iColumn = 0; iColumn < cLength; iColumn++) {
+                if(dataViews[0].metadata.columns[iColumn].isMeasure === true) {
+            rows1[iRow][iColumn] = dataViews[0].categorical.values[k++].values[iRow] ;
+            }
+            else {
+                rows1[iRow][iColumn] = dataViews[0].categorical.categories[j++].values[iRow]  ;
+            }
+         }
+        }
+        const rows: any[] = rows1;
         viewModel.columns = dataViews[0].metadata.columns;
 
-        rows.forEach(function (row: DataViewTableRow, index: number): void {
+        rows.forEach(function (row: DataViewCategorical, index: number): void {
 
             viewModel.dataPoints.push({
-                value: <string[]>row,
+                value: <string[]> row,
                 index: index,
                 selectionId: host.createSelectionIdBuilder()
                     .withCategory(category, index)
@@ -4477,7 +4499,7 @@ module powerbi.extensibility.visual {
                 }
             };
 
-            const rows: DataViewTableRow[] = [];
+            const rows: any[] = [];
             // tslint:disable-next-line:no-any
             let array: any[] = [];
 
@@ -4945,6 +4967,7 @@ module powerbi.extensibility.visual {
         }
         // tslint:disable-next-line:no-any
         private createBinData(categories: any): any {
+
             const thisObj: this = this;
             // tslint:disable-next-line:no-any
             const binData: any = d3.nest()
@@ -5182,9 +5205,8 @@ module powerbi.extensibility.visual {
                                         let value: number;
                                         // tslint:disable-next-line:no-any
                                         value = d3.sum(dat, function (dataIterator: any): number {
-
                                             if (dataIterator[`value`][thisObj.targetColumn] === null ||
-                                                isNaN(Number(dataIterator[`value`][thisObj.targetColumn].toString()))) {
+                                                isNaN(Number(dataIterator[`value`][thisObj.targetColumn]))) {
 
                                                 return 0;
                                             } else {
@@ -5409,7 +5431,6 @@ module powerbi.extensibility.visual {
                         thisObj.previousDataLength = lCounterNew === 0 ? 0 : thisObj.previousDataLength + prevDataLengthNew;
                         lCounterNew++;
                         prevDataLengthNew = data.length;
-
                         const marginForCenter: number = thisObj.returnMarginForCenter(counter, skip, chartWidth);
                         if (thisObj.chartType.toLowerCase() === 'bar') {
                             thisObj.renderBinBarChart(data, counter, catData, chartWidth, chartHeight, totalData,
@@ -5817,7 +5838,6 @@ module powerbi.extensibility.visual {
                         newIndex = 0;
                     }
                 }
-
                 if (column === 'bin') {
                     thisObj.binColumn = newIndex;
                 } else {
@@ -5850,6 +5870,7 @@ module powerbi.extensibility.visual {
             };
 
             thisObj.renderLegend(options.dataViews[0]);
+
 
             const defaultColor: Fill = {
                 solid: {
@@ -5931,6 +5952,8 @@ module powerbi.extensibility.visual {
             if (null === thisObj.chartType || undefined === thisObj.chartType) {
                 thisObj.chartType = 'Bar';
             }
+          
+
 
             thisObj.setOrient(options);
             this.renderChart();
