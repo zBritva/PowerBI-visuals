@@ -9,8 +9,7 @@ module powerbi.extensibility.visual {
     let xAxisName: string = 'X-Axis';
     let yAxisName: string = 'Y-Axis';
     let columnValue: DataViewValueColumn;
-
-    /* do not update*/
+  /* do not update*/
     export module DataViewObjects {
         /** Gets the value of the given object/property pair. */
         export function getValue<T>(objects: DataViewObjects, propertyId: DataViewObjectPropertyIdentifier, defaultValue?: T): T {
@@ -108,6 +107,7 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         tooltip: any;
     }
+
     interface IIndividualTargetData {
 
         value: PrimitiveValue;
@@ -472,6 +472,7 @@ module powerbi.extensibility.visual {
                 defaultColor = zoneSettings.defaultColor;
             }
             let formatter: IValueFormatter;
+
             formatter = ValueFormatter.create({ format: options.dataViews[0].categorical.categories[0].source.format });
             const newValues: ITooltipDataPoints[] = [];
             for (let j: number = 0; j < cnt; j++) {
@@ -491,6 +492,7 @@ module powerbi.extensibility.visual {
                     .withCategory(category, i)
                     .createSelectionId(),
                 tooltip: newValues
+
             });
         }
         const fontstyle: string = 'Segoe UI,wf_segoe-ui_normal,helvetica,arial,sans-serif';
@@ -793,12 +795,9 @@ module powerbi.extensibility.visual {
                 const horizontal: IHorizontal = this.getHorizontalSettings(this.dataViews);
                 const animation: IAnimation = this.getAnimationSettings(this.dataViews);
                 const backgroundImage: IBackgroundImage = this.getBackgroundImageSettings(this.dataViews);
-                if (viewModel.dataMax === 0) {
-                    return;
-                } else {
-                    let legendHeight: number = 0;
-                    let legendNumber: number = 0;
-                    if (legendSettings.show) {
+                let legendHeight: number = 0;
+                let legendNumber: number = 0;
+                if (legendSettings.show) {
                         if (analytics.min || analytics.max || analytics.avg) {
                             legendNumber = legendNumber + 1;
                         }
@@ -1064,30 +1063,30 @@ module powerbi.extensibility.visual {
                             }
                         }
                     }
-                    const legendInnerPart: JQuery = $('.legendInnerPart');
-                    if (legendInnerPart.length > 0) {
+                const legendInnerPart: JQuery = $('.legendInnerPart');
+                if (legendInnerPart.length > 0) {
                         const dimension: ClientRect = $(legendInnerPart)[legendInnerPart.length - 1].getBoundingClientRect();
                         legendHeight = dimension.height + dimension.top;
                     } else {
                         legendHeight = 0;
                     }
-                    height = height - legendHeight > 0 ? height - legendHeight : 0;
-                    this.svg.attr({
+                height = height - legendHeight > 0 ? height - legendHeight : 0;
+                this.svg.attr({
                         width: width,
                         height: height
                     });
 
                     // tslint:disable-next-line:no-any
-                    let margins: any;
-                    margins = BarChart.config.margins;
-                    height -= margins.bottom;
+                let margins: any;
+                margins = BarChart.config.margins;
+                height -= margins.bottom;
 
-                    let displayVal: number = 0;
-                    if (yAxisConfig.displayUnits === 0) {
+                let displayVal: number = 0;
+                if (yAxisConfig.displayUnits === 0) {
                         const valLen: number = viewModel.dataMax.toString().length;
                         displayVal = this.getAutoDisplayUnits(valLen);
                     }
-                    if (options.dataViews[0].categorical.values[0].source.format &&
+                if (options.dataViews[0].categorical.values[0].source.format &&
                         options.dataViews[0].categorical.values[0].source.format.indexOf('%') !== -1) {
                         this.yAxisFormatter = valueFormatter.create({
                             format: options.dataViews[0].categorical.values[0].source.format,
@@ -1101,67 +1100,66 @@ module powerbi.extensibility.visual {
                             precision: yAxisConfig.decimalPlaces
                         });
                     }
-                    let formattedMaxMeasure: string;
-                    const yAxisStartLength: number = yAxisConfig.start.toString().length;
-                    const yAxisEndLength: number = yAxisConfig.end.toString().length;
-                    const yAxisFormatMaxValue: number = yAxisStartLength > yAxisEndLength ? yAxisConfig.start : yAxisConfig.end;
-                    const dataSetMaxLength: number = viewModel.dataMax.toString().length;
-                    const dataSetMinLength: number = viewModel.dataMin.toString().length;
-                    const dataSetFormatMaxValue: number = dataSetMaxLength > dataSetMinLength ? viewModel.dataMax : viewModel.dataMin;
-                    const maxValue: number = yAxisFormatMaxValue.toString().length > dataSetFormatMaxValue.toString().length
+                let formattedMaxMeasure: string;
+                const yAxisStartLength: number = yAxisConfig.start.toString().length;
+                const yAxisEndLength: number = yAxisConfig.end.toString().length;
+                const yAxisFormatMaxValue: number = yAxisStartLength > yAxisEndLength ? yAxisConfig.start : yAxisConfig.end;
+                const dataSetMaxLength: number = viewModel.dataMax.toString().length;
+                const dataSetMinLength: number = viewModel.dataMin.toString().length;
+                const dataSetFormatMaxValue: number = dataSetMaxLength > dataSetMinLength ? viewModel.dataMax : viewModel.dataMin;
+                const maxValue: number = yAxisFormatMaxValue.toString().length > dataSetFormatMaxValue.toString().length
                         ? yAxisFormatMaxValue : dataSetFormatMaxValue;
-                    formattedMaxMeasure = this.yAxisFormatter.format(parseFloat(maxValue.toString()) * 1.3);
-                    let measureTextProperties: TextProperties;
-                    measureTextProperties = {
+                formattedMaxMeasure = this.yAxisFormatter.format(parseFloat(maxValue.toString()) * 1.3);
+                let measureTextProperties: TextProperties;
+                measureTextProperties = {
                         text: formattedMaxMeasure,
                         fontFamily: fontstyle,
                         fontSize: '12px'
                     };
-                    const yAxisWidth: number = textMeasurementService.measureSvgTextWidth(measureTextProperties);
-                    margins.left = yAxisWidth + 10;
-                    this.yAxis.classed('yAxis', true).style({
+                const yAxisWidth: number = textMeasurementService.measureSvgTextWidth(measureTextProperties);
+                margins.left = yAxisWidth + 10;
+                this.yAxis.classed('yAxis', true).style({
                         fill: yAxisConfig.fontColor
                     });
-                    fytargetChecker = false;
-                    if (viewModel.fytarget) {
+                fytargetChecker = false;
+                if (viewModel.fytarget) {
                         fytargetChecker = true;
                     }
-                    this.xAxis.classed('xAxis', true).style({
+                this.xAxis.classed('xAxis', true).style({
                         fill: xAxisConfig.fontColor
                     });
                     // tslint:disable-next-line:no-any
-                    let xScale: any;
-                    let xAxis: d3.svg.Axis;
-                    let barWidths: number;
+                let xScale: any;
+                let xAxis: d3.svg.Axis;
+                let barWidths: number;
                     // tslint:disable-next-line:no-any
-                    let yScale: any;
+                let yScale: any;
                     // tslint:disable-next-line:no-any
-                    let yAxis: any;
+                let yAxis: any;
                     // tslint:disable-next-line:no-any
-                    let lineDataPoints: any;
-                    let linePoints: string = '';
-                    let ytdLine: d3.Selection<SVGElement>;
-                    let minVisibleBarWidth: number = 19;
-                    const marginForWidth: number = 25;
-                    let barOrigin: number = 0;
-                    const minWidthForHorizontal: number = 800;
-                    const widthForScroll: number = 20;
-                    const minHeightForHorizontal: number = 330;
-                    const minWidthForVertical: number = 40;
-                    const minHeightForVertical: number = 70;
-                    const marginForXAxis: number = 40;
-                    const marginForyAxis: number = 50;
-                    const marginForYAxis: number = 70;
-                    const marginForDataLabel: number = 30;
-                    const parseIntValue: number = 10;
-                    const horizontalEndRange: number = 10;
-                    const textWordBreakWidth: number = 50;
-                    const textTailoredWidth: number = 70;
-                    if (yAxisConfig.start > 0) {
+                let lineDataPoints: any;
+                let linePoints: string = '';
+                let ytdLine: d3.Selection<SVGElement>;
+                let minVisibleBarWidth: number = 19;
+                const marginForWidth: number = 25;
+                let barOrigin: number = 0;
+                const minWidthForHorizontal: number = 800;
+                const widthForScroll: number = 20;
+                const minHeightForHorizontal: number = 330;
+                const minWidthForVertical: number = 40;
+                const minHeightForVertical: number = 70;
+                const marginForXAxis: number = 40;
+                const marginForyAxis: number = 50;
+                const marginForYAxis: number = 70;
+                const marginForDataLabel: number = 10;
+                const parseIntValue: number = 10;
+                const horizontalEndRange: number = 10;
+                const textWordBreakWidth: number = 50;
+                const textTailoredWidth: number = 70;
+                if (yAxisConfig.start > 0) {
                         barOrigin = <number>yAxisConfig.start;
                     }
-
-                    if (horizontal.show) {
+                if (horizontal.show) {
                         // hide overflow initially
                         this.rootDiv.style('overflow-y', 'auto').style('overflow-x', 'hidden');
                         margins.left = 30;
@@ -1513,6 +1511,7 @@ module powerbi.extensibility.visual {
                                         : yScale(barOrigin) - yScale(d.value)
                                 });
                         } else {
+
                             this.bars.enter()
                                 .reverse()
                                 .append('rect')
@@ -1563,7 +1562,7 @@ module powerbi.extensibility.visual {
                                         return xScale(d.category);
                                     },
                                     // tslint:disable-next-line:typedef
-                                    width: d => d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
+                                    width: d => d.value > 0 ?  yScale(<number>d.value) - yScale(barOrigin)
                                         : yScale(barOrigin) - yScale(d.value)
                                 });
                         }
@@ -1722,12 +1721,13 @@ module powerbi.extensibility.visual {
                                 precision: dataLabels.valueDecimal
                             });
                             const centerDataLabelAdjust: number = 90;
-                            const endDataLabelAdjust: number = 35;
-                            const baseDataLabelAdjust: number = 20;
+                            const endDataLabelAdjust: number = 15;
+                            const baseDataLabelAdjust: number = 10;
                             const barMiddleAdjust: number = 3;
-                            const yCoordinateAdjust: number = 50;
+                            const yCoordinateAdjust: number = 62;
                             // tslint:disable-next-line:no-any
                             let labelMargin: any;
+
                             labelMargin = { top: 20, right: 10, left: 2 };
                             this.barContainer
                                 .append('g')
@@ -1742,27 +1742,41 @@ module powerbi.extensibility.visual {
                                 .text(function (d: any): string {
                                     let labelFormattedText: string;
                                     labelFormattedText = formatter.format(d.value);
-                                    let tp: TextProperties;
-                                    tp = {
+                                    let textproperties: TextProperties;
+                                    textproperties = {
                                         text: labelFormattedText,
                                         fontFamily: dataLabels.fontFamily,
                                         fontSize: dataLabels.fontSize + pxLiteral
                                     };
+                                    const dataTextHeight: number = textMeasurementService.measureSvgTextHeight(textproperties);
+                                    // tslint:disable-next-line:typedef
+                                    let barheight : number;
+                                    barheight =  d.value > 0 ? yScale(<number>d.value) - yScale(barOrigin)
+                                    : yScale(barOrigin) - yScale(d.value);
+                                    // tslint:disable-next-line:no-unused-expression
+                                    textproperties.text =  barheight < dataTextHeight ? '' : textproperties.text;
 
-                                    return textMeasurementService.getTailoredTextOrDefault(tp, 50);
+                                    return textMeasurementService.getTailoredTextOrDefault(textproperties, 50);
                                 })
                                 .attr({
                                     // tslint:disable-next-line:no-any
                                     x: (d: any): any => d.value >= 0 ?
-                                        (dataLabels.position === 'insideCenter' ?
+                                        (
+                                            dataLabels.position === 'insideCenter' ?  d.value === 0 ?
+                                            yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust + rightShift :
                                             (yScale(<number>d.value) + yScale(barOrigin)) / 2
                                             + centerDataLabelAdjust :
-                                            dataLabels.position === 'insideEnd' ? yScale(<number>d.value) + yCoordinateAdjust
+                                            dataLabels.position === 'insideEnd' ? d.value === 0 ?
+                                            yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust + rightShift :
+                                             yScale(<number>d.value) + yCoordinateAdjust
                                                 + (dataLabels.fontSize / 2) :
                                                 yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust + rightShift)
-                                        : (dataLabels.position === 'insideCenter' ?
+                                        : (dataLabels.position === 'insideCenter' ? d.value === 0 ?
+                                        yScale(barOrigin) - (dataLabels.fontSize / 2) + rightShift - marginForDataLabel :
                                             ((yScale(<number>d.value) + yScale(barOrigin)) / 2) + rightShift :
-                                            dataLabels.position === 'insideEnd' ? yScale(<number>d.value) + endDataLabelAdjust
+                                            dataLabels.position === 'insideEnd' ? d.value === 0 ?
+                                            yScale(barOrigin) - (dataLabels.fontSize / 2) + rightShift - marginForDataLabel  :
+                                             yScale(<number>d.value) + endDataLabelAdjust
                                                 + rightShift :
                                                 yScale(barOrigin) - (dataLabels.fontSize / 2) + rightShift - marginForDataLabel),
                                     // tslint:disable-next-line:no-any
@@ -1832,6 +1846,7 @@ module powerbi.extensibility.visual {
                             this.rootDiv.select('.baseDiv').style('width', dynamicWidth + pxLiteral);
                             this.rootDiv.select('.barChart').style('width', dynamicWidth + pxLiteral);
                         }
+
                         yScale = d3.scale.linear()
                             .domain([(<number>yAxisConfig.start), <number>yAxisConfig.end * 1.1])
                             .range([(<number>height), horizontalEndRange]);
@@ -2071,14 +2086,16 @@ module powerbi.extensibility.visual {
                         }
 
                         this.bars = this.barContainer.selectAll('.bar').data(barData);
+
                         this.barforecasted = this.barContainer.selectAll('.barforecasted').data(barforecastedData);
+
                         if (animation.show) {
+
                             this.bars.enter()
                                 .append('rect')
                                 .classed('bar', true);
                             this.bars.attr({
                                 width: xScale.rangeBand(),
-                                height: 0,
                                 // tslint:disable-next-line:typedef
                                 y: d => (d.value > 0) ? yScale(barOrigin) : yScale(<number>d.value),
                                 // tslint:disable-next-line:no-any
@@ -2092,9 +2109,11 @@ module powerbi.extensibility.visual {
                                 .attr({
                                     // tslint:disable-next-line:typedef
                                     y: d => (d.value < 0) ? yScale(barOrigin) : yScale(<number>d.value),
+
                                     // tslint:disable-next-line:typedef
                                     height: d => (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
                                         : yScale(barOrigin) - yScale(<number>d.value)
+
                                 });
                             this.barforecasted.enter()
                                 .append('rect')
@@ -2107,7 +2126,8 @@ module powerbi.extensibility.visual {
                                 // tslint:disable-next-line:typedef
                                 y: d => (d.value > 0) ? yScale(barOrigin) : yScale(<number>d.value),
                                 // tslint:disable-next-line:no-any
-                                x: function (d: any): any { return xScale(d.category); },
+                                x: function (d: any): any {
+                                     return xScale(d.category); },
                                 // tslint:disable-next-line:no-any
                                 fill: (d: any): any => d.color,
                                 // tslint:disable-next-line:no-any
@@ -2124,6 +2144,7 @@ module powerbi.extensibility.visual {
                                         : yScale(barOrigin) - yScale(<number>d.value)
                                 });
                         } else {
+
                             this.bars.enter()
                                 .append('rect')
                                 .classed('bar', true);
@@ -2302,7 +2323,6 @@ module powerbi.extensibility.visual {
                                 }
                             }
                         }
-
                         if (dataLabels.show) {
                             let measureFormat: string;
                             measureFormat = this.measureFormat;
@@ -2336,33 +2356,42 @@ module powerbi.extensibility.visual {
                                 // tslint:disable-next-line:no-any
                                 .text(function (d: any): string {
                                     let labelFormattedText: string;
+                                    let barheight : number;
                                     labelFormattedText = formatter.format(d.value);
-                                    let tp: TextProperties;
-                                    tp = {
+                                    let textproperties: TextProperties;
+                                    textproperties = {
                                         text: labelFormattedText,
                                         fontFamily: dataLabels.fontFamily,
                                         fontSize: dataLabels.fontSize + pxLiteral
                                     };
+                                    const dataTextHeight: number = textMeasurementService.measureSvgTextHeight(textproperties);
+                                    barheight = (<number>d.value < 0) ? (yScale(d.value) - yScale(barOrigin))
+                                       : yScale(barOrigin) - yScale(<number>d.value);
+                                    textproperties.text =  barheight < dataTextHeight ? '' : textproperties.text;
 
-                                    return textMeasurementService.getTailoredTextOrDefault(tp, barWidths);
+                                    return textMeasurementService.getTailoredTextOrDefault(textproperties, barWidths);
                                 })
                                 .attr({
                                     // tslint:disable-next-line:no-any
                                     x: (d: any): any => xScale(d.category) + xScale.rangeBand() / 2 + barMiddleAdjust,
                                     // tslint:disable-next-line:no-any
                                     y: (d: any): any => d.value >= 0 ?
-                                        (dataLabels.position === 'insideCenter' ?
+                                        (dataLabels.position === 'insideCenter' ? d.value === 0 ?
+                                        yScale(barOrigin) + (dataLabels.fontSize / 2) - baseDataLabelAdjust :
                                             yScale(<number>d.value - (<number>d.value - barOrigin) / 2)
                                             + (dataLabels.fontSize / 2)
-                                            : dataLabels.position === 'insideEnd' ?
+                                            : dataLabels.position === 'insideEnd' ? d.value === 0 ?
+                                             yScale(barOrigin) + (dataLabels.fontSize / 2) - baseDataLabelAdjust :
                                                 yScale(<number>d.value) + (dataLabels.fontSize / 2) + baseDataLabelAdjust
-                                                : yScale(barOrigin) + (dataLabels.fontSize / 2) - baseDataLabelAdjust
+                                                :  yScale(barOrigin) + (dataLabels.fontSize / 2) - baseDataLabelAdjust
                                         ) :
-                                        (dataLabels.position === 'insideCenter' ?
+                                        (dataLabels.position === 'insideCenter' ? d.value === 0 ?
+                                        yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust :
                                             yScale(<number>d.value - (<number>d.value - barOrigin) / 2)
                                             + (dataLabels.fontSize / 2)
 
-                                            : dataLabels.position === 'insideEnd' ?
+                                            : dataLabels.position === 'insideEnd' ? d.value === 0 ?
+                                            yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust :
                                                 yScale(<number>d.value) + (dataLabels.fontSize / 2) - baseDataLabelAdjust
                                                 : yScale(barOrigin) + (dataLabels.fontSize / 2) + baseDataLabelAdjust
                                         ),
@@ -2394,7 +2423,6 @@ module powerbi.extensibility.visual {
                         let allowInteractions: boolean;
                         allowInteractions = this.host.allowInteractions;
                     }
-                }
             }
             this.barSelection = this.bars;
             this.barforecastedSelection = this.barforecasted;
