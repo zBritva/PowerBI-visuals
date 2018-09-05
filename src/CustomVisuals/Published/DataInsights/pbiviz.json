@@ -4,12 +4,12 @@
     "displayName": "Data Insights by MAQ Software",
     "guid": "dataInsightsEC19A7A1FF1C44B784A13A27E1A145AB",
     "visualClassName": "Visual",
-    "version": "3.1.1.0",
+    "version": "3.1.2.0",
     "description": "",
     "supportUrl": "https://github.com/maqsoftware/PowerBI-visuals/issues",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals"
   },
-  "apiVersion": "1.8.0",
+  "apiVersion": "2.1.0",
   "author": {
     "name": "MAQ Software",
     "email": "support@maqsoftware.com"
@@ -28,7 +28,7 @@
     "node_modules/powerbi-visuals-utils-formattingutils/lib/index.js",
     "node_modules/powerbi-visuals-utils-interactivityutils/lib/index.js",
     "node_modules/powerbi-visuals-utils-chartutils/lib/index.js",
-  "node_modules/powerbi-visuals-utils-tooltiputils/lib/index.js"
+    "node_modules/powerbi-visuals-utils-tooltiputils/lib/index.js"
   ],
   "style": "style/visual.less",
   "capabilities": "capabilities.json",
