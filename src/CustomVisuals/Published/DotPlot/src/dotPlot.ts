@@ -25,11 +25,11 @@
  */
 
 module powerbi.extensibility.visual {
-    import ISelectionId = powerbi.visuals.ISelectionId;
     import valueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
     import TextProperties = powerbi.extensibility.utils.formatting.TextProperties;
     import textMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
     import axisHelper = powerbi.extensibility.utils.chart.axis;
+    import IInteractivityService = powerbi.extensibility.utils.interactivity.IInteractivityService;
     import ILegend = powerbi.extensibility.utils.chart.legend.ILegend;
     import LegendPosition = powerbi.extensibility.utils.chart.legend.LegendPosition;
 
@@ -75,6 +75,7 @@ module powerbi.extensibility.visual {
         private dataView: DataView;
         private tooltipServiceWrapper: ITooltipServiceWrapper;
         private legendDotTitle: string;
+        private interactivityService: IInteractivityService;
         private measureFormat: string;
         private sizeFormat: string;
         // tslint:disable-next-line:no-any
@@ -113,29 +114,17 @@ module powerbi.extensibility.visual {
         private randomSeed: number;
         private getGradColor: (t: number) => string;
         private colorScale: d3.scale.Linear<number, number>;
-        // objects to handle selections
-        private dotSelection: d3.Selection<IDotPlotViewModel>;
-        // tslint:disable-next-line:no-any
-        private legendSelection: d3.Selection<any>;
 
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
-            this.selectionManager.registerOnSelectCallback(() => {
-                this.dotSelection = d3.selectAll('.dotPlot_dot');
-                this.legendSelection = d3.selectAll('.legendItem');
-                this.syncSelectionState(
-                    this.dotSelection,
-                    this.legendSelection,
-                    this.selectionManager.getSelectionIds() as ISelectionId[]
-                );
-            });
             this.selectionIdBuilder = options.host.createSelectionIdBuilder();
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
+            this.interactivityService = powerbi.extensibility.utils.interactivity.createInteractivityService(options.host);
             Visual.legend = powerbi.extensibility.utils.chart.legend.createLegend(
                 options.element,
-                false,
-                null,
+                options.host && false,
+                this.interactivityService,
                 true);
             this.target = options.element;
             this.legendDotSvg = d3.select(this.target)
@@ -232,7 +221,6 @@ module powerbi.extensibility.visual {
                             highlights: null,
                             key: null
                         };
-                        //let colorPalette: IColorPalette = host.colorPalette;
                         const selectionId: visuals.ISelectionId = host.createSelectionIdBuilder()
                             .withCategory(dataView.categorical.categories[0], i)
                             .withSeries(dataView.categorical.values, group)
@@ -364,7 +352,8 @@ module powerbi.extensibility.visual {
                     .map((group: DataViewValueColumnGroup, index: number) => {
                         const defaultColor: Fill = {
                             solid: {
-                                color: colorPalette.getColor(group.identity.key).value
+                                // tslint:disable-next-line:no-any
+                                color: colorPalette.getColor(<any> group.name).value
                             }
                         };
 
@@ -2259,6 +2248,25 @@ module powerbi.extensibility.visual {
 
             this.clickFlag = false;
             const dots: d3.Selection<IDotPlotViewModel> = d3.selectAll('.dotPlot_dot');
+            // Highlighting logic
+            if (this.highlight) {
+                this.clickFlag = true;
+
+                dots.attr('fill-opacity', function (d: IDotPlotViewModel): number {
+                    if (d.highlights) {
+                        return 0.9;
+                    } else {
+                        return 0.15;
+                    }
+                });
+                dots.attr('stroke-opacity', function (d: IDotPlotViewModel): number {
+                    if (d.highlights) {
+                        return 0.9;
+                    } else {
+                        return 0.15;
+                    }
+                });
+            }
 
             // Hover logic
             $('.dotPlot_dot').mousemove(
@@ -2298,8 +2306,48 @@ module powerbi.extensibility.visual {
                 $(document).off('click');
                 // Cross filtering
                 dots.on('click', function (d: IDotPlotViewModel): void {
+                    d3.select(this).attr('stroke', visualContext.rangeConfig.style === 'solid' ?
+                        visualContext.rangeConfig.borderColor :
+                        dotPlotUtils.getColor(visualContext.rangeConfig, d));
                     visualContext.selectionManager.select(d.selectionId, true).then((ids: ISelectionId[]) => {
-                        visualContext.syncSelectionState(dots, d3.selectAll('.legendItem'), ids);
+                        dots.attr('fill-opacity', function (e: IDotPlotViewModel): number {
+                            if (ids.length && ids.indexOf(e.selectionId) === -1 && visualContext.color.indexOf(e.categoryColor) === -1) {
+                                return 0.15;
+                            } else {
+                                return 0.9;
+                            }
+                        });
+                        dots.attr('stroke-opacity', function (e: IDotPlotViewModel): number {
+                            if (ids.length && ids.indexOf(e.selectionId) === -1 && visualContext.color.indexOf(e.categoryColor) === -1) {
+                                return 0.15;
+                            } else {
+                                return 0.9;
+                            }
+                        });
+
+                        if (ids.length) {
+                            visualContext.clickFlag = true;
+                        } else {
+                            dots.attr('stroke', (i: IDotPlotViewModel): string =>
+                                    visualContext.rangeConfig.style === 'solid' ?
+                                        visualContext.rangeConfig.borderColor :
+                                        dotPlotUtils.getColor(visualContext.rangeConfig, i))
+                                .attr('fill-opacity', (100 - rangeConfig.transparency) / 100)
+                                .attr('stroke-opacity', (100 - rangeConfig.transparency) / 100);
+                            visualContext.clickFlag = false;
+                        }
+
+                        // tslint:disable-next-line:no-any
+                        d3.selectAll('.legendItem').attr('fill-opacity', function (legend: any): number {
+                            if (legend &&
+                                legend.tooltip &&
+                                visualContext.color.length &&
+                                visualContext.color.indexOf(legend.tooltip) === -1) {
+                                return 0.15;
+                            } else {
+                                return 1;
+                            }
+                        });
                     });
                     (<Event>d3.event).stopPropagation();
                 });
@@ -2361,12 +2409,19 @@ module powerbi.extensibility.visual {
             // Document click
             $(document)
                 .on('click', () => this.selectionManager.clear()
-                    .then(() => {
-                        this.syncSelectionState(
-                            d3.selectAll('.dotPlot_dot'),
-                            d3.selectAll('.legendItem'),
-                            this.selectionManager.getSelectionIds() as ISelectionId[]);
-                    }));
+                    .then(() => this.clickFlag = false)
+                    .then(() =>
+                        dots.attr('stroke', (d: IDotPlotViewModel): string =>
+                                this.rangeConfig.style === 'solid' ?
+                                    this.rangeConfig.borderColor
+                                    : Visual.isGradientPresent ?
+                                        this.getGradColor(this.colorScale(parseFloat(d.categoryColor)))
+                                            : dotPlotUtils.getColor(this.rangeConfig, d))
+                            .attr('fill-opacity', (100 - rangeConfig.transparency) / 100)
+                            .attr('stroke-opacity', (100 - rangeConfig.transparency) / 100)
+                    )
+                    .then(() => d3.selectAll('.legendItem').attr({ 'fill-opacity': 1 }))
+                    .then(() => visualContext.color = []));
 
             $('#legendGroup').on('click.load', '.navArrow', function (): void {
                 visualContext.addLegendSelection();
@@ -2381,121 +2436,6 @@ module powerbi.extensibility.visual {
                 (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
                 (tooltipEvent: TooltipEventArgs<number>) => null
             );
-
-            // syncing selections at the end
-            this.dotSelection = d3.selectAll('.dotPlot_dot');
-            this.legendSelection = d3.selectAll('.legendItem');
-            this.syncSelectionState(
-                this.dotSelection,
-                this.legendSelection,
-                this.selectionManager.getSelectionIds() as ISelectionId[]
-            );
-        }
-
-        private syncSelectionState(
-            selection1: d3.Selection<IDotPlotViewModel>,
-            // tslint:disable-next-line:no-any
-            selection2: d3.Selection<any>,
-            // tslint:disable-next-line:no-any
-            selectionIds: any[]
-        ): void {
-            if (!selection1 || !selection2 || !selectionIds) {
-
-                return;
-            }
-
-            if (!selectionIds.length) {
-                selection1.attr('stroke',  (d: IDotPlotViewModel): string =>
-                        this.rangeConfig.style === 'solid' ?
-                            this.rangeConfig.borderColor :
-                            Visual.isGradientPresent ?
-                                        this.getGradColor(this.colorScale(parseFloat(d.categoryColor)))
-                                            : dotPlotUtils.getColor(this.rangeConfig, d))
-                            .attr('fill-opacity', (100 - this.rangeConfig.transparency) / 100)
-                            .attr('stroke-opacity', (100 - this.rangeConfig.transparency) / 100);
-                this.clickFlag = false;
-                selection2.attr({ 'fill-opacity': 1 });
-                this.color = [];
-                // Highlighting logic
-                if (this.highlight) {
-                    this.clickFlag = true;
-
-                    selection1.attr('fill-opacity', function (d: IDotPlotViewModel): number {
-                        if (d.highlights) {
-                            return 0.9;
-                        } else {
-                            return 0.15;
-                        }
-                    });
-                    selection1.attr('stroke-opacity', function (d: IDotPlotViewModel): number {
-                        if (d.highlights) {
-                            return 0.9;
-                        } else {
-                            return 0.15;
-                        }
-                    });
-                }
-
-                return;
-            }
-
-            this.clickFlag = true;
-            const self: this = this;
-            // boolean to check if legend item is selected
-            let legendClicked: boolean = false;
-
-            selection1.each(function (dataPoint: IDotPlotViewModel): void {
-                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, dataPoint.selectionId);
-
-                if (isSelected) {
-                    d3.select(this).attr('stroke', self.rangeConfig.style === 'solid' ?
-                        self.rangeConfig.borderColor :
-                        dotPlotUtils.getColor(self.rangeConfig, dataPoint));
-                }
-
-                d3.select(this).attr(
-                    'fill-opacity',
-                    isSelected ?
-                    0.9 : 0.15
-                );
-
-                d3.select(this).attr(
-                    'stroke-opacity',
-                    isSelected ?
-                    0.9 : 0.15
-                );
-            });
-
-            // tslint:disable-next-line:no-any
-            selection2.each(function (legend: any): void {
-                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, legend.identity);
-                if (isSelected) {
-                    legendClicked = true;
-                }
-            });
-
-            if (legendClicked) {
-                // tslint:disable-next-line:no-any
-                selection2.each(function (legend: any): void {
-                    const isSelected: boolean = self.isSelectionIdInArray(selectionIds, legend.identity);
-                    d3.select(this).attr(
-                        'fill-opacity',
-                        isSelected ?
-                        1 : 0.15
-                    );
-                });
-            }
-        }
-
-        // method to return boolean based on presence of value in array
-        private isSelectionIdInArray(selectionIds: ISelectionId[], selectionId: ISelectionId): boolean {
-            if (!selectionIds || !selectionId) {
-                return false;
-            }
-
-            return selectionIds.some((currentSelectionId: ISelectionId) => {
-                return currentSelectionId.includes(selectionId);
-            });
         }
 
         // tslint:disable-next-line:no-any
@@ -2644,6 +2584,7 @@ module powerbi.extensibility.visual {
             const dots: d3.Selection<IDotPlotViewModel> = d3.selectAll('.dotPlot_dot');
             // tslint:disable-next-line:no-any
             const legends: d3.Selection<any> = d3.selectAll('.legendItem');
+            const selectionManager: ISelectionManager = this.selectionManager;
             // tslint:disable-next-line:no-any
             legends.on('click', function (d: any): void {
                 const index: number = visualContext.color.indexOf(d.tooltip.toString());
@@ -2653,10 +2594,43 @@ module powerbi.extensibility.visual {
                     visualContext.color.splice(index, 1);
                 }
                 visualContext.selectionManager.select(d.identity, true).then((ids: ISelectionId[]) => {
-                    visualContext.syncSelectionState(
-                        dots,
-                        legends,
-                        visualContext.selectionManager.getSelectionIds() as ISelectionId[]);
+                    dots.attr('fill-opacity' , function (dot: IDotPlotViewModel): number {
+                        if (ids.length && (visualContext.color.indexOf(dot.categoryColor) === -1 && ids.indexOf(dot.selectionId) === -1)) {
+                            return 0.15;
+                        } else {
+                            return 0.9;
+                        }
+                    });
+                    dots.attr('stroke-opacity' , function (dot: IDotPlotViewModel): number {
+                        if (ids.length && (visualContext.color.indexOf(dot.categoryColor) === -1 && ids.indexOf(dot.selectionId) === -1)) {
+                            return 0.15;
+                        } else {
+                            return 0.9;
+                        }
+                    });
+                    // tslint:disable-next-line:no-any
+                    legends.attr('fill-opacity', function (legend: any): number {
+                        if (legend && legend.tooltip &&
+                            visualContext.color &&
+                            visualContext.color.length &&
+                            visualContext.color.indexOf(legend.tooltip.toString()) === -1) {
+                            return 0.15;
+                        } else {
+                            return 1;
+                        }
+                    });
+
+                    if (ids.length) {
+                        visualContext.clickFlag = true;
+                    } else {
+                        dots.attr('stroke',  (i: IDotPlotViewModel): string =>
+                                visualContext.rangeConfig.style === 'solid' ?
+                                    visualContext.rangeConfig.borderColor :
+                                    dotPlotUtils.getColor(visualContext.rangeConfig, i))
+                            .attr('fill-opacity', (100 - visualContext.rangeConfig.transparency) / 100)
+                            .attr('stroke-opacity', (100 - visualContext.rangeConfig.transparency) / 100);
+                        visualContext.clickFlag = false;
+                    }
                 });
                 (<Event>d3.event).stopPropagation();
             });
@@ -2718,6 +2692,7 @@ module powerbi.extensibility.visual {
                 default:
                     break;
             }
+
             Visual.legend.drawLegend(
                 legendDataTorender,
                 ({ width: legendViewport.width, height: legendViewport.height })
