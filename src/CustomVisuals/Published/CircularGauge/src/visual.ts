@@ -256,7 +256,7 @@ module powerbi.extensibility.visual {
         //All the variable will be populated with the value we have passed
         public static converter(dataView: DataView): IProgressIndicatorValues {
             const data: IProgressIndicatorValues = CircularGauge.getDefaultData();
-            if (dataView && dataView.categorical) {
+            if (dataView && dataView.table) {
                 const len: number = dataView.table.rows[0].length;
                 let iCount: number;
                 let toolTipCount: number = 0;
@@ -387,7 +387,8 @@ module powerbi.extensibility.visual {
             const max: number = data2.target;
             $('.errmsg').remove();
             let checkActual: boolean = false;
-            if (dataView && dataView.categorical) {
+
+            if (dataView && dataView.table) {
                 for (let i: number = 0; i < dataView.metadata.columns.length; i++) {
                     if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('ActualValue')) {
                         checkActual = true;

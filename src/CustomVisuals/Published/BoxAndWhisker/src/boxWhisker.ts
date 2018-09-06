@@ -344,7 +344,7 @@ module powerbi.extensibility.visual {
                     .map((group: DataViewValueColumnGroup, index: number) => {
                         const defaultColor: Fill = {
                             solid: {
-                                color: colorPalette.getColor(group.identity.key).value
+                                color: colorPalette.getColor(<any> group.name).value
                             }
                         };
 
