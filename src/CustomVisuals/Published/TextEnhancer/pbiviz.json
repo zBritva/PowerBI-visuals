@@ -4,12 +4,12 @@
     "displayName": "Text Enhancer by MAQ Software",
     "guid": "TextEnhancerByMAQ46ASG0293G65JY43S89DKJ9",
     "visualClassName": "Visual",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "description": "Text Enhancer transforms a plain Power BI text into various styling formats, which can be used for rich UI reporting purpose. It basically has all features as the text editor of Microsoft PowerPoint.",
     "supportUrl": "https://github.com/maqsoftware/PowerBI-visuals/issues",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals"
   },
-  "apiVersion": "1.11.0",
+  "apiVersion": "2.1.0",
   "author": {
     "name": "MAQ Software",
     "email": "support@maqsoftware.com"
