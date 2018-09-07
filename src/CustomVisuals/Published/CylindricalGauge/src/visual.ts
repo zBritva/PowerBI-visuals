@@ -30,6 +30,7 @@ module powerbi.extensibility.visual {
             objectName: 'legend',
             propertyName: 'fill'
         };
+        // tslint:disable-next-line:no-any
         private rootElement: any;
         private svg: d3.Selection<SVGElement>;
         private div: d3.Selection<SVGElement>;
@@ -46,8 +47,8 @@ module powerbi.extensibility.visual {
         private backCircle: d3.Selection<SVGElement>;
         private backRect: d3.Selection<SVGElement>;
         private fillCircle: d3.Selection<SVGElement>;
-        private GreaterCircle: d3.Selection<SVGElement>;
-        private LessCircle: d3.Selection<SVGElement>;
+        private greaterCircle: d3.Selection<SVGElement>;
+        private lessCircle: d3.Selection<SVGElement>;
         private cylinder: d3.Selection<SVGElement>;
         private fillRect1: d3.Selection<SVGElement>;
         private fillRect2: d3.Selection<SVGElement>;
@@ -72,7 +73,6 @@ module powerbi.extensibility.visual {
         public dataView: DataView;
         private textPosition: number;
         private enableAxis: boolean = true;
-        private TargetRange: boolean= true;
         private labelValueFormatter: utils.formatting.IValueFormatter;
         private tickValueFormatter: utils.formatting.IValueFormatter;
         private highlightValue: number = 0;
@@ -87,13 +87,13 @@ module powerbi.extensibility.visual {
             bottom: number;
             small: number;
             big: number;
-        }
+        };
         private settings: {
             rectFill1: string;
             rectFill2: string;
             circleFill1: string;
             circleFill2: string;
-            animationTime: number;           
+            animationTime: number;
             borderColor: string;
             tarValue: number;
             targetColor: string;
@@ -132,26 +132,34 @@ module powerbi.extensibility.visual {
         //Convert the dataview into its view model
         //All the variable will be populated with the value we have passed
         public static converter1(dataView: DataView): IProgressIndicatorValues {
+            const categoriesLength: number = dataView.categorical.values.length;
+            const dataValues : number[] = [0, 0, 0, 0];
+            let iCount: number;
+            for (iCount = 0; iCount < categoriesLength; iCount++) {
+                const index: number = dataView.categorical.values[iCount].source.index;
+                dataValues[index] = <number>dataView.categorical.values[iCount].values[0];
+            }
             const data: IProgressIndicatorValues = CylindricalGauge.getDefaultData();
             if (dataView && dataView.categorical) {
-                const len: number = dataView.table.rows[0].length;
-                let iCount: number;
-                for (iCount = 0; iCount < len; iCount++) {
+                let index: number;
+                for (iCount = 0; iCount < categoriesLength; iCount++) {
+                    index = dataView.metadata.columns[iCount].index;
                     if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Values')) {
-                        data.value = <number>dataView.table.rows[0][iCount];
+                        data.value = <number>dataValues[index];
                     }
                     if (dataView.metadata.columns[iCount].roles.hasOwnProperty('TargetValue')) {
-                        data.targetValue = <number>dataView.table.rows[0][iCount];
+                        data.targetValue = <number>dataValues[index];
                     }
                     if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Min')) {
-                        data.minValue = <number>dataView.table.rows[0][iCount];
+                        data.minValue = <number>dataValues[index];
                     }
                     if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Max')) {
-                        data.maxValue = <number>dataView.table.rows[0][iCount];
+                        data.maxValue = <number>dataValues[index];
                     }
                 }
 
             }
+
             return data; //Data object we are returning here to the update function
         }
         public static getDefaultData(): IProgressIndicatorValues {
@@ -185,11 +193,11 @@ module powerbi.extensibility.visual {
                 } else if (animationTime < 0) {
                     animationTime = 0;
                 }
-                let minValue: number = getValue<number>(objects, 'config', 'min', null);
-                let maxValue: number = getValue<number>(objects, 'config', 'max', null);
-                let tarValue: number = getValue<number>(objects, 'config', 'target', null);
-                let Greater: number = getValue<number>(objects, 'config', 'Greater', null);
-                let Less: number = getValue<number>(objects, 'config', 'Less', null);
+                const minValue: number = getValue<number>(objects, 'config', 'min', null);
+                const maxValue: number = getValue<number>(objects, 'config', 'max', null);
+                const tarValue: number = getValue<number>(objects, 'config', 'target', null);
+                const greater: number = getValue<number>(objects, 'config', 'Greater', null);
+                const less: number = getValue<number>(objects, 'config', 'Less', null);
                 let labelDecimalPlaces: number = getValue<number>(objects, 'labels', 'decimalValue', null);
                 if (labelDecimalPlaces > 4) {
                     labelDecimalPlaces = 4;
@@ -237,13 +245,13 @@ module powerbi.extensibility.visual {
                     }).solid.color,
                     maxValue: maxValue,
                     minValue: minValue,
-                    Greater: Greater,
+                    Greater: greater,
                     GreaterColor: getValue<Fill>(objects, 'config', 'GreaterColor', {
                         solid: {
                             color: 'red'
                         }
                     }).solid.color,
-                    Less: Less,
+                    Less: less,
                     LessColor: getValue<Fill>(objects, 'config', 'LessColor', {
                         solid: {
                             color: 'red'
@@ -300,7 +308,7 @@ module powerbi.extensibility.visual {
                 };
             }
         }
-        
+
         /** This is called once when the visual is initialially created */
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
@@ -318,20 +326,21 @@ module powerbi.extensibility.visual {
                 bottom: 30,
                 small: 20,
                 big: 0
-            }
+            };
             this.svg.selectAll('.cylinder').remove();
             this.svg.selectAll('.yLabels').remove();
             this.svg.selectAll('line').remove();
             this.rootElement.selectAll('.ErrorMessage').remove();
 
-            if(options.viewport.width <= 50)
+            if (options.viewport.width <= 50) {
                 return;
+            }
             const mainGroup: d3.Selection<SVGElement> = this.svg.append('g').classed('cylinder', true);
-            this.gradient = mainGroup.append("svg:linearGradient");
-            this.gradient1 = mainGroup.append("svg:linearGradient");
-            this.gradient2 = mainGroup.append("svg:linearGradient");
-            this.gradient3 = mainGroup.append("svg:linearGradient");
-            this.gradient4 = mainGroup.append("svg:linearGradient");
+            this.gradient = mainGroup.append('svg:linearGradient');
+            this.gradient1 = mainGroup.append('svg:linearGradient');
+            this.gradient2 = mainGroup.append('svg:linearGradient');
+            this.gradient3 = mainGroup.append('svg:linearGradient');
+            this.gradient4 = mainGroup.append('svg:linearGradient');
             this.backRect = mainGroup.append('rect');
             this.backCircle = mainGroup.append('ellipse');
             this.zones = mainGroup.append('g').classed('zones', true);
@@ -349,8 +358,8 @@ module powerbi.extensibility.visual {
             this.bottomCircle = mainGroup.append('ellipse').classed('bottom', true);
             this.targetCircle = mainGroup.append('ellipse').classed('Target', true);
             //target range circles
-            this.GreaterCircle = mainGroup.append('ellipse').classed('targetcircle_greater', true);
-            this.LessCircle = mainGroup.append('ellipse').classed('targetcircle_less', true);
+            this.greaterCircle = mainGroup.append('ellipse').classed('targetcircle_greater', true);
+            this.lessCircle = mainGroup.append('ellipse').classed('targetcircle_less', true);
             this.zoneLines = mainGroup.append('g').classed('zoneLines', true);
             this.text = mainGroup.append('text');
             this.viewport = options.viewport;
@@ -361,11 +370,13 @@ module powerbi.extensibility.visual {
 
             this.highlight = options.dataViews[0].categorical.values[0].highlights ? true : false;
             if (this.highlight) {
-                this.highlightValue = options.dataViews[0].categorical.values[0].highlights[0] === null ? 0 : <number>options.dataViews[0].categorical.values[0].highlights[0];
-                if (this.isTarget)
+                this.highlightValue = options.dataViews[0].categorical.values[0].highlights[0] === null ? 0
+                : <number>options.dataViews[0].categorical.values[0].highlights[0];
+                if (this.isTarget) {
                     this.highlightTarget = <number>options.dataViews[0].categorical.values[1].highlights[0];
+                }
             }
-            for (let i = 0; i < options.dataViews[0].metadata.columns.length; i++) {
+            for (let i: number = 0; i < options.dataViews[0].metadata.columns.length; i++) {
                 if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('Values')) {
                     this.isActual = true;
                 }
@@ -390,6 +401,7 @@ module powerbi.extensibility.visual {
                     .classed('ErrorMessage', true)
                     .text(message)
                     .attr('title', message);
+
                 return;
             }
 
@@ -417,16 +429,18 @@ module powerbi.extensibility.visual {
             }
             // to handle value greater than max value
             if (this.data1.value > this.data1.max || this.data1.max === null) {
-                if (this.data1.value >= 0)
+                if (this.data1.value >= 0) {
                     this.data1.max = this.data1.value * 2;
-                else
+                } else {
                     this.data1.max = this.data1.value / 2;
+                }
             }
             if (this.data1.value < this.data1.min || this.data1.min === null) {
-                if (this.data1.value >= 0)
+                if (this.data1.value >= 0) {
                     this.data1.min = this.data1.value / 2;
-                else
+                } else {
                     this.data1.min = this.data1.value * 2;
+                }
             }
             if (this.data1.targetValue < this.data1.min && this.data1.targetValue !== null) {
                 this.data1.min = this.data1.targetValue;
@@ -482,7 +496,7 @@ module powerbi.extensibility.visual {
                 text: 'ss',
                 fontFamily: 'Segoe UI',
                 fontSize: `${this.settings.labelFontSize}px`
-                
+
             };
             let labelHeight: number = 0;
             labelHeight = textMeasurementService.measureSvgTextHeight(measureTextProperties);
@@ -497,7 +511,7 @@ module powerbi.extensibility.visual {
                 width: `${width}px`
             });
 
-            var check: boolean;
+            let check: boolean;
             if (!this.isTarget && this.settings.tarValue === null) {
                 check = false;
             } else {
@@ -509,7 +523,7 @@ module powerbi.extensibility.visual {
             } else {
                 this.draw(width, visualheight - labelHeight + 15, check);
             }
-            
+
             this.renderTooltip();
         }
 
@@ -545,6 +559,7 @@ module powerbi.extensibility.visual {
             return formattedData;
         }
 
+        // tslint:disable-next-line:typedef
         private renderTooltip() {
             this.toolTipInfo = [];
             this.toolTipInfo.push({
@@ -568,12 +583,12 @@ module powerbi.extensibility.visual {
                     displayName: 'Max Value',
                     value: (this.data.maxValue).toString()
                 });
-            }            
-            
+            }
+
             //const tooltipbg = this.svg.selectAll('.cylinder').data(toolTipInfo);
             this.tooltipServiceWrapper.addTooltip(d3.selectAll('.cylinder'),
-                (tooltipEvent: TooltipEventArgs<number>) => this.toolTipInfo,
-                (tooltipEvent: TooltipEventArgs<number>) => null);
+                                                  (tooltipEvent: TooltipEventArgs<number>) => this.toolTipInfo,
+                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
 
         }
 
@@ -632,7 +647,7 @@ module powerbi.extensibility.visual {
             const fill: string = this.settings.borderColor;
             this.backCircle
                 .attr({
-                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: rectHeight,
@@ -646,7 +661,7 @@ module powerbi.extensibility.visual {
                 });
             this.topCircle
                 .attr({
-                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: this.margins.bottom,
@@ -672,6 +687,7 @@ module powerbi.extensibility.visual {
                 });
         }
 
+        // tslint:disable-next-line:cyclomatic-complexity
         public drawFill(width: number, height: number, radius: number, check: boolean): void {
             const rectFill1: string = this.settings.rectFill1;
             const rectFill2: string = this.settings.rectFill2;
@@ -679,33 +695,31 @@ module powerbi.extensibility.visual {
             const circleFill2: string = this.settings.circleFill2;
             const animationTime: number = this.settings.animationTime * 1000 < 0 ? 6000 : this.settings.animationTime * 1000;
             const targetFill: string = this.settings.targetColor;
-            const GreaterFill: string = this.settings.GreaterColor;
-            const LessFill: string = this.settings.LessColor;
+            const greaterFill: string = this.settings.GreaterColor;
+            const lessFill: string = this.settings.LessColor;
             const min: number = this.data1.min;
             const max: number = this.data1.max;
-            const Target: number = this.data1.targetValue;
-            const Targetcircle1 = this.data1.Greater;
-            const Targetcircle2 = this.data1.Less;
             const value: number = this.data1.value;
             const rectHeight: number = height - radius / 2;
             // 30 since we are providing value of cy for top circle as 30.
             const minMaxDiff: number = max - min === 0 ? 1 : max - min;
             const percentage: number = (rectHeight - this.margins.bottom) * ((value - min) / minMaxDiff);
-            
+
             const yPos: number = rectHeight - percentage;
-            let yscale = d3.scale.linear()
+            // tslint:disable-next-line:no-any
+            const yscale: any = d3.scale.linear()
                      .domain([this.data1.min, this.data1.max])
                      .range([rectHeight, this.margins.bottom]);
 
-            this.gradient.attr("id", "gradient")
-                                    .attr("x1", "100%")
-                                    .attr("y1", "0%")
-                                    .attr("x2", "100%")
-                                    .attr("y2", "100%")
-                                    .attr("spreadMethod", "pad");
-            this.gradient.append("stop").attr("offset", "0%").attr("stop-color", this.settings.rectFill2).attr("stop-opacity", 1);
-            this.gradient.append("stop").attr("offset", "100%").attr("stop-color", this.settings.rectFill1).attr("stop-opacity", 1);
-            
+            this.gradient.attr('id', 'gradient')
+                                    .attr('x1', '100%')
+                                    .attr('y1', '0%')
+                                    .attr('x2', '100%')
+                                    .attr('y2', '100%')
+                                    .attr('spreadMethod', 'pad');
+            this.gradient.append('stop').attr('offset', '0%').attr('stop-color', this.settings.rectFill2).attr('stop-opacity', 1);
+            this.gradient.append('stop').attr('offset', '100%').attr('stop-color', this.settings.rectFill1).attr('stop-opacity', 1);
+
             this.fillRect2
                 .attr('y', yscale(this.data1.min))
                 .attr('height', 0)
@@ -714,7 +728,7 @@ module powerbi.extensibility.visual {
                 .attr({
                     x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5
                                                                 : this.margins.small / 2 : this.margins.small,
-                    width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small,
+                    width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small
                 })
                 .transition()
                     .duration(animationTime)
@@ -732,16 +746,17 @@ module powerbi.extensibility.visual {
                     .attr({
                         x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5
                                                                 : this.margins.small / 2 : this.margins.small,
-                        width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small,
+                        width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small
                     })
                     .transition()
                         .duration(animationTime)
-                        .attr('height', yscale(this.highlightValue) > yscale(yscale.domain()[0]) ? 0 : yscale(yscale.domain()[0]) - yscale(this.highlightValue))
+                        .attr('height', yscale(this.highlightValue) > yscale(yscale.domain()[0]) ? 0 :
+                         yscale(yscale.domain()[0]) - yscale(this.highlightValue))
                         .attr('y', yscale(this.highlightValue))
                         .style('fill', 'url(#gradient)');
                 this.highlightCircle
                     .attr({
-                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                         cy: yscale(this.data1.min),
@@ -756,91 +771,100 @@ module powerbi.extensibility.visual {
                         .duration(animationTime)
                         .attr('cy', yscale(this.highlightValue));
                 this.fillRect2
-                    .style('fill-opacity', 0.5)
-            } else {     
+                    .style('fill-opacity', 0.5);
+            } else {
                 this.fillRect2
                     .style('fill-opacity', 0.9);
             }
 
             if (this.settings.showZones) {
-                let zoneValues: number[] = [];
+                const zoneValues: number[] = [];
                 zoneValues.push(this.settings.range4);
                 zoneValues.push(this.settings.range3);
                 zoneValues.push(this.settings.range2);
                 zoneValues.push(this.settings.range1);
 
-                let colors: string[] = [];
-                this.gradient1.attr("id", "gradient1")
-                this.gradient1.append("stop").attr("offset", "0%").attr("stop-color", this.settings.Zone4).attr("stop-opacity", 1);
-                this.gradient1.append("stop").attr("offset", "100%").attr("stop-color", '#F1F1F1').attr("stop-opacity", 1);
+                const colors: string[] = [];
+                this.gradient1.attr('id', 'gradient1');
+                this.gradient1.append('stop').attr('offset', '0%').attr('stop-color', this.settings.Zone4).attr('stop-opacity', 1);
+                this.gradient1.append('stop').attr('offset', '100%').attr('stop-color', '#F1F1F1').attr('stop-opacity', 1);
                 colors.push('url(#gradient1)');
-                this.gradient2.attr("id", "gradient2")
-                this.gradient2.append("stop").attr("offset", "0%").attr("stop-color", this.settings.Zone3).attr("stop-opacity", 1);
-                this.gradient2.append("stop").attr("offset", "100%").attr("stop-color", '#F1F1F1').attr("stop-opacity", 1);
+                this.gradient2.attr('id', 'gradient2');
+                this.gradient2.append('stop').attr('offset', '0%').attr('stop-color', this.settings.Zone3).attr('stop-opacity', 1);
+                this.gradient2.append('stop').attr('offset', '100%').attr('stop-color', '#F1F1F1').attr('stop-opacity', 1);
                 colors.push('url(#gradient2)');
-                this.gradient3.attr("id", "gradient3")
-                this.gradient3.append("stop").attr("offset", "0%").attr("stop-color", this.settings.Zone2).attr("stop-opacity", 1);
-                this.gradient3.append("stop").attr("offset", "100%").attr("stop-color", '#F1F1F1').attr("stop-opacity", 1);
+                this.gradient3.attr('id', 'gradient3');
+                this.gradient3.append('stop').attr('offset', '0%').attr('stop-color', this.settings.Zone2).attr('stop-opacity', 1);
+                this.gradient3.append('stop').attr('offset', '100%').attr('stop-color', '#F1F1F1').attr('stop-opacity', 1);
                 colors.push('url(#gradient3)');
-                this.gradient4.attr("id", "gradient4")
-                this.gradient4.append("stop").attr("offset", "0%").attr("stop-color", this.settings.Zone1).attr("stop-opacity", 1);
-                this.gradient4.append("stop").attr("offset", "100%").attr("stop-color", '#F1F1F1').attr("stop-opacity", 1);
+                this.gradient4.attr('id', 'gradient4');
+                this.gradient4.append('stop').attr('offset', '0%').attr('stop-color', this.settings.Zone1).attr('stop-opacity', 1);
+                this.gradient4.append('stop').attr('offset', '100%').attr('stop-color', '#F1F1F1').attr('stop-opacity', 1);
                 colors.push('url(#gradient4)');
-                
-                let zones_rect: d3.selection.Update<number> = this.zones.selectAll('zones_rect').data(zoneValues);
-                zones_rect.enter().append('rect').classed('zones_rect', true);
 
-                zones_rect.attr('height', 0)
+                const zonesRect: d3.selection.Update<number> = this.zones.selectAll('zones_rect').data(zoneValues);
+                zonesRect.enter().append('rect').classed('zones_rect', true);
+
+                zonesRect.attr('height', 0)
                     .attr({
                         x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5
                                                                 : this.margins.small / 2 : this.margins.small,
-                        y: (d): number => yscale(d),
+                        y: yscale,
+                        // tslint:disable-next-line:typedef
                         height: (d): number => (yscale(yscale.domain()[0]) - yscale(d) < 0 ? 0
                                                 : (yscale(yscale.domain()[0]) - yscale(d))),
                         width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small
                     })
+                    // tslint:disable-next-line:typedef
                     .style('fill', (d, i): string => colors[i]);
 
-                if(this.settings.range2)
+                if (this.settings.range2) {
                     this.zone1.attr({
-                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                         width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                                                                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 :
+                                                                        width / 2,
                             cy: yscale(zoneValues[3]),
-                            rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
+                            rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 :
+                             width / 2 - this.margins.small,
                             ry: 20
                         }).style({
                             fill: zoneValues[3] < this.data1.min ? 'none' : colors[2]
                         });
+                }
 
-                if(this.settings.range3)
+                if (this.settings.range3) {
                     this.zone2.attr({
-                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                     width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                     : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                             cy: yscale(zoneValues[2] || zoneValues[3]),
-                            rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
+                            rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2
+                            : width / 2 - this.margins.small,
                             ry: 20
                         }).style({
                             fill: (zoneValues[3] < this.data1.min && zoneValues[2] < this.data1.min)
                                 ? 'none' : colors[1]
                         });
+                }
 
-                if(this.settings.range4)
+                if (this.settings.range4) {
                     this.zone3.attr({
-                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                     width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                     : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                             cy: yscale(zoneValues[1] || zoneValues[2] || zoneValues[3]),
-                            rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
+                            rx:
+                            this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                             ry: 20
                         }).style({
-                            fill: (zoneValues[3]< this.data1.min  && zoneValues[2] < this.data1.min && zoneValues[1] < this.data1.min)
+                            fill: (zoneValues[3] < this.data1.min  && zoneValues[2] < this.data1.min && zoneValues[1] < this.data1.min)
                                 ? 'none' : colors[0]
                         });
+                }
 
-                        this.zone4.attr({
-                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                this.zone4.attr({
+                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                     width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                     : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                         cy: yscale(zoneValues[0] || zoneValues[1] || zoneValues[2] || zoneValues[3]),
@@ -854,7 +878,7 @@ module powerbi.extensibility.visual {
             }
 
             this.fillCircle.attr({
-                cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                 cy: yscale(this.data1.min),
@@ -867,7 +891,7 @@ module powerbi.extensibility.visual {
             //All Target circles
             if ((check)) {
                 this.targetCircle.attr({
-                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: yscale(this.highlight ? this.highlightTarget : this.data1.targetValue) + 5,
@@ -875,8 +899,9 @@ module powerbi.extensibility.visual {
                     ry: 20
                 }).style({
                     fill: 'transparent',
-                    'stroke-width': this.highlight? this.highlightTarget >= this.data1.min && this.highlightTarget <= this.data1.max ? 1 : 0 : 1,
-                    stroke: targetFill,
+                    'stroke-width':
+                    this.highlight ? this.highlightTarget >= this.data1.min && this.highlightTarget <= this.data1.max ? 1 : 0 : 1,
+                    stroke: targetFill
                 });
             } else {
                 this.targetCircle.style('stroke', 'transparent');
@@ -884,8 +909,8 @@ module powerbi.extensibility.visual {
 
             //target range circle which is less than targetcircle
             if (this.data1.targetRange === true && this.data1.Less) {
-                this.LessCircle.attr({
-                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                this.lessCircle.attr({
+                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: yscale(this.data1.Less) + 5,
@@ -894,19 +919,19 @@ module powerbi.extensibility.visual {
                 }).style({
                     fill: 'transparent',
                     'stroke-width': 1,
-                    stroke: LessFill,
+                    stroke: lessFill,
                     'stroke-dasharray': '0 4',
                     'stroke-linecap': 'round'
                 });
             } else {
-                this.LessCircle.style('stroke', 'transparent');
+                this.lessCircle.style('stroke', 'transparent');
             }
 
            //target range circle which is greater than targetcircle
 
-           if (this.data1.targetRange == true && this.data1.Greater){
-                this.GreaterCircle.attr({
-                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+            if (this.data1.targetRange === true && this.data1.Greater) {
+                this.greaterCircle.attr({
+                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: yscale(this.data1.Greater) + 5,
@@ -916,16 +941,16 @@ module powerbi.extensibility.visual {
                 .style({
                     fill: 'transparent',
                     'stroke-width': 1,
-                    stroke: GreaterFill,
+                    stroke: greaterFill,
                     'stroke-dasharray': '0 4',
                     'stroke-linecap': 'round'
                 });
             } else {
-                this.GreaterCircle.style('stroke', 'transparent');
+                this.greaterCircle.style('stroke', 'transparent');
             }
 
             this.bottomCircle.attr({
-                cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                                 width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                                 : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                 cy: yscale(this.data1.value),
@@ -944,20 +969,24 @@ module powerbi.extensibility.visual {
                 .attr('cy', percentage)
                 .attr('cy', yscale(this.data1.value) + 5);
 
-            if (this.settings.showZones)
-            {
-                this.highlightCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5 : width / 2 - this.margins.small - 5);
-                this.fillCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5 : width / 2 - this.margins.small - 5);
-                this.bottomCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5 : width / 2 - this.margins.small - 5);
+            if (this.settings.showZones) {
+                this.highlightCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
+                : width / 2 - this.margins.small - 5);
+                this.fillCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
+                : width / 2 - this.margins.small - 5);
+                this.bottomCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
+                 : width / 2 - this.margins.small - 5);
                 this.fillRect1.attr({
                     x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5 + 5
                                                                 : this.margins.small / 2 + 5 : this.margins.small + 5,
-                    width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big - 10: width - 2 * this.margins.small - 10
+                    width
+                    : this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big - 10 : width - 2 * this.margins.small - 10
                 });
                 this.fillRect2.attr({
                     x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5 + 5
                                                                 : this.margins.small / 2  + 5 : this.margins.small + 5,
-                    width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big - 10: width - 2 * this.margins.small - 10
+                    width
+                    : this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big - 10 : width - 2 * this.margins.small - 10
                 });
             }
         }
@@ -1005,24 +1034,22 @@ module powerbi.extensibility.visual {
             d3.select('.yLabels.axis').attr('visibility', 'visible');
             // tslint:disable-next-line:no-any
             let y: any; let yAxis: any;
-            const tickData = [];
-            let icount;
+            const tickData: number[] = [];
+            let icount: number;
             y = d3.scale.linear()
                 .range([rectHeight, this.margins.bottom])
                 .domain([this.data1.min, this.data1.max]);
-            const interval = (this.data1.max - this.data1.min) / 4;
+            const interval: number = (this.data1.max - this.data1.min) / 4;
 
             tickData[0] = this.data1.min;
-            for (icount = 1; icount < 5; icount++)
-            {
+            for (icount = 1; icount < 5; icount++) {
                 tickData[icount] = tickData[icount - 1] + interval;
             }
 
-            let maxTickwidth: number = 0;            
+            let maxTickwidth: number = 0;
             let tickwidth: number = 0;
             // for calculating the position of the axis
-            for (icount = 0; icount < 5; icount++)
-            {
+            for (icount = 0; icount < 5; icount++) {
                 const measureTextProperties: TextProperties = {
                     text: this.tickValueFormatter.format(tickData[icount]),
                     fontFamily: this.settings.tickFontFamily,
@@ -1030,8 +1057,8 @@ module powerbi.extensibility.visual {
                 };
                 tickwidth = textMeasurementService.measureSvgTextWidth(measureTextProperties);
                 maxTickwidth = (maxTickwidth < tickwidth ? tickwidth : maxTickwidth);
-            }    
-            this.margins.big = maxTickwidth;        
+            }
+            this.margins.big = maxTickwidth;
 
             yAxis = d3.svg.axis().scale(y)
                 .ticks(4)
@@ -1039,9 +1066,9 @@ module powerbi.extensibility.visual {
                 .tickValues(tickData)
                 .tickFormat(this.tickValueFormatter.format);
 
-            let translation: number = this.settings.scalePosition === 'left' ?
+            const translation: number = this.settings.scalePosition === 'left' ?
                                         this.margins.big + this.margins.small : width - this.margins.big - this.margins.small;
-            let transformPos: string = `${'translate('}${translation}${', 2)'}`;
+            const transformPos: string = `${'translate('}${translation}${', 2)'}`;
             this.tempMarkings
                 .attr('transform', transformPos)
                 .style({
@@ -1051,11 +1078,11 @@ module powerbi.extensibility.visual {
                     fill: this.settings.tickColor
                 })
                 .call(yAxis);
-              
+
             if (height) {
                 this.tempMarkings.selectAll('.axis line, .axis path').style({
                     stroke: this.settings.tickColor,
-                    fill: 'none',
+                    fill: 'none'
                 });
             }
             if (this.data1.value) {
@@ -1063,18 +1090,18 @@ module powerbi.extensibility.visual {
                 .attr({
                     stroke: this.settings.rectFill1,
                     'stroke-width' : 3,
-                    'x1': this.settings.scalePosition === 'left' ?
+                    x1: this.settings.scalePosition === 'left' ?
                             this.margins.big + this.margins.small : width - this.margins.big - this.margins.small,
-                    'y1': y(this.data1.min) + 2,
-                    'x2': this.settings.scalePosition === 'left' ?
+                    y1: y(this.data1.min) + 2,
+                    x2: this.settings.scalePosition === 'left' ?
                             this.margins.big + this.margins.small : width - this.margins.big - this.margins.small,
-                    'y2': y(this.data1.min) + 2
+                    y2: y(this.data1.min) + 2
                 })
                 .transition().duration(animationTime)
                 .attr({
-                    'y1': this.highlight ? y(this.highlightValue) : y(this.data1.value) + 2,
-                    'y2': y(this.data1.min) + 2
-                })
+                    y1: this.highlight ? y(this.highlightValue) : y(this.data1.value) + 2,
+                    y2: y(this.data1.min) + 2
+                });
             }
             //tooltip information adding
             const tooptipFormatter: utils.formatting.IValueFormatter = ValueFormatter.create({
@@ -1089,13 +1116,13 @@ module powerbi.extensibility.visual {
 
             const ticks: JQuery = $('.yLabels.axis>.tick');
             // tslint:disable-next-line:no-any
-            const domPositon_tick1: any = ticks[0].getBoundingClientRect();
+            const domPositonTick1: any = ticks[0].getBoundingClientRect();
             // tslint:disable-next-line:no-any
-            const domPositon_tick2: any = ticks[1].getBoundingClientRect();
-            const overlap : boolean = !(domPositon_tick1.right < domPositon_tick2.left ||
-                domPositon_tick1.left > domPositon_tick2.right ||
-                domPositon_tick1.bottom < domPositon_tick2.top ||
-                domPositon_tick1.top > domPositon_tick2.bottom)
+            const domPositonTick2: any = ticks[1].getBoundingClientRect();
+            const overlap : boolean = !(domPositonTick1.right < domPositonTick2.left ||
+                domPositonTick1.left > domPositonTick2.right ||
+                domPositonTick1.bottom < domPositonTick2.top ||
+                domPositonTick1.top > domPositonTick2.bottom);
             if (overlap) {
                 $('.yLabels.axis').remove();
                 $('.highlight_line').remove();
@@ -1106,9 +1133,6 @@ module powerbi.extensibility.visual {
            // const fill: string = this.settings.fillColor;
             const min: number = this.data1.min;
             const max: number = this.data1.max;
-            const Target: number = this.data1.targetValue;
-            const Targetcircle1 = this.data1.Greater;
-            const Targetcircle2 = this.data1.Less;
             const value: number = this.data1.value > max ? max : this.data1.value;
             const rectHeight: number = height - radius / 2;
             const minMaxDiff: number = max - min === 0 ? 1 : max - min;
@@ -1136,7 +1160,7 @@ module powerbi.extensibility.visual {
             if (this.settings.labelPos.toString() === 'in') {
                 d3.select('.labeltext')
                     .attr({
-                        x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                        x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                     width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                     : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                         y: yPos,
@@ -1146,7 +1170,7 @@ module powerbi.extensibility.visual {
                 if (this.settings.labelFontSize > 17) {
                     d3.select('.labeltext')
                         .attr({
-                            x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? 
+                            x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
                                                     width / 2 + this.margins.big / 2 + this.margins.small / 2
                                                     : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                             y: height,
@@ -1174,7 +1198,7 @@ module powerbi.extensibility.visual {
 
             return textMeasurementService.getTailoredTextOrDefault(measureTextProperties, width);
         }
-       
+
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
             // const instances: VisualObjectInstance[] = [];
             const dataView: DataView = this.dataView;
@@ -1192,42 +1216,42 @@ module powerbi.extensibility.visual {
             switch (objectName) {
                 case 'config':
                     props = {};
-                    props['rectFill1'] = this.settings.rectFill1;
-                    props['rectFill2'] = this.settings.rectFill2;
-                    props['circleFill1'] = this.settings.circleFill1;
-                    props['circleFill2'] = this.settings.circleFill2;
-                    props['animationTime'] = this.settings.animationTime;
-                    props['border'] = this.settings.borderColor;
-                    if (!this.isMin){
-                        props['min'] = this.settings.minValue;
+                    props.rectFill1 = this.settings.rectFill1;
+                    props.rectFill2 = this.settings.rectFill2;
+                    props.circleFill1 = this.settings.circleFill1;
+                    props.circleFill2 = this.settings.circleFill2;
+                    props.animationTime = this.settings.animationTime;
+                    props.border = this.settings.borderColor;
+                    if (!this.isMin) {
+                        props.min = this.settings.minValue;
                     }
-                    if (!this.isMax){
-                        props['max'] = this.settings.maxValue;
+                    if (!this.isMax) {
+                        props.max = this.settings.maxValue;
                     }
-                    if (!this.isTarget){
-                        props['target'] = this.settings.tarValue;
+                    if (!this.isTarget) {
+                        props.target = this.settings.tarValue;
                     }
-                    props['targetColor'] = this.settings.targetColor;
-                    props['targetRange'] = this.settings.targetRange;
-                    if (this.settings.targetRange) {    
-                        props['Greater'] = this.settings.Greater;
-                        props['GreaterColor'] = this.settings.GreaterColor;
-                        props['Less'] = this.settings.Less;
-                        props['LessColor'] = this.settings.LessColor;
+                    props.targetColor = this.settings.targetColor;
+                    props.targetRange = this.settings.targetRange;
+                    if (this.settings.targetRange) {
+                        props.Greater = this.settings.Greater;
+                        props.GreaterColor = this.settings.GreaterColor;
+                        props.Less = this.settings.Less;
+                        props.LessColor = this.settings.LessColor;
                     }
-                    props['tickBar'] = this.settings.tickBar;
+                    props.tickBar = this.settings.tickBar;
                     if (this.settings.tickBar) {
-                        props['tickColor'] = this.settings.tickColor;
-                        props['scalePos'] = this.settings.scalePosition;
-                        props['tickFontFamily'] = this.settings.tickFontFamily;
-                        props['fontSize'] = this.settings.tickFontSize;
-                        props['displayUnits'] = this.settings.tickDisplayUnits,
-                        props['decimalValue'] = this.settings.tickDecimalPlaces
+                        props.tickColor = this.settings.tickColor;
+                        props.scalePos = this.settings.scalePosition;
+                        props.tickFontFamily = this.settings.tickFontFamily;
+                        props.fontSize = this.settings.tickFontSize;
+                        props.displayUnits = this.settings.tickDisplayUnits;
+                        props.decimalValue = this.settings.tickDecimalPlaces;
                     }
                     objectEnum.push({
                         objectName: objectName,
                         properties: props,
-                        selector: null,
+                        selector: null
                     });
                     break;
                 case 'colorSelector':
@@ -1244,7 +1268,7 @@ module powerbi.extensibility.visual {
                             range4: this.settings.range4,
                             Zone4: this.settings.Zone4
                         },
-                        selector: null,
+                        selector: null
                     });
                     break;
                 case 'labels':
@@ -1259,12 +1283,13 @@ module powerbi.extensibility.visual {
                             displayUnits: this.settings.labelDisplayUnits,
                             decimalValue: this.settings.labelDecimalPlaces
                         },
-                        selector: null,
+                        selector: null
                     });
                     break;
                 default:
                     break;
             }
+
             return objectEnum;
         }
     }

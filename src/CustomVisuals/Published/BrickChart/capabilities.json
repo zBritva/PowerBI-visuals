@@ -31,13 +31,53 @@
             "displayName": "General",
             "properties": {
                 "borderColor": {
-                    "displayName": "Border Color",
+                    "displayName": "Border color",
                     "type": {
                         "fill": {
                             "solid": {
                                 "color": true
                             }
                         }
+                    }
+                }
+            }
+        },
+        "ComponentShape": {
+            "displayName": "Shape",
+            "description": "Select shape of the components",
+            "properties": {
+                "shape": {
+                    "displayName": "Box shape",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "square",
+                                "displayName": "Square"
+                            },
+                            {
+                                "value": "rectangle",
+                                "displayName": "Rectangle"
+                            }
+                        ]
+                    }
+                },
+                "Bricks": {
+                    "displayName": "Brick type",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Box",
+                                "displayName": "Block"
+                            },
+                            {
+                                "value": "circle",
+                                "displayName": "Dot"
+                            },
+                            {
+                                "value": "Diamond",
+                                "displayName": "Diamond"
+                            }
+                        ]
                     }
                 }
             }
@@ -74,25 +114,10 @@
                                 "displayName": "Left"
                             },
                             {
-                                "value": "TopCenter",
-                                "displayName": "Top Center"
-                            },
-                            {
-                                "value": "RightCenter",
-                                "displayName": "Right Center"
-                            },
-                            {
-                                "value": "BottomCenter",
-                                "displayName": "Bottom Center"
-                            },
-                            {
-                                "value": "LeftCenter",
-                                "displayName": "Left Center"
-                            },
-                            {
                                 "value": "None",
                                 "displayName": "None"
                             }
+                            
                         ]
                     }
                 },
@@ -104,7 +129,7 @@
                     }
                 },
                 "titleText": {
-                    "displayName": "Legend Name",
+                    "displayName": "Legend name",
                     "description": "Title text",
                     "type": {
                         "text": true
@@ -122,11 +147,63 @@
                     }
                 },
                 "fontSize": {
-                    "displayName": "Text Size",
+                    "displayName": "Font size",
                     "type": {
                         "formatting": {
                             "fontSize": true
                         }
+                    }
+                }
+            }
+        },
+        "gradientValue": {
+            "displayName": "Gradient",
+            "description": "Gradient Options",
+            "properties": {
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                }
+            }
+        },
+        "AnimationType": {
+            "displayName": "Animations",
+            "description": "Display Animations",
+            "properties": {
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "sqDot": {
+                    "displayName": "Animation",
+                    "description": "Animation with dot Square",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Animation 1",
+                                "displayName": "Stretch Right"
+                            },
+                            {
+                                "value": "Animation 2",
+                                "displayName": "Corner Stretch"
+                            },
+                            {
+                                "value": "Animation 3",
+                                "displayName": "Grow and Turn"
+                            },
+                            {
+                                "value": "Animation 4",
+                                "displayName": "Swivel Diagonal"
+                            },
+                            {
+                                "value": "Animation 5",
+                                "displayName": "Stack Left"
+                            }
+                        ]
                     }
                 }
             }
