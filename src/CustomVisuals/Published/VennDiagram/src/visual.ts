@@ -312,7 +312,7 @@ module powerbi.extensibility.visual {
         public combinations: any = [];
         // tslint:disable-next-line:no-any
         public radius: any = [];
-        public margin : number= 10;
+        public margin : number = 10;
         // tslint:disable-next-line:no-any
         public finalDataSet: any = [];
         // tslint:disable-next-line:no-any
@@ -351,6 +351,7 @@ module powerbi.extensibility.visual {
         private legendData : any;
 
         public static getValue<T>(dataView: DataView, key: string, defaultValue: T): T {
+
             if (dataView) {
                 let objects: DataViewObjects;
                 objects = dataView.metadata.objects;
@@ -371,7 +372,7 @@ module powerbi.extensibility.visual {
         }
 
         // tslint:disable-next-line:cyclomatic-complexity no-any no-shadowed-variable
-        public getLegendData(dataView: DataView, IVennDataPoint : any, host: IVisualHost): LegendData {
+        public getLegendData(dataView: DataView, IVennDataPoint: any, host: IVisualHost): LegendData {
             let legendSetting: ILegendSetting;
             legendSetting = this.getLegendSettings(this.dataViews);
             let measureSum: number;
@@ -401,6 +402,7 @@ module powerbi.extensibility.visual {
             sumObj = {};
             let totalSum : number = 0;
             // logic to calculate value of each legend item
+
             for (let k : number = 0; k < IVennDataPoint.length; k++) {
                 // tslint:disable-next-line:no-any
                 let currentDataPoint : any;
@@ -1375,7 +1377,7 @@ module powerbi.extensibility.visual {
             maxVal = Math.max.apply(null, this.finalUpdatedSingleObjectsValues);
             // Add tooltip
             // tslint:disable-next-line:no-any
-            let tooltipData : any[];
+            let tooltipData: {}[];
             tooltipData = [];
             tooltipData.push({ key : this.finalSingleObjects[0],
             value: this.getFormattedData(this.finalUpdatedSingleObjectsValues[0], 0, 1, maxVal) }); // A
@@ -1572,6 +1574,7 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:no-any
         public drawThreeObjects(width: number, height: number, marginX: number, marginY: number, color: any) : void {
+
             let labelSettings: ILabelSettings;
             labelSettings = this.getLabelSettings(this.dataViews);
             let opSettings: IOpacitySettings;
