@@ -1,5 +1,5 @@
 {
-    "PBI_API_VERSION": "v1.8.0",
+    "PBI_API_VERSION": "v2.1.0",
     "type": "object",
     "properties": {
         "dataRoles": {
@@ -19,6 +19,9 @@
         "objects": {
             "$ref": "#/definitions/objects"
         },
+        "tooltips": {
+            "$ref": "#/definitions/tooltips"
+        },
         "sorting": {
             "$ref": "#/definitions/sorting"
         },
@@ -28,6 +31,10 @@
         "suppressDefaultTitle": {
             "type": "boolean",
             "description": "Indicates whether the visual should show a default title"
+        },
+        "supportsKeyboardFocus": {
+            "type": "boolean",
+            "description": "Allows the visual to receive focus through keyboard navigation"
         },
         "supportsHighlight": {
             "type": "boolean",
@@ -63,6 +70,10 @@
                 "description": {
                     "type": "string",
                     "description": "A description of this role shown to the user as a tooltip"
+                },
+                "descriptionKey": {
+                    "type": "string",
+                    "description": "The localization key for the description in the stringResourced file"
                 },
                 "preferredTypes": {
                     "type": "array",
@@ -643,6 +654,10 @@
                             "type": "string",
                             "description": "A description of this object shown to the user as a tooltip"
                         },
+                        "descriptionKey": {
+                            "type": "string",
+                            "description": "The localization key for the description in the stringResourced file"
+                        },
                         "properties": {
                             "type": "object",
                             "description": "A list of unique properties contained in this group",
@@ -659,6 +674,33 @@
             },
             "additionalProperties": false
         },
+        "tooltips": {
+            "type": "object",
+            "description": "Instructs the host to include tooltips ability",
+            "properties": {
+                "supportedTypes": {
+                    "type": "object",
+                    "description": "Instructs the host what tooltip types to support",
+                    "properties": {
+                        "default": {
+                            "type": "boolean",
+                            "description": "Instructs the host to support showing default tooltips"
+                        },
+                        "canvas": {
+                            "type": "boolean",
+                            "description": "Instructs the host to support showing canvas tooltips"
+                        }
+                    }
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "The name of the data role to bind the tooltips selected info to"
+                    }
+                }
+            }
+        },
         "object.propertySettings": {
             "type": "object",
             "description": "Settings for a property",
@@ -674,6 +716,10 @@
                 "description": {
                     "type": "string",
                     "description": "A description of this property shown to the user as a tooltip"
+                },
+                "descriptionKey": {
+                    "type": "string",
+                    "description": "The localization key for the description in the stringResourced file"
                 },
                 "placeHolderText": {
                     "type": "string",
