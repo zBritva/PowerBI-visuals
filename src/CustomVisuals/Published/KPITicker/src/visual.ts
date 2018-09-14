@@ -274,7 +274,30 @@ module powerbi.extensibility.visual {
                 }
             }
             // storing all the data in one variable
-            KPITicker.oData = KPITicker.oDataView.table.rows;
+            const len: number = KPITicker.oDataView.categorical.categories[0].values.length;
+            const categoriesLength: number = KPITicker.oDataView.categorical.categories.length;
+            const valuesLength: number = KPITicker.oDataView.categorical.values.length;
+            const cLength: number = KPITicker.oDataView.metadata.columns.length;
+
+            let iRow : number;
+            let iColumn : number ;
+            let kIterator: number = 0;
+            let jIterator: number = 0;
+            // tslint:disable-next-line:no-any
+            const rows1: any[] = [];
+            for (iRow = 0; iRow < len; iRow++) {
+                rows1[iRow] = [];
+                kIterator = 0 , jIterator = 0;
+                for (iColumn = 0; iColumn < cLength; iColumn++) {
+                    if (KPITicker.oDataView.metadata.columns[iColumn].isMeasure === true) {
+                        rows1[iRow][iColumn] = KPITicker.oDataView.categorical.values[kIterator++].values[iRow] ;
+                    } else {
+                        rows1[iRow][iColumn] = KPITicker.oDataView.categorical.categories[jIterator++].values[iRow] ;
+                    }
+                }
+            }
+
+            KPITicker.oData = rows1;
             // empty the main div when update is called
             $('#wrapper').empty();
             $('#scrollArrows').empty();

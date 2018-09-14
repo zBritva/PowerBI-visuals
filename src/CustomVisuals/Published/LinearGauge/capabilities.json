@@ -1,6 +1,11 @@
 {
     "dataRoles": [
         {
+            "name": "Category",
+            "kind": "Grouping",
+            "displayName": "Category"
+        },
+        {
             "name": "Y",
             "kind": "Measure",
             "displayName": "Actual value",
@@ -71,6 +76,11 @@
             ]
         }
     ],
+    "drilldown": {
+        "roles": [
+            "Category"
+        ]
+    },
     "objects":{
         "ChartOrientation": {
             "displayName": "Orientation",
@@ -102,6 +112,22 @@
                     "displayName": "Show",
                     "type": {
                         "bool": true
+                    }
+                },
+                "position": {
+                    "displayName": "Target label position",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "topLeft",
+                                "displayName": "Top left"
+                            },
+                            {
+                                "value": "aboveMarker",
+                                "displayName": "Above the marker"
+                            }
+                        ]
+
                     }
                 },
                 "fill": {
@@ -309,9 +335,110 @@
                      }
                 }
                     
+            }
+        },
+        "categorySettings": {
+            "displayName": "Category legend",
+            "properties": {
+                "fontSize": {
+                    "displayName": "Font size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "title": {
+                    "displayName": "Title",
+                    "type": {
+                        "bool":true
+                    }
+                },
+                "color": {
+                    "displayName": "Text color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "position":{
+                    "displayName": "Legend position",
+                    "type": {
+                         "enumeration":[
+                             {
+                                 "value": "Top",
+                                 "displayName": "Top"
+                             },
+                             {
+                                "value": "Top center",
+                                 "displayName": "Top center"
+                             },
+                             {
+                                "value": "Bottom",
+                                 "displayName": "Bottom"
+                             },
+                             {
+                                 "value": "Bottom center",
+                                 "displayName": "Bottom center"
+                             },
+                             {
+                                "value": "Left",
+                                 "displayName": "Left"
+                             },
+                             {
+                                "value": "Left center",
+                                 "displayName": "Left center"
+                             },
+                             {
+                                "value": "Right",
+                                 "displayName": "Right"
+                             },
+                             {
+                                "value": "Right center",
+                                 "displayName": "Right center"
+                             }
+                         ]
+                     }
                 }
-            },
-        
+            }
+        },
+        "colors": {
+            "displayName": "Data colors",
+            "properties": {
+                "fillColor": {
+                    "displayName": "Colors",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "animationEffect": {
+            "displayName": "Animation",
+            "properties": {
+                "show":{
+                    "displayName": "show",
+                    "description": "Animation toggle",
+                    "type":{
+                        "bool": true
+                    }
+                },
+               "animationTime": {
+                    "displayName": "Animation duration",
+				    "description": "Select the fill time (0 - 6 sec)",
+				    "type": {
+					    "numeric": true
+    			    }
+			    }
+            }
+        },
         "ScaleSettings": {
             "displayName": "Scale",
             "properties": {
@@ -497,6 +624,22 @@
                         "bool": true
                     }
                 },
+                "fillOption": {
+                    "displayName": "Fill option",
+                    "description": "Background fill based on values or percentage",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "value",
+                                "displayName": "Value"
+                            },
+                            {
+                                "value": "percentage",
+                                "displayName": "Percentage"
+                            }
+                        ]
+                    } 
+                },
                 "range1": {
                     "displayName": "Zone 1 value",
                     "type": {
@@ -557,6 +700,63 @@
                 "Zone4": {
                     "displayName": "Zone 4 color",
                     "description": "Option to set color of zone 4",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "percentage1": {
+                    "displayName": "Zone 1 value",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "area1": {
+                    "displayName": "Zone 1 color",
+                    "description": "Option to set color of zone 1",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "percentage2": {
+                    "displayName": "Zone 2 Value",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "area2": {
+                    "displayName": "Zone 2 color",
+                    "description": "Option to set color of zone 1",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "percentage3": {
+                    "displayName": "Zone 3 Value",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "area3": {
+                    "displayName": "Zone 3 color",
+                    "description": "Option to set color of zone 1",
                     "type": {
                         "fill": {
                             "solid": {
@@ -1024,11 +1224,13 @@
             }
         }
     },
-    
     "dataViewMappings": [
         {
             "conditions": [
                 {
+                    "Category": {
+						"max": 1
+                    },
                     "Y": {
                         "max": 1
                     },
@@ -1053,6 +1255,15 @@
                 }
             ],
             "categorical": {
+                "categories": {
+					"select": [
+						{
+							"for": {
+								"in": "Category"
+							}
+                        }
+					]
+				},
                 "values": {
                     "select": [
                         {

@@ -53,7 +53,9 @@
                 }
               ],
               "dataReductionAlgorithm": {
-                "top": {"count": 10000}
+                "top": {
+                  "count": 10000
+                }
               }
             }
           }
@@ -94,32 +96,51 @@
       "displayName": "Clustering settings",
       "description": "Settings to control clusters",
       "properties": {
+        "parameterSettings": {
+          "displayName": "Parameter setting",
+          "description": "Set the parameters for the Clustering using OPTICS",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Auto",
+                "value": "Auto"
+              },
+              {
+                "displayName": "User defined",
+                "value": "Manual"
+              }
+            ]
+          }
+        },
         "scaling": {
           "displayName": "Data scaling",
           "description": "Enable data scaling",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "epsilon": {
           "displayName": "Epsilon neighbours",
           "description": "It is the upper limit of the size of the epsilon neighborhood. Limiting the neighborhood size improves performance and has no or very little impact on the ordering as long as it is not set too low",
+          "placeHolderText": "Auto",
           "type": {
-            "numeric": true 
+            "numeric": true
           }
         },
         "minptsClust": {
           "displayName": "Min number of points in a cluster",
           "description": "Number of minimum points in the threshold region. The parameter is used to identify dense neighborhoods and the reachability distance is calculated as the distance to the minPts nearest neighbor",
+          "placeHolderText": "Auto",
           "type": {
-            "numeric": true 
+            "numeric": true
           }
         },
         "steepThres": {
           "displayName": "Steepness threshold",
           "description": "Between 0 to 1. Steepness threshold to identify clusters hierarchically using the Xi method",
+          "placeHolderText": "Auto",
           "type": {
-            "numeric": true 
+            "numeric": true
           }
         }
       }
@@ -132,7 +153,7 @@
           "displayName": "Title",
           "description": "Title",
           "type": {
-            "text": true 
+            "text": true
           }
         },
         "plotColor": {
@@ -149,40 +170,41 @@
       }
     },
     "xaxisSettings": {
-      "displayName": "X axis settings",
-      "description": "Appereance settings for x axis",
+      "displayName": "X-Axis",
+      "description": "Appereance settings for X-Axis",
       "properties": {
         "xTitle": {
-          "displayName": "X title",
-          "description": "X title",
+          "displayName": "Title",
+          "description": "Title",
+          "placeHolderText": "Auto",
           "type": {
-            "text": true 
+            "text": true
           }
         },
         "xZeroline": {
-          "displayName": "X zeroline",
-          "description": "X zeroline",
+          "displayName": "Zeroline",
+          "description": "Zeroline",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "xLabels": {
-          "displayName": "X labels",
-          "description": "X labels",
+          "displayName": "Labels",
+          "description": "Labels",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "xGrid": {
-          "displayName": "X gridlines",
-          "description": "X gridlines",
+          "displayName": "Gridlines",
+          "description": "Gridlines",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "xGridCol": {
-          "displayName": "X grid color",
-          "description": "Color of x grid lines",
+          "displayName": "Gridlines color",
+          "description": "Color of gridlines",
           "type": {
             "fill": {
               "solid": {
@@ -192,22 +214,22 @@
           }
         },
         "xGridWidth": {
-          "displayName": "X grid width",
-          "description": "Width of x grid lines",
+          "displayName": "Gridlines width",
+          "description": "Width of gridlines",
           "type": {
-            "numeric": true 
+            "numeric": true
           }
         },
         "xAxisBaseLine": {
-          "displayName": "X base line",
-          "description": "X base line",
+          "displayName": "Baseline",
+          "description": "Baseline",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "xAxisBaseLineCol": {
-          "displayName": "X base line color",
-          "description": "Color of x axis base line",
+          "displayName": "Baseline color",
+          "description": "Color of baseline",
           "type": {
             "fill": {
               "solid": {
@@ -217,49 +239,50 @@
           }
         },
         "xAxisBaseLineWidth": {
-          "displayName": "X base line width",
-          "description": "Width of x axis base line",
+          "displayName": "Baseline width",
+          "description": "Width of baseline",
           "type": {
-            "numeric": true 
+            "numeric": true
           }
         }
       }
     },
     "yaxisSettings": {
-      "displayName": "Y axis settings",
-      "description": "Appereance settings for y axis",
+      "displayName": "Y-Axis",
+      "description": "Appereance settings for Y-Axis",
       "properties": {
         "yTitle": {
-          "displayName": "Y title",
-          "description": "Y title",
+          "displayName": "Title",
+          "description": "Title",
+          "placeHolderText": "Auto",
           "type": {
-            "text": true 
+            "text": true
           }
         },
         "yZeroline": {
-          "displayName": "Y zeroline",
-          "description": "Y zeroline",
+          "displayName": "Zeroline",
+          "description": "Zeroline",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "yLabels": {
-          "displayName": "Y label",
-          "description": "Y label",
+          "displayName": "Labels",
+          "description": "Labels",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "yGrid": {
-          "displayName": "Y grid lines",
-          "description": "Y grid lines",
+          "displayName": "Gridlines",
+          "description": "Gridlines",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "yGridCol": {
-          "displayName": "Y grid line color",
-          "description": "Color of y grid lines",
+          "displayName": "Gridlines color",
+          "description": "Color of gridlines",
           "type": {
             "fill": {
               "solid": {
@@ -269,22 +292,22 @@
           }
         },
         "yGridWidth": {
-          "displayName": "Y grid line width",
-          "description": "Width of y grid lines",
+          "displayName": "Gridlines width",
+          "description": "Width of gridlines",
           "type": {
-            "numeric": true 
+            "numeric": true
           }
         },
         "yAxisBaseLine": {
-          "displayName": "Y base line",
-          "description": "Y base line",
+          "displayName": "Baseline",
+          "description": "Baseline",
           "type": {
-            "bool": true 
+            "bool": true
           }
         },
         "yAxisBaseLineCol": {
-          "displayName": "Y base line color",
-          "description": "Color of y base line",
+          "displayName": "Baseline color",
+          "description": "Color of baseline",
           "type": {
             "fill": {
               "solid": {
@@ -294,10 +317,10 @@
           }
         },
         "yAxisBaseLineWidth": {
-          "displayName": "Y base line width",
-          "description": "Width of y base line",
+          "displayName": "Baseline width",
+          "description": "Width of baseline",
           "type": {
-            "numeric": true 
+            "numeric": true
           }
         }
       }

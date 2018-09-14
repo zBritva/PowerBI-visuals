@@ -36,6 +36,7 @@ module powerbi.extensibility.visual {
     ];
 
     export interface IClusterSettings {
+        parameterSettings: string;
         scaling: boolean;
         epsilon: number;
         minptsClust: number;
@@ -76,6 +77,7 @@ module powerbi.extensibility.visual {
             this.bodyNodes = [];
 
             this.clusterSettings = {
+                parameterSettings: 'Auto',
                 scaling: false,
                 epsilon: 1,
                 minptsClust: 10,
@@ -192,13 +194,16 @@ module powerbi.extensibility.visual {
 
         public updateObjects(objects: DataViewObjects): void {
             const scaling: boolean = getValue<boolean>(objects, 'clusterSettings', 'scaling', false);
-            let epsilon: number = getValue<number>(objects, 'clusterSettings', 'epsilon', 1);
-            epsilon = epsilon < 1 ? 1 : getValue<number>(objects, 'clusterSettings', 'epsilon', 1);
-            let minptsClust: number = getValue<number>(objects, 'clusterSettings', 'minptsClust', 10);
-            minptsClust = minptsClust < 1 ? 10 : getValue<number>(objects, 'clusterSettings', 'minptsClust', 10);
-            let steepThres: number = getValue<number>(objects, 'clusterSettings', 'steepThres', 0.08);
-            steepThres = steepThres <= 0 ? 0.08 :
-                steepThres >= 1 ? 0.08 : getValue<number>(objects, 'clusterSettings', 'steepThres', 0.08);
+            let epsilon: number = getValue<number>(objects, 'clusterSettings', 'epsilon', null);
+            if (epsilon !== null) {
+                epsilon = epsilon < 1 ? 1 : epsilon;
+            }
+            //const parameterSettings: string = getValue<string>(objects, 'clusterSettings', 'parameterSettings', 'Auto');
+            let minptsClust: number = getValue<number>(objects, 'clusterSettings', 'minptsClust', null);
+            // minptsClust = minptsClust < 1 ? 10 : getValue<number>(objects, 'clusterSettings', 'minptsClust', 10);
+            let steepThres: number = getValue<number>(objects, 'clusterSettings', 'steepThres', null);
+            // steepThres = steepThres <= 0 ? 0.08 :
+            //     steepThres >= 1 ? 0.08 : getValue<number>(objects, 'clusterSettings', 'steepThres', 0.08);
             let xGridWidth: number = getValue<number>(objects, 'xaxisSettings', 'xGridWidth', 0.1);
             xGridWidth = xGridWidth < 0.1 ? 0.1 : xGridWidth > 5 ? 0.1 : getValue<number>(objects, 'xaxisSettings', 'xGridWidth', 0.1);
             let xAxisBaseLineWidth: number = getValue<number>(objects, 'xaxisSettings', 'xAxisBaseLineWidth', 4);
@@ -212,6 +217,7 @@ module powerbi.extensibility.visual {
                 yAxisBaseLineWidth > 11 ? 4 : getValue<number>(objects, 'yaxisSettings', 'yAxisBaseLineWidth', 4);
 
             this.clusterSettings = {
+                parameterSettings: getValue<string>(objects, 'clusterSettings', 'parameterSettings', 'Auto'),
                 scaling: scaling,
                 epsilon: epsilon,
                 minptsClust: minptsClust,
@@ -259,19 +265,24 @@ module powerbi.extensibility.visual {
             objectName = options.objectName;
             let objectEnum: VisualObjectInstance[];
             objectEnum = [];
+            let props: { [propertyName: string]: DataViewPropertyValue; };
             switch (objectName) {
                 case 'clusterSettings':
+                    props = {};
+                    props[`parameterSettings`] = this.clusterSettings.parameterSettings;
+                    props[`scaling`] = this.clusterSettings.scaling;                    
+                    if (this.clusterSettings.parameterSettings === 'Auto') {
+                    } else {
+                        props[`epsilon`] = this.clusterSettings.epsilon;
+                        props[`minptsClust`] = this.clusterSettings.minptsClust;
+                        props[`steepThres`] = this.clusterSettings.steepThres;
+                    }
                     objectEnum.push({
                         objectName: objectName,
-                        properties: {
-                            scaling: this.clusterSettings.scaling,
-                            epsilon: this.clusterSettings.epsilon,
-                            minptsClust: this.clusterSettings.minptsClust,
-                            steepThres: this.clusterSettings.steepThres
-
-                        },
+                        properties: props,
                         selector: null
                     });
+
                     break;
 
                 case 'plotSettings':
