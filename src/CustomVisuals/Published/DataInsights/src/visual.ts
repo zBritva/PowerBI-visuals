@@ -66,14 +66,35 @@ module powerbi.extensibility.visual {
         };
 
         const category: DataViewCategoryColumn = dataViews[0].categorical.categories[0];
-        const rows: DataViewTableRow[] = dataViews[0].table.rows;
-
+        const len: number  = dataViews[0].categorical.categories[0].values.length;
+        const categoriesLength: number = dataViews[0].categorical.categories.length;
+        const valuesLength: number = dataViews[0].categorical.values.length;
+        const cLength: number = dataViews[0].metadata.columns.length;
+        // tslint:disable-next-line:no-any
+        const rows1: any[] = [] ;
+        let iRow : number;
+        let iColumn : number ;
+        let kValue: number = 0;
+        let jValue: number = 0;
+        for (iRow = 0; iRow < len; iRow++) {
+            rows1[iRow] = [];
+            kValue = 0 , jValue = 0;
+            for (iColumn = 0; iColumn < cLength; iColumn++) {
+                if (dataViews[0].metadata.columns[iColumn].isMeasure === true) {
+            rows1[iRow][iColumn] = dataViews[0].categorical.values[kValue++].values[iRow] ;
+            } else {
+                rows1[iRow][iColumn] = dataViews[0].categorical.categories[jValue++].values[iRow];
+            }
+         }
+        }
+        // tslint:disable-next-line:no-any
+        const rows: any[] = rows1;
         viewModel.columns = dataViews[0].metadata.columns;
 
-        rows.forEach(function (row: DataViewTableRow, index: number): void {
+        rows.forEach(function (row: DataViewCategorical, index: number): void {
 
             viewModel.dataPoints.push({
-                value: <string[]>row,
+                value: <string[]> row,
                 index: index,
                 selectionId: host.createSelectionIdBuilder()
                     .withCategory(category, index)
@@ -125,6 +146,7 @@ module powerbi.extensibility.visual {
         private previousLength: number = 0;
         private renderedTime: number = 0;
         private top: number = 40;
+        private pixelLiteral : string = 'px';
         //undo variables
         private groupedColumnOld: number[] = [];
         private targetColumnOld: number[] = [];
@@ -504,7 +526,6 @@ module powerbi.extensibility.visual {
                         'data-id': function (datum: string, index: number): number { return index; }
                     });
             }
-
             //Hide X and Y axis tabs from top menu pane when chart type is table
             if (thisObj.chartType === 'Table') {
                 $('li.menuX').hide();
@@ -540,6 +561,7 @@ module powerbi.extensibility.visual {
                         thisObj.undoPressed = true;
                         if (0 === thisObj.selectionsOld.length) {
                             thisObj.canUndo = false;
+                           // d3.select('.topCont').style('margin-bottom', '33px');
                         }
                         thisObj.renderChart();
                     }
@@ -728,7 +750,6 @@ module powerbi.extensibility.visual {
 
             thisObj.$yAxisLabel = $('.yAxisLabel');
             thisObj.renderYAxis(thisObj.yAxisCont, 'yAxis', 'yAxisLabel', 'yAxisColumn');
-
             /*For X Axis*/
             thisObj.xAxisCont
                 .append('p')
@@ -737,10 +758,10 @@ module powerbi.extensibility.visual {
                 .classed('xLabel', true)
                 .text(`X-axis: ${thisObj.viewModel.columns[thisObj.chartType.toLowerCase() === 'bar' ?
                     thisObj.targetColumn : thisObj.groupedColumn].displayName}`);
-
             d3.select('.presentationCont.xAxisLabel')
                 .style('margin-left', function (): string {
-                    const parentWidth: number = $('.presentationCont.xAxisLabel').width();
+                    let parentWidth : number;
+                    parentWidth = $('.presentationCont.xAxisLabel').width();
 
                     return `${(thisObj.width / 2) - (parentWidth / 2) - 40}px`;
                 })
@@ -2880,9 +2901,8 @@ module powerbi.extensibility.visual {
             }
             // here 20 ponits of length is decreased from renderHeight to provide extra space on increasing font
 
-            return subDivHeight - labelHeight - labelMarginBottom - 20 - colValueText - categoryHeight;
+            return subDivHeight - labelHeight - labelMarginBottom  - colValueText - categoryHeight;
         }
-
         // tslint:disable-next-line:no-any
         private renderLines(chartType: string, chart: any, index: number, data: any,
                             chartWidth: number, maxValue: number, minValue: number, averageValue: number): void {
@@ -2939,6 +2959,7 @@ module powerbi.extensibility.visual {
             const divConstantLine: string = 'constant';
             const pConstantLine: string = 'pConstant';
             const barPercent: number = thisObj.percentOfBar();
+
             // MAX LINE
             if (thisObj.maxLineIsOn) {
                 chart.append('div')
@@ -3355,8 +3376,8 @@ module powerbi.extensibility.visual {
                 });
             let renderHeight: number;
 
-            const colValueText: number = 15;
-            const categoryHeight: number = 16;
+            const colValueText: number = 10;
+            const categoryHeight: number = 11;
             renderHeight = thisObj.returnRenderHeight(subDivHeight, labelHeight, labelMarginBottom, colValueText, categoryHeight);
             innerSubDiv.append('p')
                 .classed('colValueText', true)
@@ -3375,13 +3396,14 @@ module powerbi.extensibility.visual {
                         thisObj.isCategory = false;
                     }
                     // tslint:disable-next-line:prefer-template
-                    let margin: string = (Math.floor(renderHeight - (styleSum / thisObj.maxValue) * 0.85 * renderHeight)) + 'px';
+                    let margin: number = (Math.floor(renderHeight - (styleSum / thisObj.maxValue) * 0.85 * renderHeight));
                     if (styleSum === 0) {
                         // tslint:disable-next-line:prefer-template
-                        margin = (Math.floor(renderHeight)) + 'px';
+                        margin = (Math.floor(renderHeight));
                     }
+                    const marginx : number = margin - thisObj.textSize + labelHeight;
 
-                    return margin;
+                    return (marginx.toString() + thisObj.pixelLiteral);
                 })
                 .style({
                     'font-size': `${this.settings.fontSettings.fontSize}px`,
@@ -3780,7 +3802,8 @@ module powerbi.extensibility.visual {
                         (Math.floor(renderHeight - (thisObj.constantLineValue / thisObj.maxValue) * 0.85 * renderHeight))
                         + thisObj.px)
 
-                    .style('margin-left', updatedLeftMargin())
+                    //.style('margin-left', updatedLeftMargin())
+                    .style('margin-left', `${thisObj.textWidth}px`)
                     .style('width', ((this.noOfColumns * 53) + this.noOfColumns + 7) + thisObj.px);
                 thisObj.renderStyles(constantLine + index, divConstantLine, pConstantLine, thisObj.constantLineStyle,
                                      thisObj.constantLineFill, thisObj.constantLineOpacity, thisObj.constantLineValue);
@@ -3950,13 +3973,14 @@ module powerbi.extensibility.visual {
                         thisObj.isCategory = false;
                     }
                     // tslint:disable-next-line:prefer-template
-                    let margin: string = (Math.floor(renderHeight - (styleSum / thisObj.maxValue) * 0.85 * renderHeight)) + 'px';
+                    let margin: number = (Math.floor(renderHeight - (styleSum / thisObj.maxValue) * 0.85 * renderHeight));
                     if (styleSum === 0) {
                         // tslint:disable-next-line:prefer-template
-                        margin = (Math.floor(renderHeight)) + 'px';
+                        margin = (Math.floor(renderHeight));
                     }
+                    const marginx : number = margin - thisObj.textSize + labelHeight;
 
-                    return margin;
+                    return (marginx.toString() + thisObj.pixelLiteral);
                 })
                 .style({
                     'font-size': `${this.settings.fontSettings.fontSize}px`,
@@ -4125,7 +4149,7 @@ module powerbi.extensibility.visual {
             const chartWdth: number = thisObj.returnChartWidth(chartWidth);
             const updatedLeftMargin: () => string = function (): string {
                 return (thisObj.maxLineDataLabel === true || thisObj.minLineDataLabel === true
-                    || thisObj.avgLineDataLabel === true || thisObj.constantLineDataLabel === true) ? '51px' : '21px';
+                    || thisObj.avgLineDataLabel === true || thisObj.constantLineDataLabel === true) ? `${thisObj.textWidth + 5}px` : '21px';
             };
             if (thisObj.maxLineIsOn) {
                 if (thisObj.maxLineDataLabel) {
@@ -4165,8 +4189,8 @@ module powerbi.extensibility.visual {
                     .classed(divMaxLine, true)
                     .classed(maxLine + index, true)
                     .style('top', thisObj.isCategory ? Math.floor(renderHeight) +
-                        labelHeight + labelMarginBottom + thisObj.px
-                        : labelHeight + labelMarginBottom +
+                        labelHeight + 16 + thisObj.px
+                        : labelHeight + labelMarginBottom  +
                         (Math.floor(renderHeight - 0.85 * renderHeight)) + thisObj.px)
                     .style('margin-left', updatedLeftMargin())
                     .style('width', function (): string {
@@ -4230,7 +4254,6 @@ module powerbi.extensibility.visual {
                         return totalSum + 'px';
                     })
                     .style('margin-left', updatedLeftMargin())
-
                     .style('width', function (): string {
                         thisObj.tooltipServiceWrapper.addTooltip(d3.select(this),
                                                                  (tooltipEvent: TooltipEventArgs<number>) =>
@@ -4477,7 +4500,8 @@ module powerbi.extensibility.visual {
                 }
             };
 
-            const rows: DataViewTableRow[] = [];
+            // tslint:disable-next-line:no-any
+            const rows: any[] = [];
             // tslint:disable-next-line:no-any
             let array: any[] = [];
 
@@ -5184,7 +5208,7 @@ module powerbi.extensibility.visual {
                                         value = d3.sum(dat, function (dataIterator: any): number {
 
                                             if (dataIterator[`value`][thisObj.targetColumn] === null ||
-                                                isNaN(Number(dataIterator[`value`][thisObj.targetColumn].toString()))) {
+                                                isNaN(Number(dataIterator[`value`][thisObj.targetColumn]))) {
 
                                                 return 0;
                                             } else {
@@ -5262,7 +5286,6 @@ module powerbi.extensibility.visual {
             }
 
             for (let legendIterator: number = 0; legendIterator < this.barcolor.length; legendIterator++) {
-
                 legendData.dataPoints.push({
                     label: this.barcolor[legendIterator].key.toString(),
                     color: this.barcolor[legendIterator].value,
@@ -5297,7 +5320,7 @@ module powerbi.extensibility.visual {
                 return colorByValues.indexOf(item) === pos;
             });
             thisObj.colorByValuesLength = uniqueColorByValues.length;
-
+            const tabwidth: number = 95; //presentation tab width
             let totalCategories: number;
             const margin: number = 30;
             totalCategories = thisObj.selectionIndexes.length === 0 ? categories.length : category.length;
@@ -5318,12 +5341,12 @@ module powerbi.extensibility.visual {
                 this.countOfMenuItems = thisObj.countOfMenuItems - 2;
                 //min from 95 as 5% goes for margin
                 d3.selectAll('li')
-                    .style('width', `${Math.floor(95 / thisObj.countOfMenuItems)}` + '%');
+                    .style('width', `${Math.floor(tabwidth / thisObj.countOfMenuItems)}` + '%');
             } else {
                 this.countOfMenuItems = thisObj.countOfMenuItems - 1;
                 //min from 95 as 5% goes for margin
                 d3.selectAll('li')
-                    .style('width', `${Math.floor(95 / thisObj.countOfMenuItems)}` + '%');
+                    .style('width', `${Math.floor(tabwidth / thisObj.countOfMenuItems)}` + '%');
             }
             if (thisObj.numberCategory) {
                 //Checks if bin and  undo button is displayed and accordingly calculate  no. of menu items and sets width for each li in  %
@@ -5332,12 +5355,12 @@ module powerbi.extensibility.visual {
                     this.countOfMenuItems = thisObj.countOfMenuItems - 1;
                     //min from 95 as 5% goes for margin
                     d3.selectAll('li')
-                        .style('width', `${Math.floor(95 / thisObj.countOfMenuItems)}` + '%');
+                        .style('width', `${Math.floor(tabwidth / thisObj.countOfMenuItems)}` + '%');
                 } else {
                     this.countOfMenuItems = thisObj.countOfMenuItems;
                     //min from 95 as 5% goes for margin
                     d3.selectAll('li')
-                        .style('width', `${Math.floor(95 / thisObj.countOfMenuItems)}` + '%');
+                        .style('width', `${Math.floor(tabwidth / thisObj.countOfMenuItems)}` + '%');
                 }
                 // tslint:disable-next-line:prefer-const
                 let countValues: {};
@@ -5615,7 +5638,6 @@ module powerbi.extensibility.visual {
                 Hence we need not have to realign the dropdown menus of other options*/
                 $('.menuColorBy').hide();
             }
-
             if (!thisObj.canUndo) {
                 thisObj.canUndo = true;
                 thisObj.cacheSelectionState();
@@ -5727,7 +5749,8 @@ module powerbi.extensibility.visual {
             if (thisObj.binColumn === -1 && thisObj.chartType.toLowerCase() !== 'bar') {
                 $('.label').hide();
             }
-            d3.selectAll('.legend').style('margin-left', '40px');
+            d3.selectAll('.legend').style('margin-left', '0px');
+           // .style('margin-top', '40px');
         }
 
         //Use persisted properties
@@ -5881,7 +5904,6 @@ module powerbi.extensibility.visual {
             };
             thisObj.textSize = TextMeasurementService.measureSvgTextHeight(textProperties);
             thisObj.textWidth = TextMeasurementService.measureSvgTextWidth(textProperties);
-
             d3.selectAll('.topCont').remove();
             thisObj.maxLineIsOn = this.settings.analytics.maxLine;
             thisObj.minLineIsOn = this.settings.analytics.minLine;
@@ -5959,7 +5981,8 @@ module powerbi.extensibility.visual {
                 d3.select('.colorByCont').style('left', $('.menuColorBy').position().left + thisObj.px);
             }
             d3.select('.presentationCont.xAxis').style('margin-left', function (): string {
-                const parentWidth: number = $(this).width();
+                let parentWidth: number;
+                parentWidth = $(this).width();
 
                 return `${(thisObj.width / 2) - (parentWidth / 2) - 30}px`;
             });
@@ -5976,6 +5999,7 @@ module powerbi.extensibility.visual {
                 let widthofTop3Elements: number = 0;
                 let widthofTop2Elements: number = 0;
                 let widthofTop1Elements: number = 0;
+                const marginbottom: number = 70;
                 const widthofTop7LiElements: number = 770;
                 const widthofTop6LiElements: number = 660;
                 const widthofTop3LiElements: number = 345;
@@ -6031,16 +6055,10 @@ module powerbi.extensibility.visual {
                 if (thisObj.width <= 1000) {
                     d3.select('.topCont').style({
                         // tslint:disable-next-line:prefer-template
-                        'margin-bottom': '33' + thisObj.px
+                        'margin-bottom': marginbottom + thisObj.px
                     });
                 }
-                //Margin Top for Legend is applied Relative with the chartwidth and <Li> elements
-                d3.select('.legend').style({
-                    'margin-top': thisObj.width >= widthofTop7LiElements
-                        ? 32 + thisObj.px : thisObj.width >= widthofTop6LiElements
-                            ? 40 + thisObj.px : thisObj.width >= widthofTop3LiElements
-                                ? 80 + thisObj.px : 126 + thisObj.px
-                });
+
                 if (thisObj.width <= widthofTop4LiElements && thisObj.width >= widthofTop3LiElements) {
                     d3.select('.mainCont').style({
                         // tslint:disable-next-line:prefer-template

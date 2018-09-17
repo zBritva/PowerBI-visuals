@@ -2,8 +2,10 @@
   "name": "kpiticker",
   "version": "1.0.0",
   "dependencies": {
+    "@types/d3": "^5.0.0",
     "d3": "^3.5.5",
     "jquery": "^3.2.1",
+    "powerbi-models": "^1.0.12",
     "powerbi-visuals-utils-chartutils": "^1.5.1",
     "powerbi-visuals-utils-dataviewutils": "^1.0.1",
     "powerbi-visuals-utils-svgutils": "^0.2.1",

@@ -2,7 +2,7 @@ Brief Description:
 Gantt chart with a grid that provides details of a task and additional key performance indicators (KPIs).
 
 Long Description:
-Gantt charts are used for scheduling and task management. Ordinary Gantt charts only display basic details such task IDs, names, and schedules. Gantt Chart by MAQ Software includes a grid that allows users to view data related to the task and the hierarchy of data categories. Users can sort the data based on any data point contained in the task.
+Gantt charts are used for scheduling and task management. Ordinary Gantt charts only display basic details such as task IDs, names, and schedules. Gantt Chart by MAQ Software includes a grid that allows users to view data related to the task and the hierarchy of data categories. Users can sort the data based on any data point contained in the task.
 
 With Gantt Chart by MAQ  Software, project managers can monitor project IDs, start times, end times, current status, project duration, project owners, and task priorities, as well as many other KPIs. Users can also view individual tasks and their progress.
 

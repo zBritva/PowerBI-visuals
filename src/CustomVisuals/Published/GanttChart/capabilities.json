@@ -3,6 +3,7 @@
     {
       "name": "Category",
       "displayName": "Category",
+      "description": "Maximum 4 columns",
       "kind": "Grouping"
     },
     {
@@ -30,15 +31,11 @@
       "name": "KPIValueBag",
       "displayName": "KPI",
       "kind": "Grouping"
-    },    
-    {
-      "name": "Color",
-      "displayName": "Color",
-      "kind": "Grouping"
     },
     {
       "name": "Tooltip",
       "displayName": "Tooltip",
+      "description": "Maximum 4 columns",
       "kind": "Measure"
     }
   ],
@@ -70,13 +67,9 @@
             "min": 0,
             "max": 10
           },
-          "Color": {
-            "min": 0,
-            "max": 1
-          },
           "Tooltip": {
             "min": 0,
-            "max": 10
+            "max": 4
           }
         }
       ],
@@ -91,12 +84,6 @@
             {
               "for": {
                 "in": "Legend"
-              }
-            },
-
-            {
-              "for": {
-                "in": "Color"
               }
             },
             {

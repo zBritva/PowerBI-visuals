@@ -23,7 +23,7 @@ function MAQDrawChart(DataStyle, settings, viewPort, valueFormatter) {
     //data binding        
     var dataView = DataStyle;
     var availWidth;
-    var dataViewObject = Object.getPrototypeOf(dataView);
+    var dataViewObject = dataView;
     var identifierX = 0, identifierY = 1;
     var oNormalizedData;
     if (DataStyle.metadata.columns[0] !== undefined && DataStyle.metadata.columns[0].roles.hasOwnProperty('yAxis') && DataStyle.metadata.columns[0].roles.hasOwnProperty('xAxis')) {

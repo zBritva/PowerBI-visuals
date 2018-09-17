@@ -326,25 +326,20 @@
                     }
                 }
             ],
-            "categorical": {
-                "values": {
+            "table": {
+                "rows": {
                     "select": [
                         {
-                            "bind": {
-                                "to": "ActualValue"
+                            "for": {
+                                "in": "ActualValue"
                             }
                         },
                         {
-                            "bind": {
-                                "to": "TargetValue"
-                            }
-                        },
-                        {
-                            "bind": {
-                                "to": "Tooltip"
+                            "for": {
+                                "in": "TargetValue"
                             }
                         }
-                    ]
+                    ]            
                 }
             }
         }

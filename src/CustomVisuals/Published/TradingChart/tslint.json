@@ -35,7 +35,7 @@
          * common bug patterns in the code or enforce type safety.
          */
         "await-promise": true,
-        "forin": true,
+        "forin": false,
         "jquery-deferred-must-complete": true,
         "label-position": true,
         "match-default-export-name": true,

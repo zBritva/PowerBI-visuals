@@ -25,6 +25,8 @@
  */
 
 module powerbi.extensibility.visual {
+    import ISelectionId = powerbi.visuals.ISelectionId;
+
     export interface IBoxWhiskerDataPoints {
         dataPoints: IBoxWhiskerViewModel[];
         xTitleText: string;

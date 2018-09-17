@@ -1,5 +1,5 @@
 {
-    "compilerOptions": {
+  "compilerOptions": {
     "allowJs": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -8,7 +8,7 @@
     "out": "./.tmp/build/visual.js"
   },
   "files": [
-    ".api/v1.4.0/PowerBI-visuals.d.ts",
+    ".api/v2.1.0/PowerBI-visuals.d.ts",
     "typings/index.d.ts",
     "src/visual.ts",
     "node_modules/powerbi-visuals-utils-dataviewutils/lib/index.d.ts",
