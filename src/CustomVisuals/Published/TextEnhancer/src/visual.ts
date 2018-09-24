@@ -279,6 +279,7 @@ module powerbi.extensibility.visual {
             });
         }
 
+
         public pointToPixel(pt: number): string {
             const pxPtRatio: number = 4 / 3;
             const pixelString: string = 'px';
@@ -565,6 +566,7 @@ module powerbi.extensibility.visual {
                         this.getOpacityHex(textSettings.transparency == null ? 0 : textSettings.transparency))
                     .style('transform', this.getSkewString(textSkewX, textSkewY))
                     .style('width', 'fit-content');
+
                 textValStatic = textValStaticInput;
                 textValDynamic = textValDynamicInput;
             } else {
@@ -1376,8 +1378,10 @@ module powerbi.extensibility.visual {
                 }
                 d3.select('.tw_pers').style('transform', transformedVal);
             }
-            // Handling Overflow through scrollbars
-            d3.select('#sandbox-host').style('overflow', 'auto');
+                 
+        //Below Two lines are to handle height issue of div in edge
+            let span_height = $('.dynamicText').height();
+            $('.tw_value.tw_finalText').height(span_height+2); 
         }
 
         private getTexts(text: string, fontStyleClass: string, textDecoration: string, textFontSize: number,
