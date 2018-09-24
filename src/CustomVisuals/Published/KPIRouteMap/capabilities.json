@@ -1,0 +1,522 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "Origin latitude*",
+            "description":"This field is mandatory",
+            "name": "originLat",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Origin longitude*",
+            "description":"This field is mandatory",
+            "name": "originLong",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Destination latitude*",
+            "description":"This field is mandatory",
+            "name": "destinationLat",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Destination longitude*",
+            "description":"This field is mandatory",
+            "name": "destinationLong",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Route type",
+            "name": "flightType",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Travel detail",
+            "name": "flightDetail",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Tooltips",
+            "name": "tooltipData",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "KPI*",
+            "description":"This field is mandatory",
+            "name": "kpi",
+            "kind": "Measure",
+            "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
+        }
+    ],
+    "objects": {
+        "api": {
+            "displayName": "API key",
+            "properties": {
+                "apiKey": {
+                    "displayName": "Enter key",
+                    "type": {
+                        "text": true
+                    }
+                }
+            }
+        },
+        "mapTypes": {
+            "displayName": "Map type",
+            "properties": {
+                "maps": {
+                    "displayName": "Map",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "basic",
+                                "displayName": "Basic Map"
+                            },
+                            {
+                                "value": "silver",
+                                "displayName": "Silver Map"
+                            },
+                            {
+                                "value": "night",
+                                "displayName": "Night Map"
+                            },
+                            {
+                                "value": "standard",
+                                "displayName": "Standard Map"
+                            },
+                            {
+                                "value": "roadmap",
+                                "displayName": "Roadmap"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "tooltipSeparator": {
+            "displayName": "Tooltip data separator",
+            "description": "Specify the number of datapoints after which separator is required in 'Tooltips' field",
+            "properties": {
+                "show": {
+                    "displayName": "Tooltip separator",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "separator": {
+                    "displayName": "Datapoints to separate",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                }
+            }
+        },
+        "animation": {
+            "displayName": "Animation",
+            "properties": {
+                "show": {
+                    "displayName": "Animation",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "speed": {
+                    "displayName": "Speed",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "low",
+                                "displayName": "Low"
+                            },
+                            {
+                                "value": "medium",
+                                "displayName": "Medium"
+                            },
+                            {
+                                "value": "high",
+                                "displayName": "High"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "image": {
+            "displayName": "Legend image",
+            "properties": {
+                "show": {
+                    "displayName": "Image legend",
+                    "type": {
+                        "bool": true
+                    }
+                }
+            }
+        },
+        "routes": {
+            "displayName": "Route",
+            "properties": {
+                "route": {
+                    "displayName": "Route",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Dashed",
+                                "displayName": "Dashed"
+                            },
+                            {
+                                "value": "Dotted",
+                                "displayName": "Dotted"
+                            },
+                            {
+                                "value": "Solid",
+                                "displayName": "Solid"
+                            }
+                        ]
+                    }
+                },
+                "show": {
+                    "displayName": "Route legend",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "internationalRoute": {
+                    "displayName": "International",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Dashed",
+                                "displayName": "Dashed"
+                            },
+                            {
+                                "value": "Dotted",
+                                "displayName": "Dotted"
+                            },
+                            {
+                                "value": "Solid",
+                                "displayName": "Solid"
+                            }
+                        ]
+                    }
+                },
+                "domesticRoute": {
+                    "displayName": "Domestic",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Dashed",
+                                "displayName": "Dashed"
+                            },
+                            {
+                                "value": "Dotted",
+                                "displayName": "Dotted"
+                            },
+                            {
+                                "value": "Solid",
+                                "displayName": "Solid"
+                            }
+                        ]
+                    }
+                },
+                "otherRoute": {
+                    "displayName": "Others",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "Dashed",
+                                "displayName": "Dashed"
+                            },
+                            {
+                                "value": "Dotted",
+                                "displayName": "Dotted"
+                            },
+                            {
+                                "value": "Solid",
+                                "displayName": "Solid"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "colors": {
+            "displayName": "KPI legend",
+            "properties": {
+                "KPIlegend": {
+                    "displayName": "Display",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "gradients": {
+                    "displayName": "Gradients",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "1",
+                                "displayName": "1"
+                            },
+                            {
+                                "value": "2",
+                                "displayName": "2"
+                            },
+                            {
+                                "value": "3",
+                                "displayName": "3"
+                            },
+                            {
+                                "value": "4",
+                                "displayName": "4"
+                            },
+                            {
+                                "value": "5",
+                                "displayName": "5"
+                            },
+                            {
+                                "value": "6",
+                                "displayName": "6"
+                            },
+                            {
+                                "value": "7",
+                                "displayName": "7"
+                            }
+                        ]
+                    }
+                },
+                "circleThresh1": {
+                    "displayName": "Threshold 1",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                },
+                "pathColor": {
+                    "displayName": "Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "circleColor1": {
+                    "displayName": "Gradient color 1",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "circleThresh2": {
+                    "displayName": "Threshold 2",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                },
+                "circleColor2": {
+                    "displayName": "Gradient color 2",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "circleThresh3": {
+                    "displayName": "Threshold 3",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                },
+                "circleColor3": {
+                    "displayName": "Gradient color 3",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "circleThresh4": {
+                    "displayName": "Threshold 4",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                },
+                "circleColor4": {
+                    "displayName": "Gradient color 4",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "circleThresh5": {
+                    "displayName": "Threshold 5",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                },
+                "circleColor5": {
+                    "displayName": "Gradient color 5",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "circleThresh6": {
+                    "displayName": "Threshold 6",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                },
+                "circleColor6": {
+                    "displayName": "Gradient color 6",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "circleColor7": {
+                    "displayName": "Gradient color 7",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "center": {
+            "displayName": "Center coordinates",
+            "properties": {
+                "lat": {
+                    "displayName": "Latitude",
+                    "description": "Enter latitude for center (-90, 90)",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                },
+                "lng": {
+                    "displayName": "Longitude",
+                    "description": "Enter longitude for center (-180, 180)",
+                    "type": {
+						"numeric": true
+					},
+					"placeHolderText": "Auto"
+                }
+            }
+        }
+    },
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "originLat": {
+                        "max": 1
+                    },
+                    "originLong": {
+                        "max": 1
+                    },
+                    "destinationLat": {
+                        "max": 1
+                    },
+                    "destinationLong": {
+                        "max": 1
+                    },
+                    "flightType": {
+                        "max": 1
+                    },
+                    "flightDetail": {
+                        "max": 1
+                    },
+                    "kpi": {
+                        "max": 1
+                    }
+                }
+            ],
+            "categorical": {
+                "categories": {
+                    "select": [
+						{
+							"for": {
+								"in": "originLat"
+							}
+						},
+						{
+							"for": {
+								"in": "originLong"
+							}
+						},
+						{
+							"for": {
+								"in": "destinationLat"
+							}
+						},
+						{
+							"for": {
+								"in": "destinationLong"
+							}
+                        },
+						{
+							"for": {
+								"in": "flightDetail"
+							}
+                        },
+						{
+							"for": {
+								"in": "tooltipData"
+							}
+						}
+					],
+                    "dataReductionAlgorithm": {
+                        "top": {
+                            "count": 30000
+                        }
+                    }
+                },
+                "values": {
+                    "group": {
+                        "by": "flightType",
+                        "select": [
+                            {
+                                "bind": {
+                                    "to": "kpi"
+                                }
+                            }
+                        ],
+                        "dataReductionAlgorithm": {
+                            "top": {
+                                "count": 30000
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
