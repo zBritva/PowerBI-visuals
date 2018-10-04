@@ -1,0 +1,702 @@
+{
+  "dataRoles": [
+    {
+      "displayName": "Series/Date",
+      "kind": "GroupingOrMeasure",
+      "name": "Value1"
+    },
+    {
+      "displayName": "Values",
+      "kind": "GroupingOrMeasure",
+      "name": "Value2"
+    }
+  ],
+  "dataViewMappings": [
+    {
+      "conditions": [
+        {
+          "Value1": {
+            "max": 1
+          },
+          "Value2": {
+            "max": 1
+          }
+        }
+      ],
+      "scriptResult": {
+        "dataInput": {
+          "table": {
+            "rows": {
+              "select": [
+                {
+                  "for": {
+                    "in": "Value1"
+                  }
+                },
+                {
+                  "for": {
+                    "in": "Value2"
+                  }
+                }
+              ],
+              "dataReductionAlgorithm": {
+                "top": {}
+              }
+            }
+          }
+        },
+        "script": {
+          "scriptProviderDefault": "R",
+          "scriptOutputType": "html",
+          "source": {
+            "objectName": "rcv_script",
+            "propertyName": "source"
+          },
+          "provider": {
+            "objectName": "rcv_script",
+            "propertyName": "provider"
+          }
+        }
+      }
+    }
+  ],
+  "objects": {
+    "rcv_script": {
+      "properties": {
+        "provider": {
+          "type": {
+            "text": true
+          }
+        },
+        "source": {
+          "type": {
+            "scripting": {
+              "source": true
+            }
+          }
+        }
+      }
+    },
+    "forecastSettings": {
+      "displayName": "Forecast Settings",
+      "description": "Settings to control the forecast",
+      "properties": {
+        "method": {
+          "displayName": "Algorithm",
+          "description": "Method of forecast",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Exponential Smoothing",
+                "value": "ES"
+              },
+              {
+                "displayName": "Linear Regression",
+                "value": "LR"
+              },
+              {
+                "displayName": "Neural Networks",
+                "value": "NN"
+              },
+              {
+                "displayName": "ARIMA",
+                "value": "ARIMA"
+              }
+            ]
+          }
+        },
+        "units": {
+          "displayName": "Forecast Units",
+          "description": "Number of units till which data values would be predicted.",
+          "type": {
+            "numeric": true
+          }
+        },
+        "split": {
+          "displayName": "Split Point",
+          "description": "The point from which forecast has to be started.",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "0.50",
+                "value": "0.5"
+              },
+              {
+                "displayName": "0.55",
+                "value": "0.55"
+              },
+              {
+                "displayName": "0.60",
+                "value": "0.6"
+              },
+              {
+                "displayName": "0.65",
+                "value": "0.65"
+              },
+              {
+                "displayName": "0.70",
+                "value": "0.7"
+              },
+              {
+                "displayName": "0.75",
+                "value": "0.75"
+              },
+              {
+                "displayName": "0.80",
+                "value": "0.8"
+              },
+              {
+                "displayName": "0.85",
+                "value": "0.85"
+              },
+              {
+                "displayName": "0.90",
+                "value": "0.9"
+              },
+              {
+                "displayName": "0.95",
+                "value": "0.95"
+              },
+              {
+                "displayName": "1.00",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        "confLevel": {
+          "displayName": "Confidence levels",
+          "description": "Confidence levels for the plot",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "50%",
+                "value": "0.5"
+              },
+              {
+                "displayName": "55%",
+                "value": "0.55"
+              },
+              {
+                "displayName": "60%",
+                "value": "0.6"
+              },
+              {
+                "displayName": "65%",
+                "value": "0.65"
+              },
+              {
+                "displayName": "70%",
+                "value": "0.7"
+              },
+              {
+                "displayName": "75%",
+                "value": "0.75"
+              },
+              {
+                "displayName": "80%",
+                "value": "0.8"
+              },
+              {
+                "displayName": "85%",
+                "value": "0.85"
+              },
+              {
+                "displayName": "90%",
+                "value": "0.9"
+              },
+              {
+                "displayName": "95%",
+                "value": "0.95"
+              },
+              {
+                "displayName": "99%",
+                "value": "0.99"
+              }
+            ]
+          }
+        },
+        "confInterval": {
+          "displayName": "Confidence intervals",
+          "description": "Turn confidence intervals true or false",
+          "type": {
+            "bool": true
+          }
+        },
+        "lambda": {
+          "displayName": "Lambda",
+          "description": "Lambda is the Box-Cox transformation parameter. Apply this transformation if the seasonality varies with the trend of the series.",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Auto",
+                "value": "auto"
+              },
+              {
+                "displayName": "Manual",
+                "value": "manual"
+              },
+              {
+                "displayName": "NULL",
+                "value": "NULL"
+              }
+            ]
+          }
+        },
+        "lambdaValue": {
+          "displayName": "Lambda Value",
+          "description": "Enter the Box-Cox transformation parameter.",
+          "type": {
+            "numeric": true
+          }
+        },
+        "biasAdj": {
+          "displayName": "Bias Adjusted",
+          "description": "When using Box-Cox transformation, a regular back transformation will result in median forecasts. Set Bias Adjusted = TRUE, to produce mean forecasts.",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "modelSettings": {
+      "displayName": "Model Settings",
+      "description": "Choose model parameters",
+      "properties": {
+        "modelTuning": {
+          "displayName": "Model Tuning",
+          "description": "Select model tuning option",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Auto",
+                "value": "auto"
+              },
+              {
+                "displayName": "Manual",
+                "value": "manual"
+              }
+            ]
+          }
+        },
+        "decay": {
+          "displayName": "Decay",
+          "description": "Decay in weights after each iteration, so that weights don't grow extremely large after successive computations. Should be between 0 to 1.",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxit": {
+          "displayName": "Maximum Iterations",
+          "description": "Maximum number of iterations to train the neural network in each epoch.",
+          "type": {
+            "numeric": true
+          }
+        },
+        "size": {
+          "displayName": "Size",
+          "description": "Number of nodes in the hidden layer",
+          "type": {
+            "numeric": true
+          }
+        },
+        "repeats": {
+          "displayName": "Repeats",
+          "description": "Number of epochs for training the network.",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxp": {
+          "displayName": "max.p",
+          "description": "The maximal order of the autoregressive part",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxq": {
+          "displayName": "max.q",
+          "description": "The maximal order of the moving average component",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxd": {
+          "displayName": "max.d",
+          "description": "The maximal degree of the differentiation",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxP": {
+          "displayName": "max.P",
+          "description": "The maximal order of the seasonal autoregressive component",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxQ": {
+          "displayName": "max.Q",
+          "description": "The maximal order of the seasonal moving average component",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxD": {
+          "displayName": "max.D",
+          "description": "The maximal degree of the seasonal differentiation",
+          "type": {
+            "numeric": true
+          }
+        },
+        "seasonal": {
+          "displayName": "Seasonal",
+          "description": "If FALSE, restricts search to non-seasonal models.",
+          "type": {
+            "bool": true
+          }
+        },
+        "allowDrift": {
+          "displayName": "Allow Drift",
+          "description": "If TRUE, models with drift terms are considered.",
+          "type": {
+            "bool": true
+          }
+        },
+        "allowMean": {
+          "displayName": "Allow Mean",
+          "description": "If TRUE, models with a non-zero mean are considered.",
+          "type": {
+            "bool": true
+          }
+        },
+        "stepWise": {
+          "displayName": "Stepwise Selection",
+          "description": "If TRUE, will do stepwise selection (faster). Otherwise, it searches over all models. Non-stepwise selection can be very slow, especially for seasonal models.",
+          "type": {
+            "bool": true
+          }
+        },
+        "errorType": {
+          "displayName": "Error Type",
+          "description": "This option controls how the effect of the nearest prior periods is modeled.",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Auto",
+                "value": "Z"
+              },
+              {
+                "displayName": "Additive",
+                "value": "A"
+              },
+              {
+                "displayName": "Multiplicative",
+                "value": "M"
+              }
+            ]
+          }
+        },
+        "trendType": {
+          "displayName": "Trend Type",
+          "description": " This controls how the effect of trend is modeled.",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Auto",
+                "value": "Z"
+              },
+              {
+                "displayName": "Additive",
+                "value": "A"
+              },
+              {
+                "displayName": "Multiplicative",
+                "value": "M"
+              }
+            ]
+          }
+        },
+        "sWindow": {
+          "displayName": "s.window",
+          "description": "Either the character string \"periodic\" or the span (in lags) of the loess window for seasonal extraction.",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "Periodic",
+                "value": "periodic"
+              },
+              {
+                "displayName": "Numeric",
+                "value": "numeric"
+              }
+            ]
+          }
+        },
+        "sWindowValue": {
+          "displayName": "s.window Value",
+          "description": "Numeric Value for s.window",
+          "type": {
+            "numeric": true
+          }
+        },
+        "tWindow": {
+          "displayName": "t.window",
+          "description": "A number to control the smoothness of the trend.",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "NULL",
+                "value": "NULL"
+              },
+              {
+                "displayName": "Numeric",
+                "value": "numeric"
+              }
+            ]
+          }
+        },
+        "tWindowValue": {
+          "displayName": "t.window Value",
+          "description": "Numeric Value for t.window",
+          "type": {
+            "numeric": true
+          }
+        },
+        "robust": {
+          "displayName": "Robust",
+          "description": "Logical indicating if robust fitting be used in the loess procedure.",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "plotSettings": {
+      "displayName": "Plot Settings",
+      "description": "Settings plot appereance",
+      "properties": {
+        "title": {
+          "displayName": "Title",
+          "description": "Title",
+          "type": {
+            "text": true
+          }
+        },
+        "plotColor": {
+          "displayName": "Plot background color",
+          "description": "Plot background color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "hline": {
+          "displayName": "Observed",
+          "description": "Observation line color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fline": {
+          "displayName": "Predicted",
+          "description": "Forecast line color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "cline": {
+          "displayName": "Confidence",
+          "description": "Confidence ribbon color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "hlineText": {
+          "displayName": "Observation name",
+          "description": "Observation line name",
+          "type": {
+            "text": true
+          }
+        },
+        "flineText": {
+          "displayName": "Prediction name",
+          "description": "Prediction line name",
+          "type": {
+            "text": true
+          }
+        }
+      }
+    },
+    "xaxisSettings": {
+      "displayName": "X axis Settings",
+      "description": "Appereance settings for x axis",
+      "properties": {
+        "xTitle": {
+          "displayName": "X title",
+          "description": "X title",
+          "type": {
+            "text": true
+          }
+        },
+        "xZeroline": {
+          "displayName": "X zeroline",
+          "description": "X zeroline",
+          "type": {
+            "bool": true
+          }
+        },
+        "xLabels": {
+          "displayName": "X labels",
+          "description": "X labels",
+          "type": {
+            "bool": true
+          }
+        },
+        "xGrid": {
+          "displayName": "X gridlines",
+          "description": "X gridlines",
+          "type": {
+            "bool": true
+          }
+        },
+        "xGridCol": {
+          "displayName": "X grid color",
+          "description": "color of x grid lines",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "xGridWidth": {
+          "displayName": "X grid width",
+          "description": "Width of x grid lines",
+          "type": {
+            "numeric": true
+          }
+        },
+        "xAxisBaseLine": {
+          "displayName": "X base line",
+          "description": "X base line",
+          "type": {
+            "bool": true
+          }
+        },
+        "xAxisBaseLineCol": {
+          "displayName": "X base line color",
+          "description": "Color of x axis base line",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "xAxisBaseLineWidth": {
+          "displayName": "X base line width",
+          "description": "Width of x axis base line",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "yaxisSettings": {
+      "displayName": "Y axis Settings",
+      "description": "Appereance settings for y axis",
+      "properties": {
+        "yTitle": {
+          "displayName": "Y title",
+          "description": "Y title",
+          "type": {
+            "text": true
+          }
+        },
+        "yZeroline": {
+          "displayName": "Y zeroline",
+          "description": "Y zeroline",
+          "type": {
+            "bool": true
+          }
+        },
+        "yLabels": {
+          "displayName": "Y label",
+          "description": "Y label",
+          "type": {
+            "bool": true
+          }
+        },
+        "yGrid": {
+          "displayName": "Y grid lines",
+          "description": "Y grid lines",
+          "type": {
+            "bool": true
+          }
+        },
+        "yGridCol": {
+          "displayName": "Y grid line color",
+          "description": "Color of y grid lines",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "yGridWidth": {
+          "displayName": "Y grid line width",
+          "description": "Width of y grid lines",
+          "type": {
+            "numeric": true
+          }
+        },
+        "yAxisBaseLine": {
+          "displayName": "Y base line",
+          "description": "Y base line",
+          "type": {
+            "bool": true
+          }
+        },
+        "yAxisBaseLineCol": {
+          "displayName": "Y base line color",
+          "description": "Color of y base line",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "yAxisBaseLineWidth": {
+          "displayName": "Y base line width",
+          "description": "Width of y base line",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    }
+  },
+  "suppressDefaultTitle": true
+}
