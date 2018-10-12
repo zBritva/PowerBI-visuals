@@ -2,9 +2,9 @@
   "visual": {
     "name": "KPIRouteMapByMAQSoftware",
     "displayName": "KPI Route Map by MAQ Software",
-    "guid": "KPIRouteMapByMAQSoftware362EB7AA0940A2DKJBCDE12",
+    "guid": "KPIRouteMapByMAQSoftware362EB7AA0940A2DKJBC",
     "visualClassName": "Visual",
-    "version": "3.0.4",
+    "version": "3.0.5",
     "description": "Advanced route map which not only provides the route between multiple locations (origin and destinations) but also provides the facility to highlight routes based on certain KPIs. Often used by airlines to simulate flight path and find the optimized air route or to gauge the performance of various flight routes",
     "supportUrl": "https://maqsoftware.com/expertise/powerbi",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals/"
