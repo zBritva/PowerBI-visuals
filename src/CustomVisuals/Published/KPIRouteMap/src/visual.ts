@@ -59,6 +59,7 @@ module powerbi.extensibility.visual {
         private timeoutID: number;
         private marginLeft: number;
         private googleString: string;
+        private generateAPIURL: string;
 
         constructor(options: VisualConstructorOptions) {
             this.divs = {
@@ -220,7 +221,7 @@ module powerbi.extensibility.visual {
                 if (e.target.className === 'gm-err-container') {
                     const message: string = `Please add valid 'Google Map API Key' in the 'API Key' field of the formatting pane`;
                     const linkMessage: string = `To get an API key, click `;
-                    const apiURL: string = `https://cloud.google.com/maps-platform/?__utma=102347093.986617890.1538631392.1538652329.1538652329.1&__utmb=102347093.0.10.1538652329&__utmc=102347093&__utmx=-&__utmz=102347093.1538652329.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided)&__utmv=-&__utmk=132711566&_ga=2.61310636.1668462127.1538631392-986617890.1538631392#get-started`;
+                    const linkMessage2: string = `This will enable the Google Map to appear in the visual`;
 
                     d3.selectAll('.flightLegendImage').remove();
                     d3.selectAll('.flightLegendTypeImage').remove();
@@ -228,17 +229,22 @@ module powerbi.extensibility.visual {
                     d3.selectAll('.flightCustomErrorMessage').remove();
                     d3.selectAll('.flightErrorMessage').remove();
 
-                    visualContext.rootElement
+                    let errorElement = visualContext.rootElement
                         .append('div')
                         .classed('flightCustomErrorMessage', true)
                         .text(message)
                         .attr('title', message + linkMessage + `here`)
                         .append('div')
-                        .text(linkMessage)
-                        .append('a')
+                        .text(linkMessage);
+
+                    errorElement.append('a')
                         .text('here')
-                        .attr('href', apiURL)
-                        .attr('target', '_blank');
+                        .on('click', () => {
+                            visualContext.host.launchUrl(visualContext.generateAPIURL);
+                        });
+
+                    errorElement.append('div')
+                        .text(linkMessage2);
                 }
             });
 
@@ -1228,23 +1234,30 @@ module powerbi.extensibility.visual {
                 : null;
 
             // displays message to enter API field
+            let This: this = this;
+            this.generateAPIURL = `https://cloud.google.com/console/google/maps-apis/overview`;
             this.settings.apiSetting = null;
             this.settings.apiSetting = enumSettings.getAPISettings(this.dataView);
             if (!this.settings.apiSetting) {
                 const message: string = `Please add 'Google Map API Key' in the 'API Key' field of the formatting pane.`;
                 const linkMessage: string = `To get an API key, click `;
-                const apiURL: string = `https://cloud.google.com/maps-platform/?__utma=102347093.986617890.1538631392.1538652329.1538652329.1&__utmb=102347093.0.10.1538652329&__utmc=102347093&__utmx=-&__utmz=102347093.1538652329.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided)&__utmv=-&__utmk=132711566&_ga=2.61310636.1668462127.1538631392-986617890.1538631392#get-started`;
-                this.rootElement
+                const linkMessage2: string = `This will enable the Google Map to appear in the visual`;
+
+
+                let errorElement = this.rootElement
                     .append('div')
                     .classed('flightErrorMessage', true)
                     .text(message)
                     .attr('title', message + linkMessage + `here`)
                     .append('div')
-                    .text(linkMessage)
-                    .append('a')
+                    .text(linkMessage);
+                errorElement.append('a')
                     .text('here')
-                    .attr('href', apiURL)
-                    .attr('target', '_blank');
+                    .on('click', () => {
+                        This.host.launchUrl(This.generateAPIURL);
+                    });
+                errorElement.append('div')
+                    .text(linkMessage2);
 
                 return;
             }
