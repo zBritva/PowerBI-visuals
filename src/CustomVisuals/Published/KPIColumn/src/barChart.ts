@@ -9,6 +9,7 @@ module powerbi.extensibility.visual {
     let xAxisName: string = 'X-Axis';
     let yAxisName: string = 'Y-Axis';
     let columnValue: DataViewValueColumn;
+    const imagePatt: RegExp = new RegExp('^https?://(?:[a-z0-9\-]+\.)+[a-z]{2,6}(?:/[^/#?]+)+\.(?:jpg|jpeg|gif|png|svg)$');
   /* do not update*/
     export module DataViewObjects {
         /** Gets the value of the given object/property pair. */
@@ -1429,10 +1430,11 @@ module powerbi.extensibility.visual {
                                 })
                                 .append('title').text(yAxisName);
                         }
-
+                        let validImage: boolean;
+                        validImage = imagePatt.test(backgroundImage.imageUrl);
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xlink:href', backgroundImage.imageUrl);
+                            .attr('xlink:href', validImage ? backgroundImage.imageUrl : '');
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
@@ -2060,9 +2062,11 @@ module powerbi.extensibility.visual {
                                 }
                             }
                         }
+                        let validImage: boolean;
+                        validImage = imagePatt.test(backgroundImage.imageUrl);
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xlink:href', backgroundImage.imageUrl);
+                            .attr('xlink:href', validImage ? backgroundImage.imageUrl : '');
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
