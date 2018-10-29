@@ -73,7 +73,6 @@ module powerbi.extensibility.visual {
     import textMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
 
     // powerbi.extensibility.utils.interactivity
-    import appendClearCatcher = powerbi.extensibility.utils.interactivity.appendClearCatcher;
     import SelectableDataPoint = powerbi.extensibility.utils.interactivity.SelectableDataPoint;
     import IInteractiveBehavior = powerbi.extensibility.utils.interactivity.IInteractiveBehavior;
     import IInteractivityService = powerbi.extensibility.utils.interactivity.IInteractivityService;
@@ -99,13 +98,11 @@ module powerbi.extensibility.visual {
     import LegendPosition = powerbi.extensibility.utils.chart.legend.LegendPosition;
     import position = powerbi.extensibility.utils.chart.legend.positionChartArea;
 
-    import DateTimeSequence = powerbi.extensibility.utils.formatting.DateTimeSequence;
-    import VisualDataRoleKind = powerbi.VisualDataRoleKind;
     import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
     import DataViewTableRow = powerbi.DataViewTableRow;
     import timeScale = d3.time.Scale;
     // tslint:disable-next-line
-    const dateFormat : RegExp = /^(\d{4})\D?(0[1-9]|1[0-2])\D?([12]\d|0[1-9]|3[01])(\D?([01]\d|2[0-3])\D?([0-5]\d)\D?([0-5]\d)?\D?(\d{3})?)?\D$/;
+    const dateFormat: RegExp = /^(\d{4})\D?(0[1-9]|1[0-2])\D?([12]\d|0[1-9]|3[01])(\D?([01]\d|2[0-3])\D?([0-5]\d)\D?([0-5]\d)?\D?(\d{3})?)?\D$/;
     let uniquelegend: PrimitiveValue[];
     // tslint:disable-next-line:no-any
     let uniqueColors: any;
@@ -142,15 +139,12 @@ module powerbi.extensibility.visual {
     const semiColonLiteral: string = ';';
     const verticalLineLiteral: string = 'vertical-line';
     const zeroLiteral: string = '0';
-    const blankLiteral: string = '';
     const slashLiteral: string = '/';
     const colonLiteral: string = ':';
     const spaceLiteral: string = ' ';
-    const verticalLineClassLiteral: string = '.verticalLine';
     const horizontalLineClassLiteral: string = '.horizontalLine';
     const pxLiteral: string = 'px';
     const categoryIdLiteral: string = '#gantt_category';
-    const horizontalLineLiteral: string = 'horizontal-line';
     const columnLiteral: string = 'column';
     const legendLiteral: string = 'legend';
     const clickedTypeLiteral: string = 'clickedType';
@@ -164,13 +158,13 @@ module powerbi.extensibility.visual {
     const dotLiteral: string = '.';
     const headerCellLiteral: string = 'headerCell';
     const verticalLineSimpleLiteral: string = 'verticalLine';
-    const horizontalLineSimpleLiteral: string = 'horizontalLine';
     const taskRowLiteral: string = 'task-row';
     const kpiClassLiteral: string = 'gantt_kpiClass';
     const paranthesisStartLiteral: string = '(';
     const paranthesisEndLiteral: string = ')';
     const commaLiteral: string = ',';
-
+    // nav
+    let singleCharacter: Selection<HTMLElement>;
     // tslint:disable-next-line:interface-name
     export interface Task extends SelectableDataPoint {
         id: number;
@@ -191,6 +185,7 @@ module powerbi.extensibility.visual {
         rowId: number;
         parentId: number;
         expanded: boolean;
+        mapId?: number;
     }
 
     // tslint:disable-next-line:interface-name
@@ -317,8 +312,6 @@ module powerbi.extensibility.visual {
 
     // tslint:disable-next-line:interface-name
     export interface GanttBehaviorOptions {
-        // tslint:disable-next-line:no-any
-        clearCatcher: Selection<SelectableDataPoint>;
         // tslint:disable-next-line:no-any
         taskSelection: Selection<SelectableDataPoint>;
         // tslint:disable-next-line:no-any
@@ -488,7 +481,6 @@ module powerbi.extensibility.visual {
         private static kpiLabelWidthOriginal: number = 0;
         private static visualWidth: number = 0;
         private static isPhaseHighlighted: boolean = false;
-        private static isMilestoneHighlighted: boolean = false;
         private static isLegendHighlighted: boolean = false;
         private static xAxisPropertiesParamter: AxisPropertiesParameter;
         private static visualCoordinates: VisualProperty;
@@ -741,8 +733,6 @@ module powerbi.extensibility.visual {
         private todayGroup: Selection<HTMLElement>;
         private todayindicator: Selection<HTMLElement>;
         private todaytext: Selection<HTMLElement>;
-        // tslint:disable-next-line:no-any
-        private clearCatcher: Selection<any>;
         private static ganttDiv: Selection<HTMLElement>;
         private selectionManager: ISelectionManager;
         private behavior: GanttChartBehavior;
@@ -811,8 +801,6 @@ module powerbi.extensibility.visual {
                 .append('svg')
                 .classed(Selectors.legendSvg.class, true);
 
-            this.clearCatcher = appendClearCatcher(this.legendSvg);
-
             this.legendGroup = this.legendSvg
                 .append('g')
                 .classed(Selectors.legendGroup.class, true);
@@ -867,8 +855,6 @@ module powerbi.extensibility.visual {
                 .append('svg')
                 .classed(Selectors.legendIndicatorTitleSvg.class, true);
 
-            this.clearCatcher = appendClearCatcher(this.legendIndicatorTitleSvg);
-
             this.kpiIndicatorDiv = this.legendIndicatorDiv
                 .append('div')
                 .classed(Selectors.kpiIndicatorPanel.class, true);
@@ -876,8 +862,6 @@ module powerbi.extensibility.visual {
             this.kpiIndicatorSvg = this.kpiIndicatorDiv
                 .append('svg')
                 .classed(Selectors.kpiIndicatorSvg.class, true);
-
-            this.clearCatcher = appendClearCatcher(this.kpiIndicatorSvg);
 
             this.milestoneIndicatorDiv = this.legendIndicatorDiv
                 .append('div')
@@ -887,8 +871,6 @@ module powerbi.extensibility.visual {
                 .append('svg')
                 .classed(Selectors.milestoneIndicatorSvg.class, true);
 
-            this.clearCatcher = appendClearCatcher(this.milestoneIndicatorSvg);
-
             this.phaseIndicatorDiv = this.legendIndicatorDiv
                 .append('div')
                 .classed(Selectors.phaseIndicatorPanel.class, true);
@@ -897,8 +879,6 @@ module powerbi.extensibility.visual {
                 .append('svg')
                 .classed(Selectors.phaseIndicatorSvg.class, true);
 
-            this.clearCatcher = appendClearCatcher(this.phaseIndicatorSvg);
-
             this.timelineDiv = Gantt.ganttDiv
                 .append('div')
                 .classed(Selectors.timeLinePanel.class, true);
@@ -906,8 +886,6 @@ module powerbi.extensibility.visual {
             this.timelineSvg = this.timelineDiv
                 .append('svg')
                 .classed(Selectors.className.class, true);
-
-            this.clearCatcher = appendClearCatcher(this.timelineSvg);
 
             this.axisGroup = this.timelineSvg
                 .append('g')
@@ -919,8 +897,6 @@ module powerbi.extensibility.visual {
 
             this.kpiTitleSvg = this.kpiTitleDiv
                 .append('svg');
-
-            this.clearCatcher = appendClearCatcher(this.kpiTitleSvg);
 
             this.kpiTitleGroup = this.kpiTitleSvg
                 .append('g')
@@ -952,8 +928,6 @@ module powerbi.extensibility.visual {
             this.imageSvg = this.imageDiv
                 .append('svg');
 
-            this.clearCatcher = appendClearCatcher(this.imageSvg);
-
             this.imageSvg.append('image')
                 .attr('id', 'gantt_ToggleIcon')
                 .attr('class', 'collapse')
@@ -967,8 +941,6 @@ module powerbi.extensibility.visual {
 
             this.kpiImageSvg = this.kpiImageDiv
                 .append('svg');
-
-            this.clearCatcher = appendClearCatcher(this.kpiImageSvg);
 
             this.kpiImageSvg.append('image')
                 .attr('id', 'gantt_KPIToggle')
@@ -991,8 +963,6 @@ module powerbi.extensibility.visual {
                 .append('svg')
                 .classed(Selectors.kpiSvg.class, true);
 
-            this.clearCatcher = appendClearCatcher(this.kpiSvg);
-
             this.backgroundGroupKPI = this.kpiSvg
                 .append('g')
                 .classed(Selectors.backgroundBoxSvg.class, true);
@@ -1008,8 +978,6 @@ module powerbi.extensibility.visual {
             this.taskSvg = this.taskDiv
                 .append('svg')
                 .classed(Selectors.taskSvg.class, true);
-
-            this.clearCatcher = appendClearCatcher(this.taskSvg);
 
             this.backgroundGroupTask = this.taskSvg
                 .append('g')
@@ -1055,8 +1023,6 @@ module powerbi.extensibility.visual {
                 .append('svg')
                 .classed(Selectors.bottomMilestoneSvg.class, true);
 
-            this.clearCatcher = appendClearCatcher(this.bottommilestoneSvg);
-
             this.todayGroup = this.bottommilestoneSvg
                 .append('g')
                 .classed(Selectors.todayGroup.class, true);
@@ -1072,8 +1038,6 @@ module powerbi.extensibility.visual {
             this.bottomTaskSvg = this.bottomTaskDiv
                 .append('svg')
                 .classed(Selectors.bottomTaskSvg.class, true);
-
-            this.clearCatcher = appendClearCatcher(this.bottomTaskSvg);
         }
 
         /**
@@ -1495,10 +1459,10 @@ module powerbi.extensibility.visual {
                 return null;
             }
             // tslint:disable-next-line:no-any
-            let data: any ;
-            data = child[finalindex].values[currentCounter] ;
+            let data: any;
+            data = child[finalindex].values[currentCounter];
             if (dateFormat.test(data)) {
-            data = new Date(child[finalindex].values[currentCounter]);
+                data = new Date(child[finalindex].values[currentCounter]);
             }
 
             return data;
@@ -1531,7 +1495,6 @@ module powerbi.extensibility.visual {
             tooltipRoles = [];
             let categoryRoles: number[];
             categoryRoles = [];
-
             if (!categoriesdata || categoriesdata.length === 0) { return; }
 
             Gantt.categoriesTitle = [];
@@ -1616,6 +1579,7 @@ module powerbi.extensibility.visual {
                     break;
                 }
             }
+
             // tslint:disable-next-line:cyclomatic-complexity no-any
             categoriesdata[0].values.map((child: any, index: number) => {
                 // tslint:disable-next-line:no-use-before-declare
@@ -1763,11 +1727,6 @@ module powerbi.extensibility.visual {
                     valuediffer = datamax - datamin;
                     duration = valuediffer;
                 }
-                const defaultColor: Fill = {
-                    solid: {
-                        color: colorPalette.getColor(index.toString()).value
-                    }
-                };
 
                 // tslint:disable-next-line:no-shadowed-variable
                 const categories: DataViewCategoryColumn[] = dataView.categorical.categories;
@@ -1778,7 +1737,26 @@ module powerbi.extensibility.visual {
                         legendIndex = ka;
                     }
                 });
-
+                // tslint:disable-next-line:no-any
+                let legendUniqueValues: any[] = [];
+                // tslint:disable-next-line
+                if (legendIndex !== -1) {
+                    // tslint:disable-next-line
+                    legendUniqueValues = (dataView.categorical.categories[legendIndex].values).filter(function (e, i, arr) {
+                        return arr.lastIndexOf(e) === i;
+                    });
+                }
+                const defaultColor: Fill = {
+                    solid: {
+                        // tslint:disable-next-line:no-use-before-declare
+                        color: legendIndex !== -1 ?
+                            // tslint:disable-next-line:no-use-before-declare
+                            colorPalette.getColor(dataView.categorical.categories[legendIndex].values[index] === null ?
+                                // tslint:disable-next-line:no-use-before-declare
+                                'Null' : dataView.categorical.categories[legendIndex].values[index].toString()).value
+                            : colorPalette.getColor('Null').value
+                    }
+                };
                 // tslint:disable-next-line:no-any
                 let taskColor: any;
                 let cnt: number = 0;
@@ -1860,9 +1838,9 @@ module powerbi.extensibility.visual {
                 }
                 for (let j: number = 0; j < taskValues.length; j++) {
                     for (let i: number = 0; i < tasks.length; i++) {
-                            if (taskValues[cnt] === tasks[i].name[cnt]) {
-                                taskColor = tasks[i].color;
-                                break;
+                        if (taskValues[cnt] === tasks[i].name[cnt]) {
+                            taskColor = tasks[i].color;
+                            break;
                         }
                     }
                 }
@@ -1897,7 +1875,8 @@ module powerbi.extensibility.visual {
                             isLeaf: null,
                             rowId: null,
                             parentId: null,
-                            expanded: null
+                            expanded: null,
+                            mapId: index
                         });
                     } else {
 
@@ -2070,7 +2049,6 @@ module powerbi.extensibility.visual {
             if (legendIndex !== -1) {
                 barsLegend.changeOrientation(LegendPosition.Top);
                 barsLegend.drawLegend(legendData, viewport);
-
                 position(d3.select('.gantt-body'), barsLegend);
             }
 
@@ -2080,15 +2058,13 @@ module powerbi.extensibility.visual {
 
             while (iIterator < levelofSorting) {
                 hashArr = [];
+                const id: string = `id` ;
                 const hyphenLiteral: string = '-';
                 for (let index: number = 0; index <= largest; index++) {
-                    if (hashArr[tasks[index].name[iIterator - 3] + hyphenLiteral + tasks[index].name[iIterator - 2] + hyphenLiteral
-                        + tasks[index].name[iIterator - 1]] === undefined) {
-                        hashArr[tasks[index].name[iIterator - 3] + hyphenLiteral
-                            + tasks[index].name[iIterator - 2] + hyphenLiteral + tasks[index].name[iIterator - 1]] = [];
+                    if (hashArr[id + hyphenLiteral + tasks[index].name[iIterator - 1]] === undefined) {
+                        hashArr[id + hyphenLiteral + tasks[index].name[iIterator - 1]] = [];
                     }
-                    hashArr[tasks[index].name[iIterator - 3] + hyphenLiteral + tasks[index].name[iIterator - 2] + hyphenLiteral
-                        + tasks[index].name[iIterator - 1]].push(tasks[index]);
+                    hashArr[id + hyphenLiteral + tasks[index].name[iIterator - 1]].push(tasks[index]);
                 }
 
                 Object.keys(hashArr).forEach(function (i: string): void {
@@ -2099,21 +2075,21 @@ module powerbi.extensibility.visual {
                         } else if (n.name[iIterator] === '') {
                             return 1;
                         } else {
-                                // tslint:disable-next-line:no-any
-                                let mValue: any;
-                                // tslint:disable-next-line:no-any
-                                let nValue: any;
-                                if (typeof m.name[iIterator] === 'string' && typeof n.name[iIterator] === 'string') {
-                                    mValue = m.name[iIterator].toLowerCase();
-                                    nValue = n.name[iIterator].toLowerCase();
-                                } else {
-                                    mValue = m.name[iIterator];
-                                    nValue = n.name[iIterator];
-                                }
-                                if (mValue < nValue) { return -1; }
-                                if (mValue > nValue) { return 1; }
+                            // tslint:disable-next-line:no-any
+                            let mValue: any;
+                            // tslint:disable-next-line:no-any
+                            let nValue: any;
+                            if (typeof m.name[iIterator] === 'string' && typeof n.name[iIterator] === 'string') {
+                                mValue = m.name[iIterator].toLowerCase();
+                                nValue = n.name[iIterator].toLowerCase();
+                            } else {
+                                mValue = m.name[iIterator];
+                                nValue = n.name[iIterator];
+                            }
+                            if (mValue < nValue) { return -1; }
+                            if (mValue > nValue) { return 1; }
 
-                                return 0;
+                            return 0;
                         }
                     });
                 });
@@ -2129,18 +2105,17 @@ module powerbi.extensibility.visual {
             while (levelofSorting < categoryRoles.length) {
                 hashArr = [];
                 const hyphenLiteral: string = '-';
+                const id: string = `id`;
                 for (let index: number = 0; index <= largest; index++) {
-                    if (hashArr[tasks[index].name[levelofSorting - 3] + hyphenLiteral
-                        + tasks[index].name[levelofSorting - 2] + hyphenLiteral + tasks[index].name[levelofSorting - 1]] === undefined) {
-                        hashArr[tasks[index].name[levelofSorting - 3] + hyphenLiteral + tasks[index].name[levelofSorting - 2]
-                            + hyphenLiteral + tasks[index].name[levelofSorting - 1]] = [];
+                    if (hashArr[id + hyphenLiteral + tasks[index].name[levelofSorting - 1]] === undefined) {
+                        hashArr[id + hyphenLiteral + tasks[index].name[levelofSorting - 1]] = [];
                     }
-                    hashArr[tasks[index].name[levelofSorting - 3] + hyphenLiteral + tasks[index].name[levelofSorting - 2]
-                        + hyphenLiteral + tasks[index].name[levelofSorting - 1]].push(tasks[index]);
+                    hashArr[id + hyphenLiteral + tasks[index].name[levelofSorting - 1]].push(tasks[index]);
                 }
                 if (!firstVisit) {
                     orderOfSorting = 'asc';
                 }
+
                 Object.keys(hashArr).forEach(function (i: string): void {
                     // tslint:disable-next-line:no-any
                     hashArr[i].sort(function (m: any, n: any): number {
@@ -2460,6 +2435,7 @@ module powerbi.extensibility.visual {
 
         // tslint:disable-next-line:no-any
         public persistExpandCollapseState(arrGantt: any): void {
+            //;
             const properties: { [propertyName: string]: DataViewPropertyValue } = {};
             properties[`expandCollapseState`] = JSON.stringify(arrGantt);
             const persistExpandCollapseSettings: VisualObjectInstancesToPersist = {
@@ -2474,6 +2450,7 @@ module powerbi.extensibility.visual {
         }
 
         public resetResizeData(categoryLength: number, viewModel: GanttViewModel): void {
+            //;
             let properties: { [propertyName: string]: DataViewPropertyValue };
             properties = {};
             Gantt.categoryColumnsWidth = '';
@@ -2493,7 +2470,6 @@ module powerbi.extensibility.visual {
             kpiPanelWidth = parseFloat(d3.select('.gantt_kpiPanel').style('left'));
             lastRectX = (categoryLength - 1) * singleColumnWidth;
             for (let iIterator: number = 0; iIterator < categoryLength; iIterator++) {
-
                 if (iIterator === 0) {
                     Gantt.categoryColumnsWidth += taskColumnLiteral + iIterator + colonLiteral
                         + literalFifteen + semiColonLiteral;
@@ -2529,9 +2505,9 @@ module powerbi.extensibility.visual {
         private static arrOptimized = [];
         private static oOptimizedObj: ShowData;
 
-        public static converter(dataView: DataView, host: IVisualHost, colors: IColorPalette
+        public static converter(dataView: DataView, host: IVisualHost, colors: IColorPalette,
             // tslint:disable-next-line:typedef
-            ,                   barsLegend: ILegend, viewport): GanttViewModel {
+                                barsLegend: ILegend, viewport): GanttViewModel {
             if (!dataView
                 || !dataView.categorical
                 || !Gantt.isChartHasTask(dataView)) {
@@ -2577,7 +2553,6 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
-            //tooltipDataArray = [];
             let tooltipIndexLength: number;
             tooltipIndexLength = tooltipIndexNew.length;
 
@@ -2601,15 +2576,10 @@ module powerbi.extensibility.visual {
                         identity: { metadata: currentColumn.queryName }
                     });
                 }
-            }
-
-            for (let iIterator: number = 0; iIterator < metadataColumnsLength; iIterator++) {
-
                 if (metadata.columns[iIterator].roles[GanttRoles.resource]) {
                     resourceFeild = metadata.columns[iIterator].displayName;
                 }
             }
-
             // tslint:disable-next-line:no-any
             let newKpiData: any = [];
             // tslint:disable-next-line:no-any
@@ -2640,39 +2610,126 @@ module powerbi.extensibility.visual {
             const rows1: any[] = [];
 
             let iRow: number;
-            let iColumn: number;
-            let categoryIterator: number = 0;
-            let measureIterator: number = 0;
             const len: number = dataView.categorical.categories[0].values.length;
             const cLength: number = dataView.metadata.columns.length;
             const mappingIndex: number[] = [];
             const categoriesLength: number = dataView.categorical.categories.length;
+            const valuesLength: number = dataView.categorical.values.length;
 
-            // tslint:disable-next-line:no-shadowed-variable
-            for (let iterator: number = 0; iterator < cLength; iterator++) {
-                if (!dataView.metadata.columns[iterator].isMeasure) {
-                    // tslint:disable-next-line:no-shadowed-variable
-                    for (let categoryIterator: number = 0; categoryIterator < categoriesLength; categoryIterator++) {
-                        if (dataView.metadata.columns[iterator].displayName ===
-                            dataView.categorical.categories[categoryIterator].source.displayName) {
-                            mappingIndex.push(categoryIterator);
-                            break;
-                        }
+            // tslint:disable-next-line
+            let roleIndexArray: any[] = [];
+            roleIndexArray[`Category`] = [];
+            roleIndexArray[`Legend`] = [];
+            roleIndexArray[`StartDate`] = [];
+            roleIndexArray[`EndDate`] = [];
+            roleIndexArray[`Resource`] = [];
+            roleIndexArray[`KPIValueBag`] = [];
+            roleIndexArray[`Tooltip`] = [];
+            // tslint:disable-next-line
+            let displayNameArray: any[] = [];
+            for (let iCount: number = 0; iCount < categoriesLength; iCount++) {
+                if (dataView.categorical.categories[iCount].source.roles.Category) {
+                    roleIndexArray[`Category`].push(iCount);
+                }
+                if (dataView.categorical.categories[iCount].source.roles.Legend) {
+                    roleIndexArray[`Legend`].push(iCount);
+                }
+                if (dataView.categorical.categories[iCount].source.roles.KPIValueBag) {
+                    roleIndexArray[`KPIValueBag`].push(iCount);
+                }
+            }
+
+            if (roleIndexArray[`Legend`].length !== 0) {
+                if (roleIndexArray[`Legend`].length === 3) {
+                    roleIndexArray[`Legend`].splice(2, 1);
+                }
+                if (roleIndexArray[`Legend`].length === 2) {
+                    roleIndexArray[`Legend`].splice(0, 1);
+                }
+                const index: number = roleIndexArray[`Category`].indexOf(roleIndexArray[`Legend`][0]);
+                if (index !== -1) {
+                    roleIndexArray[`Category`].splice(index, 1);
+                }
+                const iIndex: number = roleIndexArray[`KPIValueBag`].indexOf(roleIndexArray[`Legend`][0]);
+                if (iIndex !== -1) {
+                    roleIndexArray[`KPIValueBag`].splice(iIndex, 1);
+                }
+                let indexNew: number;
+                for (let iCat: number = 0; iCat < roleIndexArray[`KPIValueBag`].length; iCat++) {
+                    indexNew = roleIndexArray[`Category`].indexOf(roleIndexArray[`KPIValueBag`][iCat]);
+                    if (indexNew !== -1 && index !== 0) {
+                        roleIndexArray[`Category`].splice(indexNew, 1);
+                        roleIndexArray[`KPIValueBag`].splice(0, 1);
+                        break;
                     }
                 }
             }
 
+            for (let iCount: number = 0; iCount < valuesLength; iCount++) {
+                if (dataView.categorical.values[iCount].source.roles.StartDate) {
+                    roleIndexArray[`StartDate`].push(iCount);
+                }
+                if (dataView.categorical.values[iCount].source.roles.EndDate) {
+                    roleIndexArray[`EndDate`].push(iCount);
+                }
+                if (dataView.categorical.values[iCount].source.roles.Resource) {
+                    roleIndexArray[`Resource`].push(iCount);
+                }
+                if (dataView.categorical.values[iCount].source.roles.Tooltip) {
+                    roleIndexArray[`Tooltip`].push(iCount);
+                }
+            }
+
+            const totalLength: number = categoriesLength + valuesLength;
+            let counter: number = 0;
             for (iRow = 0; iRow < len; iRow++) {
                 rows1[iRow] = [];
-                categoryIterator = 0;
-                measureIterator = 0;
-                for (iColumn = 0; iColumn < cLength; iColumn++) {
-                    if (dataView.metadata.columns[iColumn].isMeasure === true) {
-                        rows1[iRow][iColumn] = dataView.categorical.values[categoryIterator++].values[iRow];
-                    } else {
-                        rows1[iRow][iColumn] = dataView.categorical.categories[mappingIndex[measureIterator++]].values[iRow];
+                let iColumn: number = 0;
+                for (let iCat: number = 0; iCat < roleIndexArray[`Category`].length; iCat++) {
+
+                    rows1[iRow][iColumn] = dataView.categorical.categories[roleIndexArray[`Category`][iCat]].values[iRow];
+
+                    if (displayNameArray.length < totalLength) {
+                        displayNameArray.push(dataView.categorical.categories[roleIndexArray[`Category`][iCat]].source.displayName);
                     }
+                    iColumn++;
                 }
+
+                rows1[iRow][iColumn] = dataView.categorical.values[roleIndexArray[`StartDate`][0]].values[iRow];
+                if (displayNameArray.length < totalLength) {
+                    displayNameArray.push(dataView.categorical.values[roleIndexArray[`StartDate`][0]].source.displayName);
+                }
+
+                iColumn++;
+                rows1[iRow][iColumn] = dataView.categorical.values[roleIndexArray[`EndDate`][0]].values[iRow];
+                if (displayNameArray.length < totalLength) {
+                    displayNameArray.push(dataView.categorical.values[roleIndexArray[`EndDate`][0]].source.displayName);
+                }
+                iColumn++;
+                for (let iCat: number = 0; iCat < roleIndexArray[`Resource`].length; iCat++) {
+                    rows1[iRow][iColumn] = dataView.categorical.values[roleIndexArray[`Resource`][iCat]].values[iRow];
+                    if (displayNameArray.length < totalLength) {
+                        displayNameArray.push(dataView.categorical.values[roleIndexArray[`Resource`][iCat]].source.displayName);
+                    }
+                    iColumn++;
+                }
+                for (let iCat: number = 0; iCat < roleIndexArray[`KPIValueBag`].length; iCat++) {
+                    rows1[iRow][iColumn] = dataView.categorical.categories[roleIndexArray[`KPIValueBag`][iCat]].values[iRow];
+                    if (displayNameArray.length < totalLength) {
+                        displayNameArray.push(dataView.categorical.categories[roleIndexArray[`KPIValueBag`][iCat]].source.displayName);
+                    }
+                    iColumn++;
+                }
+                for (let iCat: number = 0; iCat < roleIndexArray[`Tooltip`].length; iCat++) {
+                    rows1[iRow][iColumn] = dataView.categorical.values[roleIndexArray[`Tooltip`][iCat]].values[iRow];
+                    if (displayNameArray.length < totalLength) {
+                        displayNameArray.push(dataView.categorical.values[roleIndexArray[`Tooltip`][iCat]].source.displayName);
+                    }
+                    iColumn++;
+                }
+                displayNameArray.push('lastChildId');
+                rows1[iRow][iColumn] = counter;
+                counter++;
             }
             // tslint:disable-next-line:no-any
             let rows: any;
@@ -2713,8 +2770,8 @@ module powerbi.extensibility.visual {
 
                 // tslint:disable-next-line:no-any
                 ele.forEach(function (e: any, ii: any): void {
-                    if (!obj[columns[ii].displayName]) {
-                        obj[columns[ii].displayName] = e;
+                    if (!obj[displayNameArray[ii]]) {
+                        obj[displayNameArray[ii]] = e;
                     }
                 });
 
@@ -2726,8 +2783,6 @@ module powerbi.extensibility.visual {
             categoryColumns = categoriesdata.filter(function (column) {
                 return !column.isMeasure || !kpiData;
             });
-            $.unique(categoryColumns);
-
             // tslint:disable-next-line:prefer-const
             let categorylen: number = categoryColumns.length;
             let legendIndex1: number = -1;
@@ -2817,11 +2872,10 @@ module powerbi.extensibility.visual {
             // tslint:disable-next-line
             const hierarchicalData: any = {
                 id, name: 'Total', start, end, numEnd, resource, color, tooltipInfo, selectionId: [], children: [],
-                measure: {}, kpiMeasure: {}, kpiValues: [], tooltipValues: []
+                measure: {}, kpiMeasure: {}, kpiValues: [], tooltipValues: [], lastChildId: -1
             },
                 // tslint:disable-next-line:typedef
                 levels = categoryColumns.map(function (a) { return a.source.displayName; });
-
             // tslint:disable-next-line:no-any
             categoryColumnsMappings.forEach(function (measureCol: any): void {
                 hierarchicalData.measure[measureCol.displayName] = 0;
@@ -2882,114 +2936,123 @@ module powerbi.extensibility.visual {
                 }
             });
 
-            // tslint:disable-next-line:no-any
-            elementIterator.forEach(function (d: any, i: any): any {
-                // Keep this as a reference to the current level
+            if (settings.taskLabels.isHierarchy) {
                 // tslint:disable-next-line:no-any
-                let depthCursor: any = hierarchicalData.children;
-                // tslint:disable-next-line:no-shadowed-variable
-                let kpiValues: KPIValues[];
-                kpiValues = [];
-                // tslint:disable-next-line:no-shadowed-variable
-                let tooltipValues: tooltipDataValues[];
-                tooltipValues = [];
-                // tslint:disable-next-line:no-any
-                const resourceValues: any = [];
-                // tslint:disable-next-line:no-any
-                const measure: any = [];
-                // Go down one level at a time
-                // tslint:disable-next-line:no-any
-                levels.forEach(function (property: any, depth: any): void {
-                    // Look to see if a branch has already been created
+                elementIterator.forEach(function (d: any, i: any): any {
+                    // Keep this as a reference to the current level
                     // tslint:disable-next-line:no-any
-                    let index: any;
+                    let depthCursor: any = hierarchicalData.children;
+                    // tslint:disable-next-line:no-shadowed-variable
+                    let kpiValues: KPIValues[];
+                    kpiValues = [];
+                    let lastChildId: number = -1;
+                    // tslint:disable-next-line:no-shadowed-variable
+                    let tooltipValues: tooltipDataValues[];
+                    tooltipValues = [];
                     // tslint:disable-next-line:no-any
-                    depthCursor.forEach(function (child: any, ind: any): void {
-                        if (child.children.length > 0) {
-                            if (d[property] === child.name) { index = ind; }
+                    const resourceValues: any = [];
+                    // tslint:disable-next-line:no-any
+                    const measure: any = [];
+                    // Go down one level at a time
+                    // tslint:disable-next-line:no-any
+                    levels.forEach(function (property: any, depth: any): void {
+                        // Look to see if a branch has already been created
+                        // tslint:disable-next-line:no-any
+                        let index: any;
+                        // tslint:disable-next-line:no-any
+                        depthCursor.forEach(function (child: any, ind: any): void {
+                            if (child.children.length > 0) {
+                                if (d[property] === child.name) { index = ind; }
+                            }
+                        });
+                        // Add a branch if it isn't there
+
+                        if (isNaN(index)) {
+                            depthCursor.push({
+                                name: d[property], children: [], measure: {}
+                                , kpiMeasure: {}, color, kpiValues: [], tooltipValues: [], resource, lastChildId: -1
+                            });
+                            index = depthCursor.length - 1;
                         }
-                    });
-                    // Add a branch if it isn't there
-
-                    if (isNaN(index)) {
-                        depthCursor.push({
-                            name: d[property], children: [], measure: {}
-                            , kpiMeasure: {}, color, kpiValues: [], tooltipValues: [], resource
-                        });
-                        index = depthCursor.length - 1;
-                    }
-                    // tslint:disable-next-line:no-any
-                    const measures: any = {};
-                    // tslint:disable-next-line:no-any
-                    const kpiMeasures: any = {};
-                    // if this is a leaf, add the measure values, else add 0 as the measure value
-                    if (depth === levels.length - 1) {
-                        kpiValues = [];
                         // tslint:disable-next-line:no-any
-                        kpiData.forEach(function (kpiMeasure: any): void {
-                            kpiValues.push({
-                                name: kpiMeasure.name,
-                                value: d[kpiMeasure.name]
-                            });
-
-                        });
-                        // tslint:disable-next-line
-                        let index : number = 0;
+                        const measures: any = {};
                         // tslint:disable-next-line:no-any
-                        tooltipIndexNew.forEach(function (tooltipMeasure: any): void {
-                            tooltipValues.push({
-                                name: tooltipIndexNew[index],
-                                value: d[tooltipMeasure]
+                        const kpiMeasures: any = {};
+                        // if this is a leaf, add the measure values, else add 0 as the measure value
+                        if (depth === levels.length - 1) {
+                            kpiValues = [];
+                            // tslint:disable-next-line:no-string-literal
+                            lastChildId = d['lastChildId'];
+                            // tslint:disable-next-line:no-any
+                            kpiData.forEach(function (kpiMeasure: any): void {
+                                kpiValues.push({
+                                    name: kpiMeasure.name,
+                                    value: d[kpiMeasure.name]
+                                });
                             });
-                            index++;
-                        });
-                        resource = d[resourceFeild] === undefined ? '' : d[resourceFeild];
-                        if (typeof d[startDisplayName] !== 'number') {
-                            start = new Date (d[startDisplayName]);
-                            end = new Date (d[endDisplayName]);
+                            // tslint:disable-next-line
+                            let index: number = 0;
+                            // tslint:disable-next-line:no-any
+                            tooltipIndexNew.forEach(function (tooltipMeasure: any): void {
+                                tooltipValues.push({
+                                    name: tooltipIndexNew[index],
+                                    value: d[tooltipMeasure]
+                                });
+                                index++;
+                            });
+                            resource = d[resourceFeild] === undefined ? '' : d[resourceFeild];
+                            if (typeof d[startDisplayName] !== 'number') {
+                                start = new Date(d[startDisplayName]);
+                                end = new Date(d[endDisplayName]);
+                            } else {
+                                numStart = null === d[startDisplayName] ? d[endDisplayName] : d[startDisplayName];
+                                numEnd = null === d[endDisplayName] ? d[startDisplayName] : d[endDisplayName];
+                            }
+
                         } else {
-                            numStart = null === d[startDisplayName] ? d[endDisplayName] : d[startDisplayName];
-                            numEnd = null === d[endDisplayName] ? d[startDisplayName] : d[endDisplayName];
-                        }
+                            kpiValues = [];
+                            // tslint:disable-next-line:no-any
+                            kpiData.forEach(function (kpiMeasure: any): void {
+                                kpiValues.push({
+                                    name: kpiMeasure.name,
+                                    value: null
+                                });
 
-                    } else {
-                        kpiValues = [];
-                        // tslint:disable-next-line:no-any
-                        kpiData.forEach(function (kpiMeasure: any): void {
-                            kpiValues.push({
-                                name: kpiMeasure.name,
-                                value: null
                             });
 
-                        });
+                            resource = null;
+                            tooltipInfo = null;
+                            start = null;
+                            end = null;
+                            numStart = null;
+                            numEnd = null;
+                        }
+                        depthCursor[index].kpiValues = kpiValues;
+                        depthCursor[index].tooltipValues = tooltipValues;
+                        depthCursor[index].resource = resource;
+                        depthCursor[index].measure = measures;
+                        depthCursor[index].start = start;
+                        depthCursor[index].end = end;
+                        depthCursor[index].numStart = numStart;
+                        depthCursor[index].numEnd = numEnd;
+                        depthCursor[index].lastChildId = lastChildId;
 
-                        resource = null;
-                        tooltipInfo = null;
-                        start = null;
-                        end = null;
-                        numStart = null;
-                        numEnd = null;
-                    }
-                    depthCursor[index].kpiValues = kpiValues;
-                    depthCursor[index].tooltipValues = tooltipValues;
-                    depthCursor[index].resource = resource;
-                    depthCursor[index].measure = measures;
-                    depthCursor[index].start = start;
-                    depthCursor[index].end = end;
-                    depthCursor[index].numStart = numStart;
-                    depthCursor[index].numEnd = numEnd;
-                    // Now reference the new child array as we go deeper into the tree
-                    depthCursor = depthCursor[index].children;
+                        // Now reference the new child array as we go deeper into the tree
+                        depthCursor = depthCursor[index].children;
+                    });
                 });
-            });
+            }
             // tslint:disable-next-line:no-any
             const tasknewarray: any = [];
             let categorylenn: number = 0;
             categorylenn = tasksNew[0].name.length - 1;
+
             for (let index: number = 0; index < tasksNew.length; index++) {
                 tasknewarray.push({
                     name: tasksNew[index].name[categorylenn],
-                    selectionId: tasksNew[index].selectionId
+                    selectionId: tasksNew[index].selectionId,
+                    categories: tasksNew[index].name,
+                    mapId: tasksNew[index].id
                 });
             }
             if (settings.taskLabels.isHierarchy) {
@@ -3053,11 +3116,12 @@ module powerbi.extensibility.visual {
                 // tslint:disable-next-line
                 let tooltipValues: KPIValues[];
                 // tslint:disable-next-line:typedef
+                //;
 
                 // tslint:disable-next-line:typedef
                 const row = {
                     id, repeat, name, identity, start, end, numStart, numEnd, resource, color,
-                    KPIValues, tooltipValues, selected, tooltipInfo, selectionId, level, isLeaf, rowId, parentId, expanded
+                    KPIValues, tooltipValues, selected, tooltipInfo, selectionId, level, isLeaf, rowId, parentId, expanded, lastChildId: -1
                 };
                 row.name = arr.name;
                 repeatValue.push(row.name);
@@ -3076,7 +3140,6 @@ module powerbi.extensibility.visual {
                     row.repeat = 0;
                 }
                 row.id = currentId;
-
                 children = arr.children.slice(0);
                 for (let iIterator: number = 0; iIterator < children.length; iIterator++) {
                     if (children.length === 1) {
@@ -3085,8 +3148,8 @@ module powerbi.extensibility.visual {
                         arr.start = row.start;
                         arr.end = row.end;
                     } else {
-                        startArr.push(new Date (children[iIterator].start));
-                        endArr.push(new Date (children[iIterator].end));
+                        startArr.push(new Date(children[iIterator].start));
+                        endArr.push(new Date(children[iIterator].end));
                     }
                 }
                 if (startArr.length > 0) {
@@ -3237,6 +3300,7 @@ module powerbi.extensibility.visual {
                 row.isLeaf = 0 === children.length;
                 // tslint:disable-next-line:no-conditional-assignment
                 if (row.isLeaf = 0 === children.length) {
+                    row.lastChildId = arr.lastChildId;
                     row.selectionId = host.createSelectionIdBuilder()
                         .withCategory(dataView.categorical.categories[0], selectionidindex)
                         .createSelectionId();
@@ -3273,7 +3337,6 @@ module powerbi.extensibility.visual {
                     row.expanded = Gantt.arrGantt[row.rowId] === true ? true : false;
                 }
                 transformedArr.push(row);
-
             };
             //tslint:disable-next-line
             uniquelegend.forEach(function (d: PrimitiveValue, ijk: number): void {
@@ -3286,6 +3349,10 @@ module powerbi.extensibility.visual {
                         .withMeasure(d.toString())
                         .createSelectionId()  //selectionId of the legend
                 });
+                uniqueColors.push({
+                    name: d,
+                    color: rows.color
+                });
             });
             legenduniquecolors = legendData.dataPoints;
             if (legendIndex !== -1) {
@@ -3293,61 +3360,38 @@ module powerbi.extensibility.visual {
                 barsLegend.drawLegend(legendData, viewport);
                 position(d3.select('.gantt-body'), barsLegend);
             }
-            toArray(hierarchicalData, -1, rowId);
-            //tslint:disable-next-line
-            const newArr: any = [];
-            //tslint:disable-next-line
-            const newColors: any = [];
-            let uniqueCount: number = uniquelegend.length;
-            while (uniqueCount >= 0) {
-                newArr.push(uniquelegend[uniqueCount]);
-                uniqueCount--;
-            }
-            for (let i: number = 0; i < transformedArr.length; i++) {
-                // tslint:disable-next-line:no-shadowed-variable
-                for (let j: number = 0; j < newArr.length; j++) {
-                    if (transformedArr[i].name === newArr[j]) {
-                        newColors.push({ color: transformedArr[i].color });
-                        delete newArr[j];
-                        //tslint:disable-next-line
-                    }
-                }
-            }
-            legendData.dataPoints = [];
-            uniqueColors = [];
-            uniquelegend.forEach(function (d: PrimitiveValue, ijk: number): void {
-                legendData.dataPoints.push({
-                    label: d.toString(),  //name of the label
-                    color: newColors[ijk].color,
-                    icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box, //type of the legend icon,
-                    selected: false,  // indicates of the legend is selected or not
-                    identity: host.createSelectionIdBuilder()
-                        .withMeasure(d.toString())
-                        .createSelectionId()  //selectionId of the legend
-                });
-                uniqueColors.push({
-                    name: d,
-                    color: rows.color
-                });
-            });
-            rows = transformedArr.reverse();
-            rows.splice(0, 1);
-            let rowindex: number = 0;
-            tasknewarray.reverse();
-            for (let index: number = 0; index < rows.length; index++) {
-                rows[index].selectionId = [];
-                if (rows[index].name.toString() === tasknewarray[rowindex].name.toString()) {
-                    rows[index].selectionId = tasknewarray[rowindex].selectionId;
-                    rowindex++;
-                    if (rowindex === tasknewarray.length) {
-                        break;
-                    }
-                }
-            }
             if (settings.taskLabels.isHierarchy) {
+                toArray(hierarchicalData, -1, rowId);
+                rows = transformedArr.reverse();
+                rows.splice(0, 1);
+                let rowindex: number = 0;
+                tasknewarray.reverse();
+                for (let index: number = 0; index < rows.length; index++) {
+                    rows[index].selectionId = [];
+                    for (let i: number = 0; i < tasknewarray.length; i++) {
+                        if (rows[index].lastChildId.toString() === tasknewarray[i].mapId.toString()) {
+                            rows[index].selectionId = tasknewarray[i].selectionId;
+                            rowindex++;
+                        }
+                    }
+                }
                 addSelection(rows);
+                // tslint:disable-next-line:typedef
+                transformedArr = transformedArr.sort(function (a, b) {
+                    return a.id > b.id ? 1 : a.id < b.id ? -1 : 0;
+                });
+                for (let i: number = 0; i < transformedArr.length; i++) {
+                    // tslint:disable-next-line:no-shadowed-variable
+                    for (let j: number = 0; j < uniquelegend.length; j++) {
+                        if (transformedArr[i].name === uniquelegend[j]) {
+                            legendData.dataPoints[j].color = transformedArr[i].color;
+                        }
+                    }
+                }
+                for (let index: number = 0; index < transformedArr.length; index++) {
+                    tasksNew.push(transformedArr[index]);
+                }
             }
-
             // tslint:disable-next-line:typedef
             function addSelection(row) {
                 const categoryLen: number = dataView.categorical.categories.length;
@@ -3458,24 +3502,6 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
-            // tslint:disable-next-line:typedef
-            transformedArr = transformedArr.sort(function (a, b) {
-                return a.id > b.id ? 1 : a.id < b.id ? -1 : 0;
-            });
-            for (let i: number = 0; i < transformedArr.length; i++) {
-                // tslint:disable-next-line:no-shadowed-variable
-                for (let j: number = 0; j < uniquelegend.length; j++) {
-                    if (transformedArr[i].name === uniquelegend[j]) {
-                        legendData.dataPoints[j].color = transformedArr[i].color;
-                    }
-                }
-            }
-            if (settings.taskLabels.isHierarchy) {
-                for (let index: number = 0; index < transformedArr.length; index++) {
-                    tasksNew.push(transformedArr[index]);
-                }
-            }
-
             let rowIndex: number = 0;
             // tslint:disable-next-line:no-any
             let selobjchildrencncierarchy: any = [];
@@ -3493,6 +3519,8 @@ module powerbi.extensibility.visual {
             }
             let mycolor: string;
             for (let iIterator: number = 0; iIterator < tasksNew.length; iIterator++) {
+                tasksNew[iIterator].tooltipInfo = Gantt.getTooltipInfo(tasksNew[iIterator],
+                                                                       this.formatters, dataView, iIterator);
                 for (let kIterator: number = 0; kIterator < legendData.dataPoints.length; kIterator++) {
                     // tslint:disable-next-line:no-any
                     const seltaskName: any = tasksNew[iIterator].name;
@@ -3509,12 +3537,6 @@ module powerbi.extensibility.visual {
                     }
 
                 }
-            }
-
-            // tslint:disable-next-line:typedef
-            for (let tooltipLength = 0; tooltipLength < tasksNew.length; tooltipLength++) {
-                tasksNew[tooltipLength].tooltipInfo = Gantt.getTooltipInfo(tasksNew[tooltipLength],
-                                                                           this.formatters, dataView, tooltipLength);
             }
 
             return {
@@ -3576,15 +3598,28 @@ module powerbi.extensibility.visual {
             Gantt.kpiLabelWidth = 75;
             Gantt.globalOptions = options;
             Gantt.dataMAX = Gantt.minSafeInteger;
+            // tslint:disable-next-line:no-any
+            const categoriesArray: any = options.dataViews[0].categorical.categories;
+            // tslint:disable-next-line:no-any
+            const valuesArray: any = options.dataViews[0].categorical.values;
+            const categoryLength: number = options.dataViews[0].categorical.categories.length;
+            const valuesLength: number = options.dataViews[0].categorical.values.length;
+            // tslint:disable-next-line:no-any
+            const dataview: any = options.dataViews[0];
             position(d3.select('.gantt-body'), this.barsLegend);
-            if (!options.dataViews || !options.dataViews[0]) {
+            if (!options.dataViews || !options.dataViews[0] || options.dataViews[0].categorical.categories[0].values.length === 0) {
                 this.clearViewport();
+                Gantt.ganttDiv.classed('gantt_hidden', true);
+                Gantt.errorDiv.classed('gantt_hidden', false);
+                let errorStatement: string;
+                errorStatement = 'There is no data to display';
+                Gantt.errorText.text(errorStatement);
 
                 return;
             }
 
-            for (let index: number = 0; index < options.dataViews[0].categorical.categories.length; index++) {
-                if (options.dataViews[0].categorical.categories[index].source.roles.Legend === true) {
+            for (let index: number = 0; index < categoryLength; index++) {
+                if (categoriesArray[index].source.roles.Legend === true) {
                     iterator = 1;
                     break;
                 }
@@ -3593,22 +3628,14 @@ module powerbi.extensibility.visual {
                 this.barsLegend = createLegend(this.bodyElement, false, null, true);
             }
 
-            if (!options.dataViews || !options.dataViews[0]) {
-                this.clearViewport();
-
-                return;
-            }
-
             let hasStart: boolean = false;
             let hasEnd: boolean = false;
-            if (options.dataViews[0].categorical.values) {
-                let iValuesLength: number;
-                iValuesLength = options.dataViews[0].categorical.values.length;
-                for (let iCounter: number = 0; iCounter < iValuesLength; iCounter++) {
-                    if (options.dataViews[0].categorical.values[iCounter].source.roles[startDateLiteral]) {
+            if (valuesArray) {
+                for (let iCounter: number = 0; iCounter < valuesLength; iCounter++) {
+                    if (valuesArray[iCounter].source.roles[startDateLiteral]) {
                         hasStart = true;
                     }
-                    if (options.dataViews[0].categorical.values[iCounter].source.roles[endDateLiteral]) {
+                    if (valuesArray[iCounter].source.roles[endDateLiteral]) {
                         hasEnd = true;
                     }
 
@@ -3627,7 +3654,8 @@ module powerbi.extensibility.visual {
             Gantt.sortLevel = getJSONString2;
             Gantt.prevSortedColumn = getJSONString2;
             const thisObj: this = this;
-            this.viewModel = Gantt.converter(options.dataViews[0], this.host, this.colors, this.barsLegend, options.viewport);
+            this.viewModel = Gantt.converter(dataview, this.host, this.colors, this.barsLegend, options.viewport);
+            //;
             this.persistExpandCollapseSettings = this.viewModel.settings.persistExpandCollapseSettings;
             this.barsLegend.changeOrientation(LegendPosition.Top);
             Gantt.expandCollapseStates = JSON.parse(this.persistExpandCollapseSettings.expandCollapseState || '{}');
@@ -3708,7 +3736,7 @@ module powerbi.extensibility.visual {
             let width: number = 0;
             let widthFromPercent: number = 0;
             let normalizer: number;
-            normalizer = (this.viewModel.settings.taskLabels.fontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
+            normalizer = this.viewModel.settings.taskLabels.fontSize;
             this.body.append('text')
                 .text('M')
                 .classed('singleCharacter', true)
@@ -3716,6 +3744,8 @@ module powerbi.extensibility.visual {
                     'font-size': normalizer + pxLiteral,
                     'font-family': 'Segoe UI'
                 });
+
+            singleCharacter = d3.selectAll('.singleCharacter');
 
             let taskLabelsFontSize: number;
             taskLabelsFontSize = this.viewModel.settings.taskLabels.fontSize;
@@ -3738,7 +3768,7 @@ module powerbi.extensibility.visual {
             headerProperties = {
                 text: 'W',
                 fontFamily: headerFontFamily,
-                fontSize: (headerFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral
+                fontSize: headerFontSize + pxLiteral
             };
 
             iTextWidth = textMeasurementService.measureSvgTextWidth(textProperties);
@@ -3752,7 +3782,7 @@ module powerbi.extensibility.visual {
             if (this.viewModel.settings.taskLabels.width <= 5) {
                 Gantt.singleCharacterWidth = iTextWidth * 0.8;
             }
-            d3.selectAll('.singleCharacter').remove();
+            singleCharacter.remove();
             if (this.viewModel.settings.taskLabels.width < 0) {
                 this.viewModel.settings.taskLabels.width = 0;
             } else if (this.viewModel.settings.taskLabels.width > Gantt.maxTaskNameLength) {
@@ -3807,28 +3837,26 @@ module powerbi.extensibility.visual {
             }
             Gantt.taskLabelWidthOriginal = (Gantt.currentDisplayRatio - Gantt.minDisplayRatio) * this.viewport.width / 100;
 
-            let toggleIconId: Selection<SVGAElement>;
-            toggleIconId = d3.select('#gantt_ToggleIcon');
             if (options.type === 2) {
                 if (this.viewModel.settings.taskLabels.isExpanded) {
                     d3.select('.gantt_task-lines').attr('visibility', 'visible');
                     d3.select('.gantt_toggle-task-group').attr('visibility', 'visible');
                     $('.gantt_bottomTaskDiv').show();
-                    toggleIconId.attr('href', Gantt.collapseImage);
-                    toggleIconId.classed('collapse', true);
-                    toggleIconId.classed('expand', false);
+                    d3.select('#gantt_ToggleIcon').attr('href', Gantt.collapseImage);
+                    d3.select('#gantt_ToggleIcon').classed('collapse', true);
+                    d3.select('#gantt_ToggleIcon').classed('expand', false);
                     Gantt.taskLabelWidth = Gantt.taskLabelWidthOriginal;
                 } else {
                     d3.select('.gantt_task-lines').attr('visibility', 'hidden');
                     d3.select('.gantt_toggle-task-group').attr('visibility', 'hidden');
                     $('.gantt_bottomTaskDiv').hide();
-                    toggleIconId.attr('href', Gantt.expandImage);
-                    toggleIconId.classed('collapse', false);
-                    toggleIconId.classed('expand', true);
+                    d3.select('#gantt_ToggleIcon').attr('href', Gantt.expandImage);
+                    d3.select('#gantt_ToggleIcon').classed('collapse', false);
+                    d3.select('#gantt_ToggleIcon').classed('expand', true);
                 }
             }
 
-            if (toggleIconId.classed('collapse')) {
+            if (d3.select('#gantt_ToggleIcon').classed('collapse')) {
                 Gantt.taskLabelWidth = width;
             } else {
                 Gantt.taskLabelWidth = 20;
@@ -3970,6 +3998,7 @@ module powerbi.extensibility.visual {
 
                 this.updateTaskLabels(this.viewModel.tasksNew, this.viewModel.settings.taskLabels.width);
                 this.updateElementsPositions(this.viewport, this.margin);
+
             } else if (datamax !== undefined && datamax !== null && datamax !== Gantt.minSafeInteger) {
                 ticks = 15;
                 if (datamin === datamax) {
@@ -4038,10 +4067,10 @@ module powerbi.extensibility.visual {
                 if (categoryLengthPrev === 0 || categoryLengthPrev !== this.viewModel.tasksNew[0].name.length) {
                     this.resetResizeData(this.viewModel.tasksNew[0].name.length, this.viewModel);
                 }
-
                 this.updateTaskLabels(this.viewModel.tasksNew, this.viewModel.settings.taskLabels.width);
                 this.updateElementsPositions(this.viewport, this.margin);
             } else if (startDate && Gantt.isDateData) {
+
                 let startDate1: Date;
                 startDate1 = new Date(startDate.toString());
                 let endDate1: Date;
@@ -4152,9 +4181,11 @@ module powerbi.extensibility.visual {
                 this.updateSvgSize(this, axisLength);
                 this.renderAxis(xAxisProperties);
                 this.rendergrids(xAxisProperties, Gantt.currentTasksNumber);
+
                 if (Gantt.isDateData) {
                     this.createTodayLine(Gantt.currentTasksNumber);
                 }
+
                 let taskSvgWidth: number;
                 taskSvgWidth = $(dotLiteral + Selectors.taskPanel.class).width();
                 Gantt.columnWidth = taskSvgWidth / this.viewModel.tasksNew[0].name.length;
@@ -4163,10 +4194,11 @@ module powerbi.extensibility.visual {
                 }
 
                 this.updateTaskLabels(this.viewModel.tasksNew, this.viewModel.settings.taskLabels.width);
+
                 this.updateElementsPositions(this.viewport, this.margin);
+
             }
             this.adjustResizing(this.viewModel.tasksNew, this.viewModel.settings.taskLabels.width, this.viewModel);
-
             if ((this.viewModel.settings.legend.show
                 && (this.viewport.width > $('.gantt_legendIndicatorPanel').innerWidth() + 100)
                 && this.viewport.height > $('.gantt_legendIndicatorPanel').innerHeight() + 50
@@ -4189,7 +4221,6 @@ module powerbi.extensibility.visual {
             if (this.interactivityService) {
                 let behaviorOptions: GanttBehaviorOptions;
                 behaviorOptions = {
-                    clearCatcher: this.clearCatcher,
                     taskSelection: this.taskGroup.selectAll(Selectors.singlePhase.selector),
                     legendSelection: this.body.selectAll(Selectors.legendItems.selector),
                     interactivityService: this.interactivityService
@@ -4822,6 +4853,7 @@ module powerbi.extensibility.visual {
                     width: PixelConverter.toString(this.margin.left + axisLength + Gantt.defaultValues.ResourceWidth)
                 });
 
+            //$('.gantt_barPanel') = $('.gantt_barPanel');
             if ($('.gantt_bottomPanel').innerHeight() < $('.gantt_barPanel').innerHeight()) {
                 $('.gantt_barPanel').css('width', $('.gantt_barPanel').innerWidth() - 20);
             }
@@ -5047,8 +5079,6 @@ module powerbi.extensibility.visual {
                         Gantt.sortOrder = 'asc';
                     }
                     Gantt.sortLevel = iCounter;
-                    // thisObj.viewModel = Gantt.converter(Gantt.globalOptions.dataViews[0], thisObj.host,
-                    //                                     thisObj.colors, thisObj.barsLegend, thisObj.viewport);
 
                     for (let jCounter: number = 0; jCounter < Gantt.numberOfCategories; jCounter++) {
                         if (jCounter !== iCounter) {
@@ -5501,6 +5531,7 @@ module powerbi.extensibility.visual {
             let barPanelLeft: number;
             let kpiPanelWidth: number;
             let lastRectX: number;
+           // $('.gantt_legendIndicatorPanel') = $('.gantt_legendIndicatorPanel');
             thisObj = this;
             columnHeaderColor = this.viewModel.settings.columnHeader.fill;
             columnHeaderBgColor = this.viewModel.settings.columnHeader.fill2;
@@ -5514,7 +5545,7 @@ module powerbi.extensibility.visual {
             taskLabelsFontFamily = this.viewModel.settings.taskLabels.fontFamily;
             totalKPIs = this.viewModel.kpiData.length;
             totalCategories = tasks[0].name.length;
-            normalizer = (this.viewModel.settings.taskLabels.fontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
+            normalizer = this.viewModel.settings.taskLabels.fontSize;
             kpiFontSize = 23 * Gantt.maximumNormalizedFontSize / Gantt.maximumFontSize;
             kpiFontColor = '#000';
             this.kpiTitleGroup.selectAll('*').remove();
@@ -5630,6 +5661,7 @@ module powerbi.extensibility.visual {
             }
 
             if (!isTaskLabelHierarchyView) {
+                //;
                 let objects: DataViewObjects = null;
                 let getJSONString: string;
                 let columnWidth: number;
@@ -5716,7 +5748,6 @@ module powerbi.extensibility.visual {
                         .attr('y', 10)
                         .attr('height', 7)
                         .attr('width', 7);
-
                     if (Gantt.numberOfCategories !== 1) {
                         if (jCount === 0) {
                             textElement.attr('x', 15);
@@ -5762,8 +5793,7 @@ module powerbi.extensibility.visual {
                             d3.select(categoryClassLiteral + jCount)
                                 .text(Gantt.categoriesTitle[jCount])
                                 .style({
-                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) /
-                                        Gantt.maximumFontSize + pxLiteral,
+                                    'font-size': columnHeaderFontSize + pxLiteral,
                                     'font-family': columnHeaderFontFamily,
                                     fill: columnHeaderColor,
                                     'background-color': columnHeaderBgColor
@@ -5776,8 +5806,7 @@ module powerbi.extensibility.visual {
                             d3.select(categoryClassLiteral + jCount)
                                 .text(Gantt.categoriesTitle[jCount])
                                 .style({
-                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) /
-                                        Gantt.maximumFontSize + pxLiteral,
+                                    'font-size': columnHeaderFontSize + pxLiteral,
                                     'font-family': columnHeaderFontFamily,
                                     fill: columnHeaderColor,
                                     'background-color': columnHeaderBgColor
@@ -5794,8 +5823,7 @@ module powerbi.extensibility.visual {
                             d3.select(categoryClassLiteral + jCount)
                                 .text(Gantt.categoriesTitle[jCount])
                                 .style({
-                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize)
-                                        / Gantt.maximumFontSize + pxLiteral,
+                                    'font-size': columnHeaderFontSize + pxLiteral,
                                     'font-family': columnHeaderFontFamily,
                                     fill: columnHeaderColor,
                                     'background-color': columnHeaderBgColor
@@ -5807,8 +5835,7 @@ module powerbi.extensibility.visual {
                             d3.select(categoryClassLiteral + jCount)
                                 .text(Gantt.categoriesTitle[jCount])
                                 .style({
-                                    'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize)
-                                        / Gantt.maximumFontSize + pxLiteral,
+                                    'font-size': columnHeaderFontSize + pxLiteral,
                                     'font-family': columnHeaderFontFamily,
                                     fill: columnHeaderColor,
                                     'background-color': columnHeaderBgColor
@@ -5845,7 +5872,7 @@ module powerbi.extensibility.visual {
                     axisKPILabel.attr({
                         x: 3 + (Gantt.kpiLabelWidth / totalKPIs * jCount),
                         y: 15,
-                        'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral,
+                        'font-size': columnHeaderFontSize + pxLiteral,
                         'font-family': columnHeaderFontFamily,
                         fill: columnHeaderColor,
                         background: columnHeaderBgColor,
@@ -5907,38 +5934,54 @@ module powerbi.extensibility.visual {
                 const tasksLength: number = tasks.length;
                 let yVal: number = -1;
                 let opacityValue: number = 0;
+                const width1: number = $('.gantt_taskSvg').width();
                 for (let tasknumber: number = 0; tasknumber < tasksLength; tasknumber++) {
-                    let currentLevel: Task;
-                    currentLevel = tasks[tasknumber];
+                    const yCoordinate: number = thisObj.getTaskLabelCoordinateY(tasknumber);
+                    const currentLevel: Task = tasks[tasknumber];
                     thisObj = this;
                     let regionAttr: string = '';
                     let metroAttr: string = '';
                     let projectAttr: string = '';
                     let trancheAttr: string = '';
                     for (let jCount: number = 0; jCount < totalCategories; jCount++) {
-                        if (jCount === 0) {
-                            regionAttr = tasks[tasknumber].name[jCount];
-                        } else if (jCount === 1) {
-                            metroAttr = tasks[tasknumber].name[jCount];
-                        } else if (jCount === 2) {
-                            projectAttr = tasks[tasknumber].name[jCount];
-                        } else if (jCount === 3) {
-                            trancheAttr = tasks[tasknumber].name[jCount];
+                        let categoryLabel: string = tasks[tasknumber].name[jCount].toString();
+                        // tslint:disable-next-line:switch-default
+                        switch (jCount) {
+                            case 0: {
+                                regionAttr = tasks[tasknumber].name[jCount];
+                                categoryLabel = Gantt.regionValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                break;
+                            }
+                            case 1: {
+                                metroAttr = tasks[tasknumber].name[jCount];
+                                categoryLabel = Gantt.metroValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                break;
+                            }
+                            case 2: {
+                                projectAttr = tasks[tasknumber].name[jCount];
+                                categoryLabel = Gantt.projectValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                break;
+                            }
+                            case 3: {
+                                trancheAttr = tasks[tasknumber].name[jCount];
+                                categoryLabel = Gantt.trancheValueFormatter.format(tasks[tasknumber].name[jCount]);
+                            }
+
                         }
                         if (taskLabelsShow) {
                             categoryObject[jCount] = tasks[tasknumber].name[jCount];
                             opacityValue = tasknumber % 2 === 0 ? 0.2 : 0.6;
-                            if (yVal !== thisObj.getTaskLabelCoordinateY(tasknumber)) {
+                            if (yVal !== yCoordinate) {
                                 const greyRect: Selection<HTMLElement> = this.lineGroup.append('rect').attr({
                                     x: 0,
-                                    y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
-                                    width: $('.gantt_taskSvg').width(),
+                                    y: yCoordinate - 17,
+                                    width: width1,
                                     height: 24,
                                     fill: '#ccc',
                                     class: 'gantt_backgroundRect',
                                     opacity: opacityValue
                                 });
-                                yVal = thisObj.getTaskLabelCoordinateY(tasknumber);
+                                yVal = yCoordinate;
                             }
                             axisLabel = this.lineGroup
                                 .append('text')
@@ -5973,17 +6016,6 @@ module powerbi.extensibility.visual {
                                 }).style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily);
                             }
 
-                            let categoryLabel: string = tasks[tasknumber].name[jCount].toString();
-
-                            if (jCount === 0) {
-                                categoryLabel = Gantt.regionValueFormatter.format(tasks[tasknumber].name[jCount]);
-                            } else if (jCount === 1) {
-                                categoryLabel = Gantt.metroValueFormatter.format(tasks[tasknumber].name[jCount]);
-                            } else if (jCount === 2) {
-                                categoryLabel = Gantt.projectValueFormatter.format(tasks[tasknumber].name[jCount]);
-                            } else if (jCount === 3) {
-                                categoryLabel = Gantt.trancheValueFormatter.format(tasks[tasknumber].name[jCount]);
-                            }
                             if (categoryLabel === '') {
                                 categoryLabel = 'N/A';
                             }
@@ -6015,20 +6047,22 @@ module powerbi.extensibility.visual {
 
                             axisLabel.append('title').text(Gantt.getLabelValuesNew(categoryLabel, 'title', width));
                         }
+
                     }
+
                     if (0 !== currentLevel.KPIValues.length) {
                         for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
                             if (jCount === 0) {
                                 thisObj.kpiGroup.append('rect').attr({
                                     x: 0,
-                                    y: thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
+                                    y: yCoordinate - 17,
                                     height: 24,
                                     width: parseInt(d3.select('.gantt_kpiSvg').attr('width'), 10),
                                     fill: '#ccc',
                                     opacity: opacityValue
                                 })
                                     .attr('x', 0)
-                                    .attr('y', thisObj.getTaskLabelCoordinateY(tasknumber) - 17)
+                                    .attr('y', yCoordinate - 17)
                                     .attr('height', 24)
                                     .attr('width', parseInt(d3.select('.gantt_kpiSvg').attr('width'), 10))
                                     .attr('fill', '#ccc');
@@ -6074,7 +6108,7 @@ module powerbi.extensibility.visual {
                                 if (showCircle) {
                                     axisKPILabel.attr({
                                         cx: (Gantt.kpiLabelWidth / totalKPIs * jCount) + 37.5,
-                                        cy: thisObj.getTaskLabelCoordinateY(tasknumber) - 4,
+                                        cy: yCoordinate - 4,
                                         r: 8,
                                         fill: color,
                                         'stroke-width': Gantt.axisLabelStrokeWidth,
@@ -6088,7 +6122,7 @@ module powerbi.extensibility.visual {
                                     axisKPILabel = thisObj.kpiGroup.append('text').classed(Selectors.label.class, true);
                                     axisKPILabel.attr({
                                         x: (Gantt.kpiLabelWidth / totalKPIs * jCount) + 32.5 + extraLeftPadding,
-                                        y: thisObj.getTaskLabelCoordinateY(tasknumber),
+                                        y: yCoordinate,
                                         fill: '#fff',
                                         'stroke-width': 5,
                                         regionAttr: regionAttr,
@@ -6123,7 +6157,7 @@ module powerbi.extensibility.visual {
 
                                 axisKPILabel.attr({
                                     x: Gantt.taskLineCoordinateX + (Gantt.kpiLabelWidth / totalKPIs * jCount) + 9.5,
-                                    y: thisObj.getTaskLabelCoordinateY(tasknumber) - 12,
+                                    y: yCoordinate - 12,
                                     width: 24,
                                     height: 16,
                                     fill: typeColor,
@@ -6137,7 +6171,7 @@ module powerbi.extensibility.visual {
                                 axisKPILabel = thisObj.kpiGroup.append('text').classed(Selectors.label.class, true);
                                 axisKPILabel.attr({
                                     x: Gantt.taskLineCoordinateX + (Gantt.kpiLabelWidth / totalKPIs * jCount) + 12.5,
-                                    y: thisObj.getTaskLabelCoordinateY(tasknumber),
+                                    y: yCoordinate,
                                     fill: color,
                                     'stroke-width': 5,
                                     regionAttr: regionAttr,
@@ -6165,31 +6199,33 @@ module powerbi.extensibility.visual {
                                             'font-size': kpiFontSize + pxLiteral,
                                             'font-family': 'Segoe UI'
                                         });
+                                    // tslint:disable-next-line:no-any
+                                    const singleCharacterLocal: any = $('.singleCharacter');
                                     let textTotalWidth: number;
-                                    textTotalWidth = $('.singleCharacter').innerWidth();
+                                    textTotalWidth = singleCharacterLocal.innerWidth();
                                     let numberOfCharactersAllowed: number;
                                     numberOfCharactersAllowed = Math.floor(
                                         (Gantt.kpiLabelWidth / totalKPIs) / (textTotalWidth / clippedText.length));
                                     if (clippedText.length > numberOfCharactersAllowed) {
-                                        $('.singleCharacter').text(clippedText
+                                        singleCharacterLocal.text(clippedText
                                             .substring(0, numberOfCharactersAllowed - 2) + ellipsisLiteral);
-                                        textTotalWidth = $('.singleCharacter').innerWidth();
+                                        textTotalWidth = singleCharacterLocal.innerWidth();
                                         let iCount: number = 0;
                                         while (textTotalWidth < width) {
                                             iCount++;
-                                            $('.singleCharacter')
+                                            singleCharacterLocal
                                                 .text(clippedText.substring(0, numberOfCharactersAllowed - 2 + iCount) + ellipsisLiteral);
-                                            textTotalWidth = $('.singleCharacter').innerWidth();
+                                            textTotalWidth = singleCharacterLocal.innerWidth();
                                         }
                                     } else {
                                         iLeftSpacing = Gantt.kpiLabelWidth / totalKPIs - textTotalWidth - 5;
                                     }
-                                    d3.selectAll('.singleCharacter').remove();
+                                    singleCharacterLocal.remove();
                                 }
 
                                 axisKPILabel.attr({
                                     x: (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing,
-                                    y: thisObj.getTaskLabelCoordinateY(tasknumber),
+                                    y: yCoordinate,
                                     fill: kpiFontColor,
                                     'stroke-width': Gantt.axisLabelStrokeWidth,
                                     regionAttr: regionAttr,
@@ -6303,8 +6339,7 @@ module powerbi.extensibility.visual {
                             continue;
                         }
                         let labelnormalizer: number;
-                        labelnormalizer = (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize)
-                            / Gantt.maximumFontSize;
+                        labelnormalizer = thisObj.viewModel.settings.taskResource.fontSize;
                         if (taskResourceShow) {
                             let taskResource: Selection<HTMLElement>;
                             taskResource = taskSelection
@@ -6436,8 +6471,7 @@ module powerbi.extensibility.visual {
                         }
                         thisObj.renderTooltip(eachPhaseSelection);
                         let labelnormalizer: number;
-                        labelnormalizer =
-                            (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
+                        labelnormalizer = thisObj.viewModel.settings.taskResource.fontSize;
                         if (taskResourceShow) {
 
                             let taskResource: Selection<HTMLElement>;
@@ -6502,7 +6536,6 @@ module powerbi.extensibility.visual {
                         selectionManager = this.selectionManager;
                     }
                 }
-
                 let bars: UpdateSelection<Task>;
                 bars = d3.selectAll(dotLiteral + Selectors.taskRect.class).data(tasks);
 
@@ -6822,8 +6855,7 @@ module powerbi.extensibility.visual {
                 d3.select(categoryClassLiteral)
                     .text('Category hierarchy')
                     .style({
-                        'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize)
-                            / Gantt.maximumFontSize + pxLiteral,
+                        'font-size': columnHeaderFontSize + pxLiteral,
                         'font-family': columnHeaderFontFamily,
                         fill: columnHeaderColor,
                         'background-color': columnHeaderBgColor
@@ -6836,7 +6868,7 @@ module powerbi.extensibility.visual {
                     axisKPILabel1.attr({
                         x: 3 + (Gantt.kpiLabelWidth / totalKPIs * jCount),
                         y: 15,
-                        'font-size': (columnHeaderFontSize * Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize + pxLiteral,
+                        'font-size': columnHeaderFontSize + pxLiteral,
                         'font-family': columnHeaderFontFamily,
                         fill: columnHeaderColor,
                         background: columnHeaderBgColor,
@@ -6892,405 +6924,44 @@ module powerbi.extensibility.visual {
                         });
                     }
                 }
+
                 // tslint:disable-next-line:no-any
                 let yVal: number = -1;
+                // tslint:disable-next-line:no-any
+                let parentTasks: any;
                 for (let tasknumber: number = 0; tasknumber < tasks.length; tasknumber++) {
-                    let currentLevel: Task;
-                    currentLevel = tasks[tasknumber];
-                    let leveLength: number;
-                    leveLength = tasks[tasknumber].level;
-                    let levelMargin: number;
-                    let marginLevel: number;
-                    let textMargin: number = 10;
-                    levelMargin = (tasks[tasknumber].level * 10);
-                    if (yVal !== thisObj.getTaskLabelCoordinateY(tasknumber)) {
-                        let divWidth: number = 0;
-                        // tslint:disable-next-line:no-any
-                        const divTask: any = this.taskDiv.append('div');
+                    // tslint:disable-next-line:typedef
+                    parentTasks = tasks.filter(function (key) { return key.id === tasks[tasknumber].parentId; });
+                    //tasks[tasknumber].expanded = true;
 
-                        if ($($(divTask)[0]).parent().width() < 200) {
-                            divWidth = 200;
-                        } else {
-                            divWidth = $('.ganttDiv').width();
-                        }
-                        // tslint:disable-next-line:no-any
-                        const lineDiv: any = this.taskDiv.append('div')
-                            .style({
-                                width: divWidth + pxLiteral,
-                                height: '24px'
-                            })
-                            .classed('show', true)
-                            .attr({
-                                'data-level': tasks[tasknumber].level,
-                                'data-ParentId': tasks[tasknumber].parentId,
-                                'data-expanded': tasks[tasknumber].expanded,
-                                'data-RowId': tasks[tasknumber].rowId,
-                                'data-isLeaf': tasks[tasknumber].isLeaf,
-                                'data-row': tasknumber
-                            });
-                        if (categoryLen === 4) {
-                            if (leveLength === 1) {
-                                lineDiv.style({
-                                    'background-color': parentColour,
-                                    opacity: 0.8
-                                });
-                            } else if (leveLength === 2) {
-                                lineDiv.style({
-                                    'background-color': firstChildColour,
-                                    opacity: 0.8
-                                });
-                            } else if (leveLength === 3) {
-                                lineDiv.style({
-                                    'background-color': secondChildColour,
-                                    opacity: 0.8
-                                });
-                            } else if (leveLength === 4) {
-                                lineDiv.style({
-                                    'background-color': thirdChildColour,
-                                    opacity: 0.8
-                                });
-                            }
-                        } else if (categoryLen === 3) {
-                            if (leveLength === 1) {
-                                lineDiv.style({
-                                    'background-color': firstChildColour,
-                                    opacity: 0.8
-                                });
-                            } else if (leveLength === 2) {
-                                lineDiv.style({
-                                    'background-color': secondChildColour,
-                                    opacity: 0.8
-                                });
-                            } else if (leveLength === 3) {
-                                lineDiv.style({
-                                    'background-color': thirdChildColour,
-                                    opacity: 0.8
-                                });
-                            }
-                        } else if (categoryLen === 2) {
-                            if (leveLength === 1) {
-                                lineDiv.style({
-                                    'background-color': secondChildColour,
-                                    opacity: 0.8
-                                });
-                            } else if (leveLength === 2) {
-                                lineDiv.style({
-                                    'background-color': thirdChildColour,
-                                    opacity: 0.8
-                                });
-                            }
-                        } else {
-                            const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
-                            lineDiv.style({
-                                'background-color': backgroundBarColor,
-                                opacity: 0.8
-                            });
-                        }
-                        yVal = thisObj.getTaskLabelCoordinateY(tasknumber);
-                        if (!tasks[tasknumber].isLeaf) {
-                            marginLevel = levelMargin;
-                            if (tasks[tasknumber].level !== 1) {
-                                marginLevel = levelMargin + (tasks[tasknumber].level * 5) + (tasks[tasknumber].level - 1) * 4;
-                            }
-                            axisLabelImg = lineDiv.append('img')
-                                .style('margin-left', (marginLevel + pxLiteral))
-                                .attr('src', tasks[tasknumber].expanded ? Gantt.minusIcon : Gantt.plusIcon);
-                            // tslint:disable-next-line:typedef
-                            axisLabelImg.on('click', function (this) {
-                                let sRowId: string;
-                                // tslint:disable-next-line
-                                let selectionId: any = thisObj.selectionManager;
-                                // tslint:disable-next-line
-                                let selectionIdLen: any = selectionId.selectedIds;
-                                // tslint:disable-next-line
-                                let selectionIdLen1: number = selectionIdLen.length;
-                                // tslint:disable-next-line:no-any
-                                let selobjchildrencncierarchy: any = [];
-                                sRowId = $(this).parent().attr('data-RowId');
-                                // tslint:disable-next-line:no-any
-                                if ($.grep(tasks, function (e: any): any { return e.rowId.toString() === sRowId; })[0].expanded) {
-                                    this.src = Gantt.plusIcon;
-                                    $(this).parent().attr('data-expanded', 'false');
-                                    thisObj.collapseFunctinality(tasks, sRowId);
-                                } else {
-                                    this.src = Gantt.minusIcon;
-                                    $(this).parent().attr('data-expanded', 'true');
-                                    thisObj.expandFunctinality(tasks, sRowId);
-                                }
+                    if (tasks[tasknumber].parentId === 1 || tasks[tasknumber].expanded ||
+                        (parentTasks.length !== 0 && parentTasks[0].expanded)) {
 
-                                if (selectionIdLen1 !== 0) {
-                                    thisObj.selectionManager.clear();
-                                    Gantt.lastSelectedbar = null;
-                                    d3.selectAll('.taskRect.show').classed('selected', false);
-                                    d3.selectAll('.taskRect.show').style({
-                                        opacity: 1
-                                    });
-                                    d3.selectAll('.gantt_taskPanel .show').style({
-                                        opacity: 1
-                                    });
-                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 1 });
-                                    }
-                                }
-                                // tslint:disable-next-line:no-any
-                                function getDirectChildInHierarchy(sRowID: any): any {
-                                    // tslint:disable-next-line:no-any
-                                    $.map(tasks, function (sObj: any): void {
-                                        if (sObj.parentId === sRowID) {
-                                            selobjchildrencncierarchy.push(sObj);
-                                            getDirectChildInHierarchy(sObj.rowId);
-                                        }
-                                    });
+                        let currentLevel: Task;
+                        currentLevel = tasks[tasknumber];
+                        let leveLength: number;
+                        leveLength = tasks[tasknumber].level;
+                        let levelMargin: number;
+                        let marginLevel: number;
+                        let textMargin: number = 10;
+                        levelMargin = (tasks[tasknumber].level * 10);
+                        if (yVal !== thisObj.getTaskLabelCoordinateY(tasknumber)) {
+                            let divWidth: number = 0;
+                            // tslint:disable-next-line:no-any
+                            const divTask: any = this.taskDiv.append('div');
 
-                                    return selobjchildrencncierarchy;
-                                }
-                                if (Object.keys(Gantt.arrGantt).length === undefined) {
-                                    Gantt.arrGantt = JSON.parse(Gantt.stateValue);
-                                }
-                                for (let i: number = 0; i < tasks.length; i++) {
-                                    if (Object.keys(Gantt.arrGantt).length === undefined) {
-                                        if (!(sRowId === tasks[i].rowId.toString())) {
-                                            Gantt.expandCollapseStates[tasks[i].rowId] = false;
-                                        }
-                                    }
-                                    if (parseInt(sRowId, 10) === tasks[i].rowId && tasks[i].expanded !== true) {
-                                        Gantt.arrGantt[tasks[i].rowId] = true;
-                                    }
-                                    if (parseInt(sRowId, 10) === tasks[i].rowId && tasks[i].expanded === true) {
-                                        selobjchildrencncierarchy.push(tasks[i]);
-                                        selobjchildrencncierarchy = getDirectChildInHierarchy(parseInt(sRowId, 10));
-                                        let j: number = 0;
-                                        for (let ijIterator: number = 0; ijIterator < tasks.length; ijIterator++) {
-                                            if (selobjchildrencncierarchy[j].rowId === tasks[ijIterator].rowId) {
-                                                Gantt.arrGantt[tasks[ijIterator].rowId] = false;
-                                                j++;
-                                                if (selobjchildrencncierarchy.length === j) {
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                thisObj.persistExpandCollapseState(Gantt.arrGantt);
-                            });
-                        } else {
-                            if (tasks[tasknumber].level === 1) {
-                                textMargin = levelMargin;
+                            if ($($(divTask)[0]).parent().width() < 200) {
+                                divWidth = 200;
                             } else {
-                                textMargin = levelMargin + (tasks[tasknumber].level * 5) + (tasks[tasknumber].level - 1) * 9;
+                                divWidth = $('.ganttDiv').width();
                             }
-                            scrollWidth = textMargin;
-                        }
-                        let printString: string;
-                        // tslint:disable-next-line:no-any
-                        if (dateFormat.test(<any>tasks[tasknumber].name)) {
                             // tslint:disable-next-line:no-any
-                            printString = <any>tasks[tasknumber].start;
-                        } else {
-                            // tslint:disable-next-line:no-any
-                            printString = <any>tasks[tasknumber].name;
-                        }
-                        axisLabel = lineDiv.append('text').text(printString)
-                            .attr('title', tasks[tasknumber].name);
-                        axisLabel
-                            .style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily)
-                            .style('margin-left', textMargin + pxLiteral)
-                            .style('color', taskLabelsColor)
-                            // tslint:disable-next-line:typedef
-                            .on('click', function () {
-                                let sRowId: number;
-                                // tslint:disable-next-line:typedef
-                                let obj = {};
-                                sRowId = parseInt($(this).parent().attr('data-rowid'), 10);
-                                obj = tasks;
-                                let j: number = 0;
-                                // tslint:disable-next-line:no-any
-                                let selobjchildrencncierarchy: any = [];
-                                // tslint:disable-next-line:typedef
-                                function getDirectChildInHierarchy(sRowID) {
-                                    // tslint:disable-next-line:typedef
-                                    $.map(tasks, function (sObj) {
-                                        if (sObj.parentId === sRowID) {
-                                            selobjchildrencncierarchy.push(sObj);
-                                            getDirectChildInHierarchy(sObj.rowId);
-                                        }
-                                    });
-
-                                    return selobjchildrencncierarchy;
-                                }
-                                for (let i: number = 0; i < tasks.length; i++) {
-                                    if (tasks[i].rowId === sRowId) {
-                                        // tslint:disable-next-line:no-any
-                                        const selectionId: any = tasks[i].selectionId;
-                                        let parentRowId: number;
-                                        parentRowId = tasks[i].rowId;
-                                        selobjchildrencncierarchy.push(tasks[i]);
-                                        selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
-                                        if (Gantt.lastSelectedbar === null) {
-                                            Gantt.lastSelectedbar = parseInt($($(this).parent()[0]).attr('data-rowid'), 10);
-                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                if ($(this).parent().attr('data-isleaf') === 'true') {
-                                                    d3.selectAll('.taskRect.show').classed('selected', false);
-                                                    d3.selectAll('.taskRect.show').style({
-                                                        opacity: 0.3
-                                                    });
-                                                    d3.selectAll('.gantt_taskPanel .show').style({
-                                                        opacity: 0.3
-                                                    });
-                                                    d3.select($(this).parent()[0])
-                                                        .classed('selected', true)
-                                                        .style({
-                                                            opacity: 1
-                                                        });
-                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                        // tslint:disable-next-line:max-line-length
-                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
-                                                    }
-                                                    // tslint:disable-next-line:no-shadowed-variable
-                                                    for (let i: number = 0; i < tasks.length; i++) {
-                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                            selobjchildrencncierarchy[j].rowId) {
-                                                            // tslint:disable-next-line:typedef
-                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i])).css('opacity', '1');
-                                                            thisk.addClass('selected');
-                                                            // tslint:disable-next-line:typedef
-                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                            $(thiskk[0][i]).css('opacity', '1');
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
-                                                            j++;
-                                                        }
-                                                        if (j === selobjchildrencncierarchy.length) {
-                                                            break;
-                                                        }
-                                                    }
-                                                } else {
-                                                    let selobjindex: number = 0;
-                                                    d3.selectAll('.taskRect.show').style({
-                                                        opacity: 0.3
-                                                    })
-                                                        .classed('selected', false);
-                                                    d3.selectAll('.gantt_taskPanel .show').style({
-                                                        opacity: 0.3
-                                                    });
-                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                            .children()[kpiindex])
-                                                            .css({ opacity: 0.3 });
-                                                    }
-                                                    // tslint:disable-next-line:no-shadowed-variable
-                                                    for (let i: number = 0; i < tasks.length; i++) {
-                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                            selobjchildrencncierarchy[selobjindex].rowId) {
-                                                            // tslint:disable-next-line:typedef
-                                                            const thisk = $(d3.selectAll('.taskRect.show'));
-                                                            $(thisk[0][i]).css({ opacity: 1 });
-                                                            // tslint:disable-next-line:typedef
-                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                            $(thiskk[0][i]).css({ opacity: 1 });
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
-                                                            selobjindex++;
-                                                        }
-                                                        if (selobjindex === selobjchildrencncierarchy.length) {
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        } else if (Gantt.lastSelectedbar ===
-                                            parseInt($($(d3.select($(this).parent()[0]))[0]).attr('data-rowid'), 10)) {
-                                            thisObj.selectionManager.clear();
-                                            d3.selectAll('.taskRect.show').classed('selected', false);
-                                            d3.selectAll('.taskRect.show').style({
-                                                opacity: 1
-                                            });
-                                            d3.selectAll('.gantt_taskPanel .show').style({
-                                                opacity: 0.8
-                                            });
-                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.8 });
-                                            }
-                                            Gantt.lastSelectedbar = null;
-                                        } else {
-                                            // tslint:disable-next-line:max-line-length
-                                            Gantt.lastSelectedbar = parseInt($($(d3.select($(this).parent()[0]))[0]).attr('data-rowid'), 10);
-                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                if ($(this).parent().attr('data-isleaf').toString() === 'true') {
-                                                    d3.selectAll('.taskRect.show').classed('selected', false);
-                                                    d3.selectAll('.gantt_taskPanel .show').style({
-                                                        opacity: 0.3
-                                                    })
-                                                        .classed('selected', false);
-                                                    d3.selectAll('.taskRect.show').style({
-                                                        opacity: 0.3
-                                                    })
-                                                        .classed('selected', false);
-                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                        // tslint:disable-next-line:max-line-length
-                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
-                                                    }
-                                                    d3.select($(this).parent()[0]).style({
-                                                        opacity: 1
-                                                    })
-                                                        .classed('selected', true);
-                                                    // tslint:disable-next-line:no-shadowed-variable
-                                                    for (let i: number = 0; i < tasks.length; i++) {
-                                                        // tslint:disable-next-line:max-line-length
-                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                            selobjchildrencncierarchy[j].rowId) {
-                                                            // tslint:disable-next-line:typedef
-                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i])).css('opacity', '1');
-                                                            thisk.addClass('selected');
-                                                            // tslint:disable-next-line:typedef
-                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                            $(thiskk[0][i]).css('opacity', '1');
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
-                                                            j++;
-                                                        }
-                                                        if (j === selobjchildrencncierarchy.length) {
-                                                            break;
-                                                        }
-                                                    }
-                                                } else {
-                                                    let selobjindex: number = 0;
-                                                    d3.selectAll('.taskRect.show').style({
-                                                        opacity: 0.3
-                                                    })
-                                                        .classed('selected', false);
-                                                    d3.selectAll('.gantt_taskPanel .show').style({
-                                                        opacity: 0.3
-                                                    });
-                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
-                                                            .css({ opacity: 0.3 });
-                                                    }
-                                                    // tslint:disable-next-line:no-shadowed-variable
-                                                    for (let i: number = 0; i < tasks.length; i++) {
-                                                        // tslint:disable-next-line:max-line-length
-                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                            selobjchildrencncierarchy[selobjindex].rowId) {
-                                                            // tslint:disable-next-line:typedef
-                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i])).css('opacity', '1');
-                                                            thisk.addClass('selected');
-                                                            // tslint:disable-next-line:typedef
-                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i]).css({ opacity: 1 });
-                                                            $(thiskk[0][i]).css('opacity', '1');
-                                                            selobjindex++;
-                                                        }
-                                                        if (selobjindex === selobjchildrencncierarchy.length) {
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        }
-                                    }
-                                }
-                                (<Event>d3.event).stopPropagation();
-                            });
-                        if (0 !== tasks[tasknumber].KPIValues.length) {
-                            // tslint:disable-next-line:no-any
-                            const kpiDisplayDiv: any = this.kpiDiv.append('div')
+                            const lineDiv: any = this.taskDiv.append('div')
+                                .style({
+                                    width: divWidth + pxLiteral,
+                                    height: '24px'
+                                })
+                                .classed('show', true)
                                 .attr({
                                     'data-level': tasks[tasknumber].level,
                                     'data-ParentId': tasks[tasknumber].parentId,
@@ -7301,135 +6972,568 @@ module powerbi.extensibility.visual {
                                 });
                             if (categoryLen === 4) {
                                 if (leveLength === 1) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': parentColour,
                                         opacity: 0.8
                                     });
                                 } else if (leveLength === 2) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': firstChildColour,
                                         opacity: 0.8
                                     });
                                 } else if (leveLength === 3) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': secondChildColour,
                                         opacity: 0.8
                                     });
                                 } else if (leveLength === 4) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': thirdChildColour,
                                         opacity: 0.8
                                     });
                                 }
                             } else if (categoryLen === 3) {
                                 if (leveLength === 1) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': firstChildColour,
                                         opacity: 0.8
                                     });
                                 } else if (leveLength === 2) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': secondChildColour,
                                         opacity: 0.8
                                     });
                                 } else if (leveLength === 3) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': thirdChildColour,
                                         opacity: 0.8
                                     });
                                 }
                             } else if (categoryLen === 2) {
                                 if (leveLength === 1) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': secondChildColour,
                                         opacity: 0.8
                                     });
                                 } else if (leveLength === 2) {
-                                    kpiDisplayDiv.style({
+                                    lineDiv.style({
                                         'background-color': thirdChildColour,
                                         opacity: 0.8
                                     });
                                 }
                             } else {
                                 const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
-                                kpiDisplayDiv.style({
+                                lineDiv.style({
                                     'background-color': backgroundBarColor,
                                     opacity: 0.8
                                 });
                             }
-                            if (0 !== currentLevel.KPIValues.length) {
-                                for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
-                                    let sKPITitle: string;
-                                    sKPITitle = tasks[tasknumber].KPIValues[jCount].name;
-                                    if (jCount === 0) {
-                                        kpiDisplayDiv
-                                            .style({
-                                                height: '24px'
-                                            });
 
+                            yVal = thisObj.getTaskLabelCoordinateY(tasknumber);
+                            if (!tasks[tasknumber].isLeaf) {
+                                marginLevel = levelMargin;
+                                if (tasks[tasknumber].level !== 1) {
+                                    marginLevel = levelMargin + (tasks[tasknumber].level * 5) + (tasks[tasknumber].level - 1) * 4;
+                                }
+                                axisLabelImg = lineDiv.append('img')
+                                    .style('margin-left', (marginLevel + pxLiteral))
+                                    .attr('src', tasks[tasknumber].expanded ? Gantt.minusIcon : Gantt.plusIcon);
+                                // tslint:disable-next-line:typedef
+                                axisLabelImg.on('click', function (this) {
+                                    let sRowId: string;
+                                    // tslint:disable-next-line
+                                    let selectionId: any = thisObj.selectionManager;
+                                    // tslint:disable-next-line
+                                    let selectionIdLen: any = selectionId.selectedIds;
+                                    // tslint:disable-next-line
+                                    let selectionIdLen1: number = selectionIdLen.length;
+                                    // tslint:disable-next-line:no-any
+                                    let selobjchildrencncierarchy: any = [];
+                                    sRowId = $(this).parent().attr('data-RowId');
+                                    // tslint:disable-next-line:no-any
+                                    if ($.grep(tasks, function (e: any): any { return e.rowId.toString() === sRowId; })[0].expanded) {
+                                        this.src = Gantt.plusIcon;
+                                        $(this).parent().attr('data-expanded', 'false');
+                                        thisObj.collapseFunctinality(tasks, sRowId);
+                                    } else {
+                                        this.src = Gantt.minusIcon;
+                                        $(this).parent().attr('data-expanded', 'true');
+                                        thisObj.expandFunctinality(tasks, sRowId);
                                     }
-                                    const indicatorWidth: number = 75;
-                                    if (jCount < totalKPIs - 1) {
-                                        kpiDisplayDiv.append('div').classed('border', true).
-                                            style('margin-left', function (): string {
-                                                return indicatorWidth * (jCount + 1) + pxLiteral;
-                                            });
-                                    }
-                                    const iCenterSpacing: number = 60;
-                                    if (this.viewModel.kpiData[jCount].type.toLowerCase() === 'indicator') {
-                                        // tslint:disable-next-line:no-any
-                                        let axisKPILabel: any;
-                                        const iLeftSpacing: number = 5;
-                                        axisKPILabel = kpiDisplayDiv
-                                            .append('div')
-                                            .classed('circle', true);
-                                        let color: string = kpiFontColor;
-                                        let text: string = '';
-                                        let titleText: string;
-                                        titleText = currentLevel.KPIValues[jCount].value ?
-                                            currentLevel.KPIValues[jCount].value.toString() : '';
-                                        let showCircle: boolean = true;
-                                        let extraLeftPadding: number = 0;
-                                        const iLeftAlignSpacing: number = 30.5;
-                                        switch (currentLevel.KPIValues[jCount].value ?
-                                            currentLevel.KPIValues[jCount].value.toString() : '') {
-                                            case '1':
-                                                color = '#ad1717';
-                                                text = 'R';
-                                                extraLeftPadding = 1.5;
-                                                break;
-                                            case '2':
-                                                color = '#d15d0d';
-                                                text = 'O';
-                                                extraLeftPadding = 1;
-                                                break;
-                                            case '3':
-                                                color = '#ff9d00';
-                                                text = 'Y';
-                                                extraLeftPadding = 2;
 
-                                                break;
-                                            case '4':
-                                                color = '#116836';
-                                                text = 'G';
-                                                extraLeftPadding = 0.5;
-                                                break;
-                                            default:
-
-                                                showCircle = false;
-                                                break;
+                                    if (selectionIdLen1 !== 0) {
+                                        thisObj.selectionManager.clear();
+                                        Gantt.lastSelectedbar = null;
+                                        d3.selectAll('.taskRect.show').classed('selected', false);
+                                        d3.selectAll('.taskRect.show').style({
+                                            opacity: 1
+                                        });
+                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                            opacity: 1
+                                        });
+                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 1 });
                                         }
-                                        if (showCircle) {
+                                    }
+                                    // tslint:disable-next-line:no-any
+                                    function getDirectChildInHierarchy(sRowID: any): any {
+                                        // tslint:disable-next-line:no-any
+                                        $.map(tasks, function (sObj: any): void {
+                                            if (sObj.parentId === sRowID) {
+                                                selobjchildrencncierarchy.push(sObj);
+                                                getDirectChildInHierarchy(sObj.rowId);
+                                            }
+                                        });
 
+                                        return selobjchildrencncierarchy;
+                                    }
+                                    if (Object.keys(Gantt.arrGantt).length === undefined) {
+                                        Gantt.arrGantt = JSON.parse(Gantt.stateValue);
+                                    }
+                                    for (let i: number = 0; i < tasks.length; i++) {
+                                        if (Object.keys(Gantt.arrGantt).length === undefined) {
+                                            if (!(sRowId === tasks[i].rowId.toString())) {
+                                                Gantt.expandCollapseStates[tasks[i].rowId] = false;
+                                            }
+                                        }
+                                        if (parseInt(sRowId, 10) === tasks[i].rowId && tasks[i].expanded !== true) {
+                                            Gantt.arrGantt[tasks[i].rowId] = true;
+                                        }
+                                        if (parseInt(sRowId, 10) === tasks[i].rowId && tasks[i].expanded === true) {
+                                            selobjchildrencncierarchy.push(tasks[i]);
+                                            selobjchildrencncierarchy = getDirectChildInHierarchy(parseInt(sRowId, 10));
+                                            let j: number = 0;
+                                            for (let ijIterator: number = 0; ijIterator < tasks.length; ijIterator++) {
+                                                if (selobjchildrencncierarchy[j].rowId === tasks[ijIterator].rowId) {
+                                                    Gantt.arrGantt[tasks[ijIterator].rowId] = false;
+                                                    j++;
+                                                    if (selobjchildrencncierarchy.length === j) {
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    thisObj.persistExpandCollapseState(Gantt.arrGantt);
+                                });
+                            } else {
+                                if (tasks[tasknumber].level === 1) {
+                                    textMargin = levelMargin;
+                                } else {
+                                    textMargin = levelMargin + (tasks[tasknumber].level * 5) + (tasks[tasknumber].level - 1) * 9;
+                                }
+                                scrollWidth = textMargin;
+                            }
+                            let printString: string;
+                            // tslint:disable-next-line:no-any
+                            if (dateFormat.test(<any>tasks[tasknumber].name)) {
+                                // tslint:disable-next-line:no-any
+                                printString = <any>tasks[tasknumber].start;
+                            } else {
+                                // tslint:disable-next-line:no-any
+                                printString = <any>tasks[tasknumber].name;
+                            }
+                            axisLabel = lineDiv.append('text').text(printString)
+                                .attr('title', tasks[tasknumber].name);
+                            axisLabel
+                                .style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily)
+                                .style('margin-left', textMargin + pxLiteral)
+                                .style('color', taskLabelsColor)
+                                // tslint:disable-next-line:typedef
+                                .on('click', function () {
+
+                                    let sRowId: number;
+                                    // tslint:disable-next-line:typedef
+                                    let obj = {};
+                                    sRowId = parseInt($(this).parent().attr('data-rowid'), 10);
+                                    obj = tasks;
+                                    // tslint:disable-next-line:no-any
+                                    let selobjchildrencncierarchy: any = [];
+                                    // tslint:disable-next-line:typedef
+                                    function getDirectChildInHierarchy(sRowID) {
+                                        // tslint:disable-next-line:typedef
+                                        $.map(tasks, function (sObj) {
+                                            if (sObj.parentId === sRowID) {
+                                                selobjchildrencncierarchy.push(sObj);
+                                                getDirectChildInHierarchy(sObj.rowId);
+                                            }
+                                        });
+
+                                        return selobjchildrencncierarchy;
+                                    }
+                                    for (let i: number = 0; i < tasks.length; i++) {
+                                        if (tasks[i].rowId === sRowId) {
+                                            // tslint:disable-next-line:no-any
+                                            const selectionId: any = tasks[i].selectionId;
+                                            let parentRowId: number;
+                                            parentRowId = tasks[i].rowId;
+                                            selobjchildrencncierarchy.push(tasks[i]);
+                                            selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                            if (Gantt.lastSelectedbar === null) {
+                                                Gantt.lastSelectedbar = parseInt($($(this).parent()[0]).attr('data-rowid'), 10);
+                                                thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                    if ($(this).parent().attr('data-isleaf') === 'true') {
+                                                        d3.selectAll('.taskRect.show').classed('selected', false);
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        d3.select($(this).parent()[0])
+                                                            .classed('selected', true)
+                                                            .style({
+                                                                opacity: 1
+                                                            });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                        }
+                                                        // tslint:disable-next-line:no-shadowed-variable
+                                                        for (let i: number = 0; i < tasks.length; i++) {
+                                                            for (let iCount: number = 0; iCount < selobjchildrencncierarchy.length;
+                                                                iCount++) {
+                                                                if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10)
+                                                                 === selobjchildrencncierarchy[iCount].rowId) {
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                        .css('opacity', '1');
+                                                                    thisk.addClass('selected');
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                    $(thiskk[0][i]).css('opacity', '1');
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                        .children()[i]).css({ opacity: 1 });
+                                                                }
+                                                        }
+                                                        }
+                                                    } else {
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        })
+                                                            .classed('selected', false);
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                .children()[kpiindex])
+                                                                .css({ opacity: 0.3 });
+                                                        }
+                                                        // tslint:disable-next-line:no-shadowed-variable
+                                                        for (let i: number = 0; i < tasks.length; i++) {
+                                                            for (let iCount: number = 0; iCount < selobjchildrencncierarchy.length;
+                                                                iCount++) {
+                                                                if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10)
+                                                                 === selobjchildrencncierarchy[iCount].rowId) {
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thisk = $(d3.selectAll('.taskRect.show'));
+                                                                    $(thisk[0][i]).css({ opacity: 1 });
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                    $(thiskk[0][i]).css({ opacity: 1 });
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).
+                                                                        children()[i]).css({ opacity: 1 });
+                                                                }
+                                                        }
+                                                    }
+                                                    }
+                                                });
+                                            } else if (Gantt.lastSelectedbar ===
+                                                parseInt($($(d3.select($(this).parent()[0]))[0]).attr('data-rowid'), 10)) {
+                                                thisObj.selectionManager.clear();
+                                                d3.selectAll('.taskRect.show').classed('selected', false);
+                                                d3.selectAll('.taskRect.show').style({
+                                                    opacity: 1
+                                                });
+                                                d3.selectAll('.gantt_taskPanel .show').style({
+                                                    opacity: 0.8
+                                                });
+                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.8 });
+                                                }
+                                                Gantt.lastSelectedbar = null;
+                                            } else {
+                                                // tslint:disable-next-line:max-line-length
+                                                Gantt.lastSelectedbar = parseInt($($(d3.select($(this).parent()[0]))[0]).attr('data-rowid'), 10);
+                                                thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                    if ($(this).parent().attr('data-isleaf').toString() === 'true') {
+                                                        d3.selectAll('.taskRect.show').classed('selected', false);
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        })
+                                                            .classed('selected', false);
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        })
+                                                            .classed('selected', false);
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                        }
+                                                        d3.select($(this).parent()[0]).style({
+                                                            opacity: 1
+                                                        })
+                                                            .classed('selected', true);
+                                                        // tslint:disable-next-line:no-shadowed-variable
+                                                        for (let i: number = 0; i < tasks.length; i++) {
+                                                            for (let iCount: number = 0; iCount < selobjchildrencncierarchy.length;
+                                                                iCount++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                selobjchildrencncierarchy[iCount].rowId) {
+                                                                // tslint:disable-next-line:typedef
+                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                .css('opacity', '1');
+                                                                thisk.addClass('selected');
+                                                                // tslint:disable-next-line:typedef
+                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                $(thiskk[0][i]).css('opacity', '1');
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).
+                                                                children()[i]).css({ opacity: 1 });
+                                                            }
+                                                        }
+                                                    }
+                                                    } else {
+                                                        d3.selectAll('.taskRect.show').style({
+                                                            opacity: 0.3
+                                                        })
+                                                            .classed('selected', false);
+                                                        d3.selectAll('.gantt_taskPanel .show').style({
+                                                            opacity: 0.3
+                                                        });
+                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                .css({ opacity: 0.3 });
+                                                        }
+                                                        // tslint:disable-next-line:no-shadowed-variable
+                                                        for (let i: number = 0; i < tasks.length; i++) {
+                                                            for (let iCount: number = 0; iCount < selobjchildrencncierarchy.length;
+                                                                iCount++) {
+                                                            // tslint:disable-next-line:max-line-length
+                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                selobjchildrencncierarchy[iCount].rowId) {
+                                                                // tslint:disable-next-line:typedef
+                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                .css('opacity', '1');
+                                                                thisk.addClass('selected');
+                                                                // tslint:disable-next-line:typedef
+                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                .children()[i]).css({ opacity: 1 });
+                                                                $(thiskk[0][i]).css('opacity', '1');
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                });
+                                            }
+                                        }
+                                    }
+                                    (<Event>d3.event).stopPropagation();
+                                });
+
+                            if (0 !== tasks[tasknumber].KPIValues.length) {
+                                // tslint:disable-next-line:no-any
+                                const kpiDisplayDiv: any = this.kpiDiv.append('div')
+                                    .attr({
+                                        'data-level': tasks[tasknumber].level,
+                                        'data-ParentId': tasks[tasknumber].parentId,
+                                        'data-expanded': tasks[tasknumber].expanded,
+                                        'data-RowId': tasks[tasknumber].rowId,
+                                        'data-isLeaf': tasks[tasknumber].isLeaf,
+                                        'data-row': tasknumber
+                                    });
+                                if (categoryLen === 4) {
+                                    if (leveLength === 1) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': parentColour,
+                                            opacity: 0.8
+                                        });
+                                    } else if (leveLength === 2) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': firstChildColour,
+                                            opacity: 0.8
+                                        });
+                                    } else if (leveLength === 3) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: 0.8
+                                        });
+                                    } else if (leveLength === 4) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: 0.8
+                                        });
+                                    }
+                                } else if (categoryLen === 3) {
+                                    if (leveLength === 1) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': firstChildColour,
+                                            opacity: 0.8
+                                        });
+                                    } else if (leveLength === 2) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: 0.8
+                                        });
+                                    } else if (leveLength === 3) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: 0.8
+                                        });
+                                    }
+                                } else if (categoryLen === 2) {
+                                    if (leveLength === 1) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: 0.8
+                                        });
+                                    } else if (leveLength === 2) {
+                                        kpiDisplayDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: 0.8
+                                        });
+                                    }
+                                } else {
+                                    const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
+                                    kpiDisplayDiv.style({
+                                        'background-color': backgroundBarColor,
+                                        opacity: 0.8
+                                    });
+                                }
+                                if (0 !== currentLevel.KPIValues.length) {
+                                    for (let jCount: number = 0; jCount < totalKPIs; jCount++) {
+                                        let sKPITitle: string;
+                                        sKPITitle = tasks[tasknumber].KPIValues[jCount].name;
+                                        if (jCount === 0) {
+                                            kpiDisplayDiv
+                                                .style({
+                                                    height: '24px'
+                                                });
+
+                                        }
+                                        const indicatorWidth: number = 75;
+                                        if (jCount < totalKPIs - 1) {
+                                            kpiDisplayDiv.append('div').classed('border', true).
+                                                style('margin-left', function (): string {
+                                                    return indicatorWidth * (jCount + 1) + pxLiteral;
+                                                });
+                                        }
+                                        const iCenterSpacing: number = 60;
+                                        if (this.viewModel.kpiData[jCount].type.toLowerCase() === 'indicator') {
+                                            // tslint:disable-next-line:no-any
+                                            let axisKPILabel: any;
+                                            const iLeftSpacing: number = 5;
+                                            axisKPILabel = kpiDisplayDiv
+                                                .append('div')
+                                                .classed('circle', true);
+                                            let color: string = kpiFontColor;
+                                            let text: string = '';
+                                            let titleText: string;
+                                            titleText = currentLevel.KPIValues[jCount].value ?
+                                                currentLevel.KPIValues[jCount].value.toString() : '';
+                                            let showCircle: boolean = true;
+                                            let extraLeftPadding: number = 0;
+                                            const iLeftAlignSpacing: number = 30.5;
+                                            switch (currentLevel.KPIValues[jCount].value ?
+                                                currentLevel.KPIValues[jCount].value.toString() : '') {
+                                                case '1':
+                                                    color = '#ad1717';
+                                                    text = 'R';
+                                                    extraLeftPadding = 1.5;
+                                                    break;
+                                                case '2':
+                                                    color = '#d15d0d';
+                                                    text = 'O';
+                                                    extraLeftPadding = 1;
+                                                    break;
+                                                case '3':
+                                                    color = '#ff9d00';
+                                                    text = 'Y';
+                                                    extraLeftPadding = 2;
+
+                                                    break;
+                                                case '4':
+                                                    color = '#116836';
+                                                    text = 'G';
+                                                    extraLeftPadding = 0.5;
+                                                    break;
+                                                default:
+
+                                                    showCircle = false;
+                                                    break;
+                                            }
+                                            if (showCircle) {
+
+                                                axisKPILabel.style('font-size', kpiFontSize + pxLiteral)
+                                                    .style('background-color', color)
+                                                    //   tslint:disable-next-line:typedef
+                                                    .style('margin-top', 5 + pxLiteral)
+                                                    .style('margin-left', function (): string {
+                                                        if (text === undefined) {
+                                                            return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+                                                        } else {
+                                                            return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+
+                                                        }
+                                                    });
+                                                axisKPILabel.append('title').text(titleText);
+                                                axisKPILabel.append('div')
+                                                    .append('text').text(text)
+                                                    .style({
+                                                        'stroke-width': Gantt.axisLabelStrokeWidth,
+                                                        color: '#fff'
+                                                    }).style('font-size', kpiFontSize + pxLiteral)
+                                                    .style('margin-left', function (): string {
+                                                        if (text === undefined) {
+                                                            return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+                                                        } else {
+                                                            return iLeftSpacing + pxLiteral;
+
+                                                        }
+                                                    })
+                                                    ;
+                                                axisKPILabel.append('title').text(titleText);
+                                            } else {
+                                                axisKPILabel.style('margin-left', (jCount * (iCenterSpacing + 15))
+                                                    + iLeftAlignSpacing + pxLiteral);
+                                            }
+
+                                        } else if (thisObj.viewModel.kpiData[jCount].type.toLowerCase() === 'type') {
+                                            // tslint:disable-next-line:no-any
+                                            let axisKPILabel: any;
+                                            axisKPILabel = kpiDisplayDiv
+                                                .append('div')
+                                                .classed('rectangle', true);
+                                            let color: string;
+                                            color = '#fff';
+                                            const iLeftAlignSpacing: number = 27;
+                                            let text: string = currentLevel.KPIValues[jCount].value ?
+                                                currentLevel.KPIValues[jCount].value.toString() : '';
+                                            if (!text) {
+                                                axisKPILabel.style('margin-left', (jCount * (iCenterSpacing + 15) +
+                                                    iLeftAlignSpacing + pxLiteral));
+                                                continue;
+                                            }
+                                            let titleText: string;
+                                            titleText = text;
+                                            if (-1 === types.indexOf(text)) {
+                                                types.push(text);
+                                            }
+                                            let index: number;
+                                            index = types.indexOf(text);
+                                            typeColor = Gantt.typeColors[index % Gantt.typeColors.length];
+                                            text = text.charAt(0) + text.charAt(-1 !== text.indexOf(' ') ? text.indexOf(' ') + 1 : -1);
+                                            const iLeftSpacing: number = 5;
                                             axisKPILabel.style('font-size', kpiFontSize + pxLiteral)
-                                                .style('background-color', color)
-                                                //   tslint:disable-next-line:typedef
+                                                .style('background-color', typeColor)
                                                 .style('margin-top', 5 + pxLiteral)
                                                 .style('margin-left', function (): string {
                                                     if (text === undefined) {
-                                                        return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+                                                        return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
                                                     } else {
-                                                        return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+                                                        return ((jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral);
 
                                                     }
                                                 });
@@ -7442,672 +7546,998 @@ module powerbi.extensibility.visual {
                                                 }).style('font-size', kpiFontSize + pxLiteral)
                                                 .style('margin-left', function (): string {
                                                     if (text === undefined) {
-                                                        return (jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral;
+                                                        return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
                                                     } else {
                                                         return iLeftSpacing + pxLiteral;
 
                                                     }
-                                                })
-                                                ;
+                                                });
                                             axisKPILabel.append('title').text(titleText);
                                         } else {
-                                            axisKPILabel.style('margin-left', (jCount * (iCenterSpacing + 15))
-                                                + iLeftAlignSpacing + pxLiteral);
-                                        }
-
-                                    } else if (thisObj.viewModel.kpiData[jCount].type.toLowerCase() === 'type') {
-                                        // tslint:disable-next-line:no-any
-                                        let axisKPILabel: any;
-                                        axisKPILabel = kpiDisplayDiv
-                                            .append('div')
-                                            .classed('rectangle', true);
-                                        let color: string;
-                                        color = '#fff';
-                                        const iLeftAlignSpacing: number = 27;
-                                        let text: string = currentLevel.KPIValues[jCount].value ?
-                                            currentLevel.KPIValues[jCount].value.toString() : '';
-                                        if (!text) {
-                                            axisKPILabel.style('margin-left', (jCount * (iCenterSpacing + 15) +
-                                                iLeftAlignSpacing + pxLiteral));
-                                            continue;
-                                        }
-                                        let titleText: string;
-                                        titleText = text;
-                                        if (-1 === types.indexOf(text)) {
-                                            types.push(text);
-                                        }
-                                        let index: number;
-                                        index = types.indexOf(text);
-                                        typeColor = Gantt.typeColors[index % Gantt.typeColors.length];
-                                        text = text.charAt(0) + text.charAt(-1 !== text.indexOf(' ') ? text.indexOf(' ') + 1 : -1);
-                                        const iLeftSpacing: number = 5;
-                                        axisKPILabel.style('font-size', kpiFontSize + pxLiteral)
-                                            .style('background-color', typeColor)
-                                            .style('margin-top', 5 + pxLiteral)
-                                            .style('margin-left', function (): string {
-                                                if (text === undefined) {
-                                                    return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
+                                            // tslint:disable-next-line:no-any
+                                            let axisKPILabel: any;
+                                            axisKPILabel = kpiDisplayDiv
+                                                .append('div')
+                                                .classed('textValue', true)
+                                                .append('text');
+                                            let iLeftSpacing: number = 5;
+                                            let clippedText: string;
+                                            if (typeof currentLevel.KPIValues[jCount].value === 'number') {
+                                                clippedText = currentLevel.KPIValues[jCount].value.toString();
+                                                kpiDisplayDiv.append('text')
+                                                    .text(clippedText)
+                                                    .classed('singleCharacter', true)
+                                                    .style({
+                                                        'font-size': normalizer + pxLiteral,
+                                                        'font-family': taskLabelsFontFamily
+                                                    });
+                                                // tslint:disable-next-line:no-any
+                                                const singleCharacterLocal: any = $('.singleCharacter');
+                                                let textTotalWidth: number;
+                                                textTotalWidth = singleCharacterLocal.innerWidth();
+                                                let numberOfCharactersAllowed: number;
+                                                numberOfCharactersAllowed = Math.floor(
+                                                    (Gantt.kpiLabelWidth / totalKPIs) / (textTotalWidth / clippedText.length));
+                                                if (clippedText.length > numberOfCharactersAllowed) {
+                                                    singleCharacterLocal.text(clippedText
+                                                        .substring(0, numberOfCharactersAllowed - 2) + ellipsisLiteral);
+                                                    textTotalWidth = singleCharacterLocal.innerWidth();
+                                                    let iCount: number = 0;
+                                                    while (textTotalWidth < width) {
+                                                        iCount++;
+                                                        // tslint:disable-next-line:max-line-length
+                                                        singleCharacterLocal.text(clippedText.substring(0, numberOfCharactersAllowed - 2 + iCount) + ellipsisLiteral);
+                                                        textTotalWidth = singleCharacterLocal.innerWidth();
+                                                    }
                                                 } else {
-                                                    return ((jCount * (iCenterSpacing + 15)) + iLeftAlignSpacing + pxLiteral);
-
+                                                    iLeftSpacing = Gantt.kpiLabelWidth / totalKPIs - textTotalWidth - 5;
                                                 }
-                                            });
-                                        axisKPILabel.append('title').text(titleText);
-                                        axisKPILabel.append('div')
-                                            .append('text').text(text)
-                                            .style({
-                                                'stroke-width': Gantt.axisLabelStrokeWidth,
-                                                color: '#fff'
-                                            }).style('font-size', kpiFontSize + pxLiteral)
-                                            .style('margin-left', function (): string {
-                                                if (text === undefined) {
-                                                    return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
-                                                } else {
-                                                    return iLeftSpacing + pxLiteral;
-
-                                                }
-                                            });
-                                        axisKPILabel.append('title').text(titleText);
-                                    } else {
-                                        // tslint:disable-next-line:no-any
-                                        let axisKPILabel: any;
-                                        axisKPILabel = kpiDisplayDiv
-                                            .append('div')
-                                            .classed('textValue', true)
-                                            .append('text');
-                                        let iLeftSpacing: number = 5;
-                                        let clippedText: string;
-                                        if (typeof currentLevel.KPIValues[jCount].value === 'number') {
-                                            clippedText = currentLevel.KPIValues[jCount].value.toString();
-                                            kpiDisplayDiv.append('text')
-                                                .text(clippedText)
-                                                .classed('singleCharacter', true)
-                                                .style({
-                                                    'font-size': normalizer + pxLiteral,
-                                                    'font-family': taskLabelsFontFamily
-                                                });
-                                            let textTotalWidth: number;
-                                            textTotalWidth = $('.singleCharacter').innerWidth();
-                                            let numberOfCharactersAllowed: number;
-                                            numberOfCharactersAllowed = Math.floor(
-                                                (Gantt.kpiLabelWidth / totalKPIs) / (textTotalWidth / clippedText.length));
-                                            if (clippedText.length > numberOfCharactersAllowed) {
-                                                $('.singleCharacter').text(clippedText
-                                                    .substring(0, numberOfCharactersAllowed - 2) + ellipsisLiteral);
-                                                textTotalWidth = $('.singleCharacter').innerWidth();
-                                                let iCount: number = 0;
-                                                while (textTotalWidth < width) {
-                                                    iCount++;
-                                                    // tslint:disable-next-line:max-line-length
-                                                    $('.singleCharacter').text(clippedText.substring(0, numberOfCharactersAllowed - 2 + iCount) + ellipsisLiteral);
-                                                    textTotalWidth = $('.singleCharacter').innerWidth();
-                                                }
-                                            } else {
-                                                iLeftSpacing = Gantt.kpiLabelWidth / totalKPIs - textTotalWidth - 5;
+                                                singleCharacterLocal.remove();
                                             }
-                                            d3.selectAll('.singleCharacter').remove();
+                                            axisKPILabel.attr({
+                                                'margin-top': thisObj.getTaskLabelCoordinateY(tasknumber) + pxLiteral,
+                                                'stroke-width': Gantt.axisLabelStrokeWidth
+                                            }).style('font-size', kpiFontSize + pxLiteral)
+                                                // tslint:disable-next-line:typedef
+                                                .style('margin-left', function () {
+                                                    if (clippedText === undefined) {
+                                                        return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
+                                                    } else {
+                                                        return ((jCount * (iCenterSpacing + 10)) + iCenterSpacing + pxLiteral);
+                                                    }
+                                                });
+                                            axisKPILabel.text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'text'));
+                                            axisKPILabel.append('title').text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'title'));
                                         }
-                                        axisKPILabel.attr({
-                                            'margin-top': thisObj.getTaskLabelCoordinateY(tasknumber) + pxLiteral,
-                                            'stroke-width': Gantt.axisLabelStrokeWidth
-                                        }).style('font-size', kpiFontSize + pxLiteral)
-                                            // tslint:disable-next-line:typedef
-                                            .style('margin-left', function () {
-                                                if (clippedText === undefined) {
-                                                    return (Gantt.kpiLabelWidth / totalKPIs * jCount) + iLeftSpacing + pxLiteral;
-                                                } else {
-                                                    return ((jCount * (iCenterSpacing + 10)) + iCenterSpacing + pxLiteral);
-                                                }
-                                            });
-                                        axisKPILabel.text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'text'));
-                                        axisKPILabel.append('title').text(Gantt.getKPIValues(currentLevel.KPIValues[jCount], 'title'));
                                     }
                                 }
                             }
-                        }
-                        if (!Gantt.isDateData) {
-                            // tslint:disable-next-line:no-any
-                            const currentLevel1: Task = tasks[tasknumber];
-                            // tslint:disable-next-line:no-any
-                            const barBackgroundDiv: any = this.barDiv
-                                .append('div')
-                                .classed('parentDiv', true)
-                                .datum(currentLevel1)
-                                .attr({
-                                    'data-level': tasks[tasknumber].level,
-                                    'data-ParentId': tasks[tasknumber].parentId,
-                                    'data-expanded': tasks[tasknumber].expanded,
-                                    'data-RowId': tasks[tasknumber].rowId,
-                                    'data-isLeaf': tasks[tasknumber].isLeaf,
-                                    'data-row': tasknumber
-                                })
-                                .style({
-                                    'margin-left': 0 + pxLiteral,
-                                    height: '24px',
-                                    width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10) + pxLiteral,
-                                    'border-bottom': '0.011px'
-                                });
-                            if (categoryLen === 4) {
-                                if (leveLength === 1) {
-                                    barBackgroundDiv.style({
-                                        'background-color': parentColour,
-                                        opacity: opacityNumber1
+                            if (!Gantt.isDateData) {
+                                // tslint:disable-next-line:no-any
+                                const currentLevel1: Task = tasks[tasknumber];
+                                // tslint:disable-next-line:no-any
+                                const barBackgroundDiv: any = this.barDiv
+                                    .append('div')
+                                    .classed('parentDiv', true)
+                                    .datum(currentLevel1)
+                                    .attr({
+                                        'data-level': tasks[tasknumber].level,
+                                        'data-ParentId': tasks[tasknumber].parentId,
+                                        'data-expanded': tasks[tasknumber].expanded,
+                                        'data-RowId': tasks[tasknumber].rowId,
+                                        'data-isLeaf': tasks[tasknumber].isLeaf,
+                                        'data-row': tasknumber
+                                    })
+                                    .style({
+                                        'margin-left': 0 + pxLiteral,
+                                        height: '24px',
+                                        width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10) + pxLiteral,
+                                        'border-bottom': '0.011px'
                                     });
-                                } else if (leveLength === 2) {
+                                if (categoryLen === 4) {
+                                    if (leveLength === 1) {
+                                        barBackgroundDiv.style({
+                                            'background-color': parentColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 2) {
+                                        barBackgroundDiv.style({
+                                            'background-color': firstChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 3) {
+                                        barBackgroundDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 4) {
+                                        barBackgroundDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    }
+                                } else if (categoryLen === 3) {
+                                    if (leveLength === 1) {
+                                        barBackgroundDiv.style({
+                                            'background-color': firstChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 2) {
+                                        barBackgroundDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 3) {
+                                        barBackgroundDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    }
+                                } else if (categoryLen === 2) {
+                                    if (leveLength === 1) {
+                                        barBackgroundDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: opacityNumber2
+                                        });
+                                    } else if (leveLength === 2) {
+                                        barBackgroundDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: opacityNumber2
+                                        });
+                                    }
+                                } else {
+                                    const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
                                     barBackgroundDiv.style({
-                                        'background-color': firstChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 3) {
-                                    barBackgroundDiv.style({
-                                        'background-color': secondChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 4) {
-                                    barBackgroundDiv.style({
-                                        'background-color': thirdChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                }
-                            } else if (categoryLen === 3) {
-                                if (leveLength === 1) {
-                                    barBackgroundDiv.style({
-                                        'background-color': firstChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 2) {
-                                    barBackgroundDiv.style({
-                                        'background-color': secondChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 3) {
-                                    barBackgroundDiv.style({
-                                        'background-color': thirdChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                }
-                            } else if (categoryLen === 2) {
-                                if (leveLength === 1) {
-                                    barBackgroundDiv.style({
-                                        'background-color': secondChildColour,
+                                        'background-color': backgroundBarColor,
                                         opacity: opacityNumber2
                                     });
-                                } else if (leveLength === 2) {
-                                    barBackgroundDiv.style({
-                                        'background-color': thirdChildColour,
-                                        opacity: opacityNumber2
+                                }
+                                // tslint:disable-next-line:no-any
+                                let taskRect: any;
+                                taskRect = this.barDiv
+                                    .append('div')
+                                    .classed('taskRect', true)
+                                    .datum(currentLevel)
+                                    .classed('show', true)
+                                    .attr({
+                                        'data-level': tasks[tasknumber].level,
+                                        'data-ParentId': tasks[tasknumber].parentId,
+                                        'data-expanded': tasks[tasknumber].expanded,
+                                        'data-RowId': tasks[tasknumber].rowId,
+                                        'data-isLeaf': tasks[tasknumber].isLeaf,
+                                        'data-row': tasknumber
                                     });
+                                let yPos: number;
+                                yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
+                                let xPos: number;
+                                xPos = 0;
+                                let xPosStart: number;
+                                xPosStart = 0;
+                                // tslint:disable-next-line:typedef
+                                let obj = {};
+                                let level1: number = 0;
+                                let parentRowId: number = 0;
+                                const rowId: number = 0;
+                                // tslint:disable-next-line:no-any
+                                let selobjchildrencncierarchy: any = [];
+                                if (currentLevel.numEnd !== null || currentLevel.numStart !== null) {
+                                    if (isNaN(thisObj.taskDurationToWidth1(currentLevel))
+                                        // tslint:disable-next-line:no-any
+                                        || isNaN(thisObj.timeScale(<any>currentLevel.numStart))) {
+                                        taskRect
+                                            .style({
+                                                // tslint:disable-next-line:no-any
+                                                'margin-left': 39 + pxLiteral,
+                                                'margin-top': '-21.4444444px',
+                                                width: 3 + pxLiteral,
+                                                height: Gantt.getBarHeight() / 1.5 + pxLiteral,
+                                                'background-color': currentLevel.color,
+                                                opacity: 1,
+                                                position: 'absolute'
+                                            })
+                                            // tslint:disable-next-line:typedef
+                                            .on('click', function () {
+                                                // tslint:disable-next-line:typedef
+                                                function getDirectChildInHierarchy(sRowID) {
+                                                    // tslint:disable-next-line:typedef
+                                                    $.map(tasks, function (sObj) {
+                                                        if (sObj.parentId === sRowID) {
+                                                            selobjchildrencncierarchy.push(sObj);
+                                                            getDirectChildInHierarchy(sObj.rowId);
+                                                        }
+                                                    });
+
+                                                    return selobjchildrencncierarchy;
+                                                }
+                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                    if (currentLevel.id === tasks[i].id) {
+                                                        obj = tasks[i];
+                                                        level1 = tasks[i].level;
+                                                        parentRowId = tasks[i].rowId;
+                                                        selobjchildrencncierarchy.push(tasks[i]);
+                                                        selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                                        // tslint:disable-next-line:no-any
+                                                        const selectionId: any = tasks[i].selectionId;
+                                                        if (Gantt.lastSelectedbar === null) {
+                                                            Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                                if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                    let j: number = 0;
+                                                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                            .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                    }
+                                                                    d3.select(this)
+                                                                        .classed('selected', true)
+                                                                        .style({
+                                                                            opacity: 1
+                                                                        });
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line:max-line-length
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                            selobjchildrencncierarchy[j].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                                .css({ opacity: 1 });
+                                                                            j++;
+                                                                        }
+                                                                        if (j === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    let j: number = 0;
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    })
+                                                                        .classed('selected', false);
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                            .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                    }
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line: max-line-length
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $(thiskk[0][i]).css('opacity', '1')
+                                                                                .addClass('selected');
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                                .children()[i]).css({ opacity: 1 });
+                                                                            j++;
+                                                                        }
+                                                                        if (j === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        } else if (Gantt.lastSelectedbar === parseInt(d3.select(this)
+                                                            .attr('data-rowid'),                      10)) {
+                                                            thisObj.selectionManager.clear();
+                                                            d3.selectAll('.taskRect.show').classed('selected', false);
+                                                            d3.selectAll('.taskRect.show').style({
+                                                                opacity: 1
+                                                            });
+                                                            d3.selectAll('.gantt_taskPanel .show').style({
+                                                                opacity: 1
+                                                            });
+                                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                    .children()[kpiindex]).css({ opacity: 1 });
+                                                            }
+                                                            Gantt.lastSelectedbar = null;
+                                                        } else {
+                                                            Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                            let j: number = 0;
+                                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                                if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                            .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                    }
+                                                                    d3.select(this)
+                                                                        .classed('selected', true)
+                                                                        .style({
+                                                                            opacity: 1
+                                                                        });
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line:max-line-length
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                            selobjchildrencncierarchy[j].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                                .css({ opacity: 1 });
+                                                                            j++;
+                                                                        }
+                                                                        if (j === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    let selobjindex: number = 0;
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    })
+                                                                        .classed('selected', false);
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                            .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                    }
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[selobjindex].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                                .css({ opacity: 1 });
+                                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                                            selobjindex++;
+                                                                        }
+                                                                        if (selobjindex === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                                (<Event>d3.event).stopPropagation();
+                                            });
+                                    } else {
+                                        taskRect
+                                            .style({
+                                                // tslint:disable-next-line:no-any
+                                                'margin-left': thisObj.timeScale(<any>currentLevel.numStart) + 39 + pxLiteral,
+                                                width: 0 === thisObj.taskDurationToWidth1(currentLevel) ? 3 + pxLiteral :
+                                                    thisObj.taskDurationToWidth1(currentLevel) + pxLiteral,
+                                                height: Gantt.getBarHeight() / 1.5 + pxLiteral,
+                                                'background-color': currentLevel.color,
+                                                opacity: 1,
+                                                position: 'absolute',
+                                                'margin-top': '-21.4444444px'
+
+                                            })
+                                            // tslint:disable-next-line:typedef
+                                            .on('click', function () {
+                                                // tslint:disable-next-line:typedef
+                                                function getDirectChildInHierarchy(sRowID) {
+                                                    // tslint:disable-next-line:typedef
+                                                    $.map(tasks, function (sObj) {
+                                                        if (sObj.parentId === sRowID) {
+                                                            selobjchildrencncierarchy.push(sObj);
+                                                            getDirectChildInHierarchy(sObj.rowId);
+                                                        }
+                                                    });
+
+                                                    return selobjchildrencncierarchy;
+                                                }
+                                                for (let i: number = 0; i < tasks.length; i++) {
+                                                    if (currentLevel.id === tasks[i].id) {
+                                                        obj = tasks[i];
+                                                        level1 = tasks[i].level;
+                                                        parentRowId = tasks[i].rowId;
+                                                        selobjchildrencncierarchy.push(tasks[i]);
+                                                        selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                                        // tslint:disable-next-line:no-any
+                                                        const selectionId: any = tasks[i].selectionId;
+                                                        if (Gantt.lastSelectedbar === null) {
+                                                            Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                                if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                    let j: number = 0;
+                                                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                            .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                    }
+                                                                    d3.select(this)
+                                                                        .classed('selected', true)
+                                                                        .style({
+                                                                            opacity: 1
+                                                                        });
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line: max-line-length
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                                .css({ opacity: 1 });
+                                                                            j++;
+                                                                        }
+                                                                        if (j === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    let j: number = 0;
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    })
+                                                                        .classed('selected', false);
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                            .css({ opacity: 0.3 });
+                                                                    }
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line: max-line-length
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $(thiskk[0][i]).css('opacity', '1')
+                                                                                .addClass('selected');
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                                .css({ opacity: 1 });
+                                                                            j++;
+                                                                        }
+                                                                        if (j === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                    selobjchildrencncierarchy = [];
+                                                                }
+                                                            });
+                                                        } else if (Gantt.lastSelectedbar === parseInt(d3.select(this)
+                                                            .attr('data-rowid'),                      10)) {
+                                                            thisObj.selectionManager.clear();
+                                                            d3.selectAll('.taskRect.show').classed('selected', false);
+                                                            d3.selectAll('.taskRect.show').style({
+                                                                opacity: 1
+                                                            });
+                                                            d3.selectAll('.gantt_taskPanel .show').style({
+                                                                opacity: 1
+                                                            });
+                                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                    .css({ opacity: 1 });
+                                                            }
+                                                            Gantt.lastSelectedbar = null;
+                                                        } else {
+                                                            Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                            let j: number = 0;
+                                                            thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                                if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                            .children()[kpiindex]).css({ opacity: 0.3 });
+                                                                    }
+                                                                    d3.select(this)
+                                                                        .classed('selected', true)
+                                                                        .style({
+                                                                            opacity: 1
+                                                                        });
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line: max-line-length
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                                .css({ opacity: 1 });
+                                                                            j++;
+                                                                        }
+                                                                        if (j === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    let selobjindex: number = 0;
+                                                                    d3.selectAll('.taskRect.show').style({
+                                                                        opacity: 0.3
+                                                                    })
+                                                                        .classed('selected', false);
+                                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                                        opacity: 0.3
+                                                                    });
+                                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                            .css({ opacity: 0.3 });
+                                                                    }
+                                                                    // tslint:disable-next-line:no-shadowed-variable
+                                                                    for (let i: number = 0; i < tasks.length; i++) {
+                                                                        // tslint:disable-next-line:max-line-length
+                                                                        if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[selobjindex].rowId) {
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                                .css('opacity', '1');
+                                                                            thisk.addClass('selected');
+                                                                            // tslint:disable-next-line:typedef
+                                                                            const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                                .css({ opacity: 1 });
+                                                                            $(thiskk[0][i]).css('opacity', '1');
+                                                                            selobjindex++;
+                                                                        }
+                                                                        if (selobjindex === selobjchildrencncierarchy.length) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                                (<Event>d3.event).stopPropagation();
+                                            });
+                                    }
+                                    yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
+                                    // tslint:disable-next-line:no-any
+                                    if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
+                                        // tslint:disable-next-line:no-any
+                                        xPos = thisObj.timeScale(<any>currentLevel.numEnd);
+                                        // tslint:disable-next-line:no-any
+                                        xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                                    }
+                                    // tslint:disable-next-line:no-any
+                                    if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
+                                        // tslint:disable-next-line:no-any
+                                        xPos = thisObj.timeScale(<any>currentLevel.numEnd);
+                                        // tslint:disable-next-line:no-any
+                                        xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                                    }
+
+                                    thisObj.renderTooltip(taskRect);
+                                    let labelnormalizer: number;
+                                    labelnormalizer = thisObj.viewModel.settings.taskResource.fontSize;
+                                    if (taskResourceShow) {
+                                        // tslint:disable-next-line:no-any
+                                        let taskResource: any;
+                                        taskResource = barBackgroundDiv
+                                            .append('text')
+                                            .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
+                                        let titleWidth: number;
+                                        titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
+                                        d3.selectAll('.resourceLabelText').remove();
+                                        let xPosVal: number = 0;
+                                        // tslint:disable-next-line:prefer-template
+                                        const barStartpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('margin-left');
+                                        // tslint:disable-next-line:radix
+                                        const barStartpt1: number = parseInt(barStartpt.substring(0, barStartpt.length - 2));
+                                        // tslint:disable-next-line:prefer-template
+                                        const barEndpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('width');
+                                        // tslint:disable-next-line:radix
+                                        const barEndpt1: number = parseInt(barEndpt.substring(0, barEndpt.length - 2));
+                                        switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
+                                            case 'top':
+                                                xPosVal = ((barStartpt1 + (barEndpt1 / 2)));
+                                                break;
+                                            case 'left':
+                                                xPosVal = barStartpt1 - 10;
+                                                break;
+                                            case 'right':
+                                            default:
+                                                xPosVal = barStartpt1 + barEndpt1 + 5;
+                                                break;
+                                        }
+                                        Gantt.datalabelValueFormatter = ValueFormatter.create({
+                                            format: measureFormat ? measureFormat : ValueFormatter.DefaultNumericFormat
+                                        });
+                                        if (currentLevel.resource != null) {
+                                            currentLevel.resource = Gantt.datalabelValueFormatter.format(currentLevel.resource);
+                                        } else {
+                                            currentLevel.resource = '';
+                                        }
+                                        taskResource
+                                            .style({
+                                                'margin-left': xPosVal + pxLiteral
+                                            })
+                                            .text(currentLevel.resource)
+                                            .style({
+                                                color: taskResourceColor,
+                                                'font-size': labelnormalizer + pxLiteral,
+                                                'font-family': dataLabelsFontFamily
+                                            });
+                                        taskResource.append('title').text(currentLevel.resource);
+                                    }
                                 }
                             } else {
-                                const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
-                                barBackgroundDiv.style({
-                                    'background-color': backgroundBarColor,
-                                    opacity: opacityNumber2
-                                });
-                            }
-                            // tslint:disable-next-line:no-any
-                            let taskRect: any;
-                            taskRect = this.barDiv
-                                .append('div')
-                                .classed('taskRect', true)
-                                .datum(currentLevel)
-                                .classed('show', true)
-                                .attr({
-                                    'data-level': tasks[tasknumber].level,
-                                    'data-ParentId': tasks[tasknumber].parentId,
-                                    'data-expanded': tasks[tasknumber].expanded,
-                                    'data-RowId': tasks[tasknumber].rowId,
-                                    'data-isLeaf': tasks[tasknumber].isLeaf,
-                                    'data-row': tasknumber
-                                });
-                            let yPos: number;
-                            yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
-                            let xPos: number;
-                            xPos = 0;
-                            let xPosStart: number;
-                            xPosStart = 0;
-                            // tslint:disable-next-line:typedef
-                            let obj = {};
-                            let level1: number = 0;
-                            let parentRowId: number = 0;
-                            const rowId: number = 0;
-                            // tslint:disable-next-line:no-any
-                            let selobjchildrencncierarchy: any = [];
-                            if (currentLevel.numEnd !== null || currentLevel.numStart !== null) {
-                                if (isNaN(thisObj.taskDurationToWidth1(currentLevel))
-                                    // tslint:disable-next-line:no-any
-                                    || isNaN(thisObj.timeScale(<any>currentLevel.numStart))) {
-                                    taskRect
-                                        .style({
-                                            // tslint:disable-next-line:no-any
-                                            'margin-left': 39 + pxLiteral,
-                                            'margin-top': '-21.4444444px',
-                                            width: 3 + pxLiteral,
-                                            height: Gantt.getBarHeight() / 1.5 + pxLiteral,
-                                            'background-color': currentLevel.color,
-                                            opacity: 1,
-                                            position: 'absolute'
-                                        })
-                                        // tslint:disable-next-line:typedef
-                                        .on('click', function () {
-                                            // tslint:disable-next-line:typedef
-                                            function getDirectChildInHierarchy(sRowID) {
-                                                // tslint:disable-next-line:typedef
-                                                $.map(tasks, function (sObj) {
-                                                    if (sObj.parentId === sRowID) {
-                                                        selobjchildrencncierarchy.push(sObj);
-                                                        getDirectChildInHierarchy(sObj.rowId);
-                                                    }
-                                                });
-
-                                                return selobjchildrencncierarchy;
-                                            }
-                                            for (let i: number = 0; i < tasks.length; i++) {
-                                                if (currentLevel.id === tasks[i].id) {
-                                                    obj = tasks[i];
-                                                    level1 = tasks[i].level;
-                                                    parentRowId = tasks[i].rowId;
-                                                    selobjchildrencncierarchy.push(tasks[i]);
-                                                    selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
-                                                    // tslint:disable-next-line:no-any
-                                                    const selectionId: any = tasks[i].selectionId;
-                                                    if (Gantt.lastSelectedbar === null) {
-                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
-                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
-                                                                let j: number = 0;
-                                                                d3.selectAll('.taskRect.show').classed('selected', false);
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
-                                                                }
-                                                                d3.select(this)
-                                                                    .classed('selected', true)
-                                                                    .style({
-                                                                        opacity: 1
-                                                                    });
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line:max-line-length
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                                        selobjchildrencncierarchy[j].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $(thiskk[0][i]).css('opacity', '1');
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                            .css({ opacity: 1 });
-                                                                        j++;
-                                                                    }
-                                                                    if (j === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                let j: number = 0;
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
-                                                                })
-                                                                    .classed('selected', false);
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
-                                                                }
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line: max-line-length
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $(thiskk[0][i]).css('opacity', '1')
-                                                                            .addClass('selected');
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                            .children()[i]).css({ opacity: 1 });
-                                                                        j++;
-                                                                    }
-                                                                    if (j === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            }
-                                                        });
-                                                    } else if (Gantt.lastSelectedbar === parseInt(d3.select(this).attr('data-rowid'), 10)) {
-                                                        thisObj.selectionManager.clear();
-                                                        d3.selectAll('.taskRect.show').classed('selected', false);
-                                                        d3.selectAll('.taskRect.show').style({
-                                                            opacity: 1
-                                                        });
-                                                        d3.selectAll('.gantt_taskPanel .show').style({
-                                                            opacity: 1
-                                                        });
-                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                .children()[kpiindex]).css({ opacity: 1 });
-                                                        }
-                                                        Gantt.lastSelectedbar = null;
-                                                    } else {
-                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
-                                                        let j: number = 0;
-                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
-                                                                d3.selectAll('.taskRect.show').classed('selected', false);
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
-                                                                }
-                                                                d3.select(this)
-                                                                    .classed('selected', true)
-                                                                    .style({
-                                                                        opacity: 1
-                                                                    });
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line:max-line-length
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                                        selobjchildrencncierarchy[j].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $(thiskk[0][i]).css('opacity', '1');
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                            .css({ opacity: 1 });
-                                                                        j++;
-                                                                    }
-                                                                    if (j === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                let selobjindex: number = 0;
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
-                                                                })
-                                                                    .classed('selected', false);
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
-                                                                }
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[selobjindex].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                            .css({ opacity: 1 });
-                                                                        $(thiskk[0][i]).css('opacity', '1');
-                                                                        selobjindex++;
-                                                                    }
-                                                                    if (selobjindex === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            }
-                                                        });
-                                                    }
-                                                }
-                                            }
-                                            (<Event>d3.event).stopPropagation();
+                                // tslint:disable-next-line:no-shadowed-variable
+                                let currentLevel: Task;
+                                currentLevel = tasks[tasknumber];
+                                // tslint:disable-next-line:no-any
+                                let barBackgroundDiv: any;
+                                barBackgroundDiv = thisObj.barDiv.append('div')
+                                    .classed('parentDiv', true)
+                                    .datum(currentLevel)
+                                    .style({
+                                        'margin-left': 0 + pxLiteral,
+                                        'margin-top': thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
+                                        height: '24px',
+                                        width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10) + pxLiteral,
+                                        'border-bottom': '0.011px',
+                                        'background-color': 'grey'
+                                    })
+                                    .datum(currentLevel)
+                                    .classed('show', true)
+                                    .attr({
+                                        'data-level': tasks[tasknumber].level,
+                                        'data-ParentId': tasks[tasknumber].parentId,
+                                        'data-expanded': tasks[tasknumber].expanded,
+                                        'data-RowId': tasks[tasknumber].rowId,
+                                        'data-isLeaf': tasks[tasknumber].isLeaf,
+                                        'data-row': tasknumber
+                                    });
+                                if (categoryLen === 4) {
+                                    if (leveLength === 1) {
+                                        barBackgroundDiv.style({
+                                            'background-color': parentColour,
+                                            opacity: opacityNumber1
                                         });
+                                    } else if (leveLength === 2) {
+                                        barBackgroundDiv.style({
+                                            'background-color': firstChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 3) {
+                                        barBackgroundDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 4) {
+                                        barBackgroundDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    }
+                                } else if (categoryLen === 3) {
+                                    if (leveLength === 1) {
+                                        barBackgroundDiv.style({
+                                            'background-color': firstChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 2) {
+                                        barBackgroundDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    } else if (leveLength === 3) {
+                                        barBackgroundDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: opacityNumber1
+                                        });
+                                    }
+                                } else if (categoryLen === 2) {
+                                    if (leveLength === 1) {
+                                        barBackgroundDiv.style({
+                                            'background-color': secondChildColour,
+                                            opacity: opacityNumber2
+                                        });
+                                    } else if (leveLength === 2) {
+                                        barBackgroundDiv.style({
+                                            'background-color': thirdChildColour,
+                                            opacity: opacityNumber2
+                                        });
+                                    }
                                 } else {
-                                    taskRect
-                                        .style({
-                                            // tslint:disable-next-line:no-any
-                                            'margin-left': thisObj.timeScale(<any>currentLevel.numStart) + 39 + pxLiteral,
-                                            width: 0 === thisObj.taskDurationToWidth1(currentLevel) ? 3 + pxLiteral :
-                                                thisObj.taskDurationToWidth1(currentLevel) + pxLiteral,
-                                            height: Gantt.getBarHeight() / 1.5 + pxLiteral,
-                                            'background-color': currentLevel.color,
-                                            opacity: 1,
-                                            position: 'absolute',
-                                            'margin-top': '-21.4444444px'
-
-                                        })
+                                    const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
+                                    barBackgroundDiv.style({
+                                        'background-color': backgroundBarColor,
+                                        opacity: opacityNumber2
+                                    });
+                                }
+                                // tslint:disable-next-line:no-any
+                                let taskRect: any;
+                                taskRect = this.barDiv
+                                    .append('div')
+                                    .classed('taskRect', true)
+                                    .datum(currentLevel);
+                                let yPos: number;
+                                yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
+                                let xPos: number;
+                                xPos = 0;
+                                let xPosStart: number;
+                                xPosStart = 0;
+                                // tslint:disable-next-line:typedef
+                                let obj = {};
+                                let level1: number = 0;
+                                let parentRowId: number = 0;
+                                const rowId: number = 0;
+                                taskRect
+                                    .classed('show', true)
+                                    .attr({
+                                        'data-level': tasks[tasknumber].level,
+                                        'data-ParentId': tasks[tasknumber].parentId,
+                                        'data-expanded': tasks[tasknumber].expanded,
+                                        'data-RowId': tasks[tasknumber].rowId,
+                                        'data-isLeaf': tasks[tasknumber].isLeaf,
+                                        'data-row': tasknumber
+                                    })
+                                    .style({
+                                        'margin-left': thisObj.timeScale(currentLevel.start) + 37 + pxLiteral,
+                                        width: 0 === thisObj.taskDurationToWidth(currentLevel) ? 3 +
+                                            pxLiteral : thisObj.taskDurationToWidth(currentLevel) + pxLiteral,
+                                        height: Gantt.getBarHeight() / 1.5 + pxLiteral,
+                                        'background-color': currentLevel.color,
+                                        opacity: 1,
+                                        position: 'absolute',
+                                        'margin-top': '-21.4444444px'
+                                    })
+                                    // tslint:disable-next-line:typedef
+                                    .on('click', function () {
+                                        // tslint:disable-next-line:no-any
+                                        let selobjchildrencncierarchy: any = [];
                                         // tslint:disable-next-line:typedef
-                                        .on('click', function () {
+                                        function getDirectChildInHierarchy(sRowID) {
                                             // tslint:disable-next-line:typedef
-                                            function getDirectChildInHierarchy(sRowID) {
-                                                // tslint:disable-next-line:typedef
-                                                $.map(tasks, function (sObj) {
-                                                    if (sObj.parentId === sRowID) {
-                                                        selobjchildrencncierarchy.push(sObj);
-                                                        getDirectChildInHierarchy(sObj.rowId);
-                                                    }
-                                                });
+                                            $.map(tasks, function (sObj) {
+                                                if (sObj.parentId === sRowID) {
+                                                    selobjchildrencncierarchy.push(sObj);
+                                                    getDirectChildInHierarchy(sObj.rowId);
+                                                }
+                                            });
 
-                                                return selobjchildrencncierarchy;
-                                            }
-                                            for (let i: number = 0; i < tasks.length; i++) {
-                                                if (currentLevel.id === tasks[i].id) {
-                                                    obj = tasks[i];
-                                                    level1 = tasks[i].level;
-                                                    parentRowId = tasks[i].rowId;
-                                                    selobjchildrencncierarchy.push(tasks[i]);
-                                                    selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
-                                                    // tslint:disable-next-line:no-any
-                                                    const selectionId: any = tasks[i].selectionId;
-                                                    if (Gantt.lastSelectedbar === null) {
-                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
-                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
-                                                                let j: number = 0;
-                                                                d3.selectAll('.taskRect.show').classed('selected', false);
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
+                                            return selobjchildrencncierarchy;
+                                        }
+                                        for (let i: number = 0; i < tasks.length; i++) {
+                                            if (currentLevel.id === tasks[i].id) {
+                                                obj = tasks[i];
+                                                level1 = tasks[i].level;
+                                                parentRowId = tasks[i].rowId;
+                                                selobjchildrencncierarchy.push(tasks[i]);
+                                                selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
+                                                // tslint:disable-next-line:no-any
+                                                const selectionId: any = tasks[i].selectionId;
+                                                if (Gantt.lastSelectedbar === null) {
+                                                    Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                    thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                        if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                            let j: number = 0;
+                                                            d3.selectAll('.taskRect.show').classed('selected', false);
+                                                            d3.selectAll('.taskRect.show').style({
+                                                                opacity: 0.3
+                                                            });
+                                                            d3.selectAll('.gantt_taskPanel .show').style({
+                                                                opacity: 0.3
+                                                            });
+                                                            d3.select(this)
+                                                                .classed('selected', true)
+                                                                .style({
+                                                                    opacity: 1
                                                                 });
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
-                                                                }
-                                                                d3.select(this)
-                                                                    .classed('selected', true)
-                                                                    .style({
-                                                                        opacity: 1
-                                                                    });
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line: max-line-length
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $(thiskk[0][i]).css('opacity', '1');
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                            .css({ opacity: 1 });
-                                                                        j++;
-                                                                    }
-                                                                    if (j === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                let j: number = 0;
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
-                                                                })
-                                                                    .classed('selected', false);
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
-                                                                        .css({ opacity: 0.3 });
-                                                                }
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line: max-line-length
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $(thiskk[0][i]).css('opacity', '1')
-                                                                            .addClass('selected');
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                            .css({ opacity: 1 });
-                                                                        j++;
-                                                                    }
-                                                                    if (j === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                                selobjchildrencncierarchy = [];
+                                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                                    .children()[kpiindex]).css({ opacity: 0.3 });
                                                             }
-                                                        });
-                                                    } else if (Gantt.lastSelectedbar === parseInt(d3.select(this).attr('data-rowid'), 10)) {
-                                                        thisObj.selectionManager.clear();
-                                                        d3.selectAll('.taskRect.show').classed('selected', false);
-                                                        d3.selectAll('.taskRect.show').style({
-                                                            opacity: 1
-                                                        });
-                                                        d3.selectAll('.gantt_taskPanel .show').style({
-                                                            opacity: 1
-                                                        });
-                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
-                                                                .css({ opacity: 1 });
+                                                            // tslint:disable-next-line:max-line-length
+                                                            for (let indexselctedobj: number = 0; indexselctedobj < tasks.length; indexselctedobj++) {
+                                                                // tslint:disable-next-line:max-line-length
+                                                                if (parseInt($(d3.selectAll('.taskRect.show')[0][indexselctedobj]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                    $(thiskk[0][indexselctedobj]).css('opacity', '1')
+                                                                        .addClass('selected');
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                        .css({ opacity: 1 });
+                                                                    j++;
+                                                                }
+                                                                if (j === selobjchildrencncierarchy.length) {
+                                                                    break;
+                                                                }
+                                                            }
+                                                        } else {
+                                                            let j: number = 0;
+                                                            d3.selectAll('.taskRect.show').style({
+                                                                opacity: 0.3
+                                                            })
+                                                                .classed('selected', false);
+                                                            d3.selectAll('.gantt_taskPanel .show').style({
+                                                                opacity: 0.3
+                                                            });
+                                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                // tslint:disable-next-line:max-line-length
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                            }
+                                                            // tslint:disable-next-line:no-shadowed-variable
+                                                            for (let i: number = 0; i < tasks.length; i++) {
+                                                                // tslint:disable-next-line:max-line-length
+                                                                if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                    selobjchildrencncierarchy[j].rowId) {
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                        .css('opacity', '1');
+                                                                    thisk.addClass('selected');
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                    $(thiskk[0][i]).css('opacity', '1')
+                                                                        .addClass('selected');
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                        .css({ opacity: 1 });
+                                                                    j++;
+                                                                }
+                                                                if (j === selobjchildrencncierarchy.length) {
+                                                                    break;
+                                                                }
+                                                            }
                                                         }
-                                                        Gantt.lastSelectedbar = null;
-                                                    } else {
-                                                        Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
-                                                        let j: number = 0;
-                                                        thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                            if ($(this).attr('data-isleaf').toString() === 'true') {
-                                                                d3.selectAll('.taskRect.show').classed('selected', false);
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
+                                                    });
+                                                } else if (Gantt.lastSelectedbar === parseInt(d3.select(this).attr('data-rowid'), 10)) {
+                                                    thisObj.selectionManager.clear();
+                                                    d3.selectAll('.taskRect.show').classed('selected', false);
+                                                    d3.selectAll('.taskRect.show').style({
+                                                        opacity: 1
+                                                    });
+                                                    d3.selectAll('.gantt_taskPanel .show').style({
+                                                        opacity: 0.8
+                                                    });
+                                                    for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0])
+                                                        .children()[kpiindex]).css({ opacity: 0.8 });
+                                                    }
+                                                    Gantt.lastSelectedbar = null;
+                                                } else {
+                                                    Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
+                                                    thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
+                                                        if ($(this).attr('data-isleaf').toString() === 'true') {
+                                                            let j: number = 0;
+                                                            d3.selectAll('.taskRect.show').classed('selected', false);
+                                                            d3.selectAll('.taskRect.show').style({
+                                                                opacity: 0.3
+                                                            });
+                                                            d3.selectAll('.gantt_taskPanel .show').style({
+                                                                opacity: 0.3
+                                                            });
+                                                            d3.select(this)
+                                                                .classed('selected', true)
+                                                                .style({
+                                                                    opacity: 1
                                                                 });
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                        .children()[kpiindex]).css({ opacity: 0.3 });
+                                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                // tslint:disable-next-line:max-line-length
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
+                                                            }
+                                                            // tslint:disable-next-line:no-shadowed-variable
+                                                            for (let i: number = 0; i < tasks.length; i++) {
+                                                                // tslint:disable-next-line:max-line-length
+                                                                if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                    selobjchildrencncierarchy[j].rowId) {
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                        .css('opacity', '1');
+                                                                    thisk.addClass('selected');
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                    $(thiskk[0][i]).css('opacity', '1');
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                        .css({ opacity: 1 });
+                                                                    j++;
                                                                 }
-                                                                d3.select(this)
-                                                                    .classed('selected', true)
-                                                                    .style({
-                                                                        opacity: 1
-                                                                    });
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line: max-line-length
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $(thiskk[0][i]).css('opacity', '1');
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                            .css({ opacity: 1 });
-                                                                        j++;
-                                                                    }
-                                                                    if (j === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                let selobjindex: number = 0;
-                                                                d3.selectAll('.taskRect.show').style({
-                                                                    opacity: 0.3
-                                                                })
-                                                                    .classed('selected', false);
-                                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                                    opacity: 0.3
-                                                                });
-                                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
-                                                                        .css({ opacity: 0.3 });
-                                                                }
-                                                                // tslint:disable-next-line:no-shadowed-variable
-                                                                for (let i: number = 0; i < tasks.length; i++) {
-                                                                    // tslint:disable-next-line:max-line-length
-                                                                    if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) === selobjchildrencncierarchy[selobjindex].rowId) {
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                            .css('opacity', '1');
-                                                                        thisk.addClass('selected');
-                                                                        // tslint:disable-next-line:typedef
-                                                                        const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                        $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                            .css({ opacity: 1 });
-                                                                        $(thiskk[0][i]).css('opacity', '1');
-                                                                        selobjindex++;
-                                                                    }
-                                                                    if (selobjindex === selobjchildrencncierarchy.length) {
-                                                                        break;
-                                                                    }
+                                                                if (j === selobjchildrencncierarchy.length) {
+                                                                    break;
                                                                 }
                                                             }
-                                                        });
-                                                    }
+                                                        } else {
+                                                            let j: number = 0;
+                                                            d3.selectAll('.taskRect.show').style({
+                                                                opacity: 0.3
+                                                            })
+                                                                .classed('selected', false);
+                                                            d3.selectAll('.gantt_taskPanel .show').style({
+                                                                opacity: 0.3
+                                                            });
+                                                            for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
+                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
+                                                                    .css({ opacity: 0.3 });
+                                                            }
+                                                            // tslint:disable-next-line:no-shadowed-variable
+                                                            for (let i: number = 0; i < tasks.length; i++) {
+                                                                // tslint:disable-next-line:max-line-length
+                                                                if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
+                                                                    selobjchildrencncierarchy[j].rowId) {
+                                                                    j++;
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
+                                                                        .css('opacity', '1');
+                                                                    thisk.addClass('selected');
+                                                                    // tslint:disable-next-line:typedef
+                                                                    const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
+                                                                    $(thiskk[0][i]).css('opacity', '1');
+                                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
+                                                                        .css({ opacity: 1 });
+                                                                }
+                                                                if (j === selobjchildrencncierarchy.length) {
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    });
                                                 }
                                             }
-                                            (<Event>d3.event).stopPropagation();
-                                        });
-                                }
+                                        }
+                                        (<Event>d3.event).stopPropagation();
+                                    });
                                 yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
-                                // tslint:disable-next-line:no-any
-                                if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
-                                    // tslint:disable-next-line:no-any
-                                    xPos = thisObj.timeScale(<any>currentLevel.numEnd);
-                                    // tslint:disable-next-line:no-any
-                                    xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                                if (xPos < thisObj.timeScale(currentLevel.end)) {
+                                    xPos = thisObj.timeScale(currentLevel.start) +
+                                        // tslint:disable-next-line:max-line-length
+                                        (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
+                                    xPosStart = thisObj.timeScale(currentLevel.start);
                                 }
-                                // tslint:disable-next-line:no-any
-                                if (xPos < thisObj.timeScale(<any>currentLevel.numEnd)) {
-                                    // tslint:disable-next-line:no-any
-                                    xPos = thisObj.timeScale(<any>currentLevel.numEnd);
-                                    // tslint:disable-next-line:no-any
-                                    xPosStart = thisObj.timeScale(<any>currentLevel.numStart);
+                                if (xPos < thisObj.timeScale(currentLevel.end)) {
+                                    xPos = thisObj.timeScale(currentLevel.start) +
+                                        // tslint:disable-next-line:max-line-length
+                                        (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
+                                    xPosStart = thisObj.timeScale(currentLevel.start);
                                 }
                                 thisObj.renderTooltip(taskRect);
                                 let labelnormalizer: number;
-                                labelnormalizer =
-                                    (thisObj.viewModel.settings.taskResource.fontSize * Gantt.maximumNormalizedFontSize)
-                                    / Gantt.maximumFontSize;
+                                labelnormalizer = thisObj.viewModel.settings.taskResource.fontSize;
                                 if (taskResourceShow) {
                                     // tslint:disable-next-line:no-any
                                     let taskResource: any;
@@ -8131,7 +8561,7 @@ module powerbi.extensibility.visual {
                                             xPosVal = ((barStartpt1 + (barEndpt1 / 2)));
                                             break;
                                         case 'left':
-                                            xPosVal = barStartpt1 - 10;
+                                            xPosVal = barStartpt1 - 70;
                                             break;
                                         case 'right':
                                         default:
@@ -8141,10 +8571,11 @@ module powerbi.extensibility.visual {
                                     Gantt.datalabelValueFormatter = ValueFormatter.create({
                                         format: measureFormat ? measureFormat : ValueFormatter.DefaultNumericFormat
                                     });
-                                    if (currentLevel.resource != null) {
+                                    if (currentLevel.resource !== null) {
                                         currentLevel.resource = Gantt.datalabelValueFormatter.format(currentLevel.resource);
                                     } else {
-                                        currentLevel.resource = '';
+                                        currentLevel.resource = ' ';
+
                                     }
                                     taskResource
                                         .style({
@@ -8157,419 +8588,24 @@ module powerbi.extensibility.visual {
                                             'font-family': dataLabelsFontFamily
                                         });
                                     taskResource.append('title').text(currentLevel.resource);
-                                }
-                            }
-                        } else {
-                            // tslint:disable-next-line:no-shadowed-variable
-                            let currentLevel: Task;
-                            currentLevel = tasks[tasknumber];
-                            // tslint:disable-next-line:no-any
-                            let barBackgroundDiv: any;
-                            barBackgroundDiv = thisObj.barDiv.append('div')
-                                .classed('parentDiv', true)
-                                .datum(currentLevel)
-                                .style({
-                                    'margin-left': 0 + pxLiteral,
-                                    'margin-top': thisObj.getTaskLabelCoordinateY(tasknumber) - 17,
-                                    height: '24px',
-                                    width: parseInt(d3.select('.gantt_barSvg').attr('width'), 10) + pxLiteral,
-                                    'border-bottom': '0.011px',
-                                    'background-color': 'grey'
-                                })
-                                .datum(currentLevel)
-                                .classed('show', true)
-                                .attr({
-                                    'data-level': tasks[tasknumber].level,
-                                    'data-ParentId': tasks[tasknumber].parentId,
-                                    'data-expanded': tasks[tasknumber].expanded,
-                                    'data-RowId': tasks[tasknumber].rowId,
-                                    'data-isLeaf': tasks[tasknumber].isLeaf,
-                                    'data-row': tasknumber
-                                });
-                            if (categoryLen === 4) {
-                                if (leveLength === 1) {
-                                    barBackgroundDiv.style({
-                                        'background-color': parentColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 2) {
-                                    barBackgroundDiv.style({
-                                        'background-color': firstChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 3) {
-                                    barBackgroundDiv.style({
-                                        'background-color': secondChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 4) {
-                                    barBackgroundDiv.style({
-                                        'background-color': thirdChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                }
-                            } else if (categoryLen === 3) {
-                                if (leveLength === 1) {
-                                    barBackgroundDiv.style({
-                                        'background-color': firstChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 2) {
-                                    barBackgroundDiv.style({
-                                        'background-color': secondChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                } else if (leveLength === 3) {
-                                    barBackgroundDiv.style({
-                                        'background-color': thirdChildColour,
-                                        opacity: opacityNumber1
-                                    });
-                                }
-                            } else if (categoryLen === 2) {
-                                if (leveLength === 1) {
-                                    barBackgroundDiv.style({
-                                        'background-color': secondChildColour,
-                                        opacity: opacityNumber2
-                                    });
-                                } else if (leveLength === 2) {
-                                    barBackgroundDiv.style({
-                                        'background-color': thirdChildColour,
-                                        opacity: opacityNumber2
-                                    });
-                                }
-                            } else {
-                                const backgroundBarColor: string = tasknumber % 2 === 0 ? thirdChildColour : firstChildColour;
-                                barBackgroundDiv.style({
-                                    'background-color': backgroundBarColor,
-                                    opacity: opacityNumber2
-                                });
-                            }
-                            // tslint:disable-next-line:no-any
-                            let taskRect: any;
-                            taskRect = this.barDiv
-                                .append('div')
-                                .classed('taskRect', true)
-                                .datum(currentLevel);
-                            let yPos: number;
-                            yPos = Gantt.getBarYCoordinate(tasknumber) + 13 + Gantt.taskResourcePadding;
-                            let xPos: number;
-                            xPos = 0;
-                            let xPosStart: number;
-                            xPosStart = 0;
-                            // tslint:disable-next-line:typedef
-                            let obj = {};
-                            let level1: number = 0;
-                            let parentRowId: number = 0;
-                            const rowId: number = 0;
-                            taskRect
-                                .classed('show', true)
-                                .attr({
-                                    'data-level': tasks[tasknumber].level,
-                                    'data-ParentId': tasks[tasknumber].parentId,
-                                    'data-expanded': tasks[tasknumber].expanded,
-                                    'data-RowId': tasks[tasknumber].rowId,
-                                    'data-isLeaf': tasks[tasknumber].isLeaf,
-                                    'data-row': tasknumber
-                                })
-                                .style({
-                                    'margin-left': thisObj.timeScale(currentLevel.start) + 37 + pxLiteral,
-                                    width: 0 === thisObj.taskDurationToWidth(currentLevel) ? 3 +
-                                        pxLiteral : thisObj.taskDurationToWidth(currentLevel) + pxLiteral,
-                                    height: Gantt.getBarHeight() / 1.5 + pxLiteral,
-                                    'background-color': currentLevel.color,
-                                    opacity: 1,
-                                    position: 'absolute',
-                                    'margin-top': '-21.4444444px'
-                                })
-                                // tslint:disable-next-line:typedef
-                                .on('click', function () {
-                                    // tslint:disable-next-line:no-any
-                                    let selobjchildrencncierarchy: any = [];
-                                    // tslint:disable-next-line:typedef
-                                    function getDirectChildInHierarchy(sRowID) {
-                                        // tslint:disable-next-line:typedef
-                                        $.map(tasks, function (sObj) {
-                                            if (sObj.parentId === sRowID) {
-                                                selobjchildrencncierarchy.push(sObj);
-                                                getDirectChildInHierarchy(sObj.rowId);
-                                            }
+                                    if (thisObj.viewModel.settings.taskResource.position.toLowerCase() === 'top') {
+                                        taskResource.remove();
+                                        let displayText: string;
+                                        displayText = null || undefined === currentLevel.resource ? '' : currentLevel.resource;
+                                        taskRect[0][0].append(displayText);
+                                        taskRect.style({
+                                            color: taskResourceColor,
+                                            'font-size': labelnormalizer + pxLiteral,
+                                            'font-family': dataLabelsFontFamily,
+                                            'text-align': 'center'
                                         });
-
-                                        return selobjchildrencncierarchy;
                                     }
-                                    for (let i: number = 0; i < tasks.length; i++) {
-                                        if (currentLevel.id === tasks[i].id) {
-                                            obj = tasks[i];
-                                            level1 = tasks[i].level;
-                                            parentRowId = tasks[i].rowId;
-                                            selobjchildrencncierarchy.push(tasks[i]);
-                                            selobjchildrencncierarchy = getDirectChildInHierarchy(parentRowId);
-                                            // tslint:disable-next-line:no-any
-                                            const selectionId: any = tasks[i].selectionId;
-                                            if (Gantt.lastSelectedbar === null) {
-                                                Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
-                                                thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                    if ($(this).attr('data-isleaf').toString() === 'true') {
-                                                        let j: number = 0;
-                                                        d3.selectAll('.taskRect.show').classed('selected', false);
-                                                        d3.selectAll('.taskRect.show').style({
-                                                            opacity: 0.3
-                                                        });
-                                                        d3.selectAll('.gantt_taskPanel .show').style({
-                                                            opacity: 0.3
-                                                        });
-                                                        d3.select(this)
-                                                            .classed('selected', true)
-                                                            .style({
-                                                                opacity: 1
-                                                            });
-                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0])
-                                                                .children()[kpiindex]).css({ opacity: 0.3 });
-                                                        }
-                                                        // tslint:disable-next-line:max-line-length
-                                                        for (let indexselctedobj: number = 0; indexselctedobj < tasks.length; indexselctedobj++) {
-                                                            // tslint:disable-next-line:max-line-length
-                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][indexselctedobj]).attr('data-rowid'), 10) === selobjchildrencncierarchy[j].rowId) {
-                                                                // tslint:disable-next-line:typedef
-                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                $(thiskk[0][indexselctedobj]).css('opacity', '1')
-                                                                    .addClass('selected');
-                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                    .css({ opacity: 1 });
-                                                                j++;
-                                                            }
-                                                            if (j === selobjchildrencncierarchy.length) {
-                                                                break;
-                                                            }
-                                                        }
-                                                    } else {
-                                                        let j: number = 0;
-                                                        d3.selectAll('.taskRect.show').style({
-                                                            opacity: 0.3
-                                                        })
-                                                            .classed('selected', false);
-                                                        d3.selectAll('.gantt_taskPanel .show').style({
-                                                            opacity: 0.3
-                                                        });
-                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                            // tslint:disable-next-line:max-line-length
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
-                                                        }
-                                                        // tslint:disable-next-line:no-shadowed-variable
-                                                        for (let i: number = 0; i < tasks.length; i++) {
-                                                            // tslint:disable-next-line:max-line-length
-                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                                selobjchildrencncierarchy[j].rowId) {
-                                                                // tslint:disable-next-line:typedef
-                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                    .css('opacity', '1');
-                                                                thisk.addClass('selected');
-                                                                // tslint:disable-next-line:typedef
-                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                $(thiskk[0][i]).css('opacity', '1')
-                                                                    .addClass('selected');
-                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                    .css({ opacity: 1 });
-                                                                j++;
-                                                            }
-                                                            if (j === selobjchildrencncierarchy.length) {
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                });
-                                            } else if (Gantt.lastSelectedbar === parseInt(d3.select(this).attr('data-rowid'), 10)) {
-                                                thisObj.selectionManager.clear();
-                                                d3.selectAll('.taskRect.show').classed('selected', false);
-                                                d3.selectAll('.taskRect.show').style({
-                                                    opacity: 1
-                                                });
-                                                d3.selectAll('.gantt_taskPanel .show').style({
-                                                    opacity: 0.8
-                                                });
-                                                for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                    $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.8 });
-                                                }
-                                                Gantt.lastSelectedbar = null;
-                                            } else {
-                                                Gantt.lastSelectedbar = parseInt(d3.select(this).attr('data-rowid'), 10);
-                                                thisObj.selectionManager.select(selectionId).then((ids: ISelectionId[]) => {
-                                                    if ($(this).attr('data-isleaf').toString() === 'true') {
-                                                        let j: number = 0;
-                                                        d3.selectAll('.taskRect.show').classed('selected', false);
-                                                        d3.selectAll('.taskRect.show').style({
-                                                            opacity: 0.3
-                                                        });
-                                                        d3.selectAll('.gantt_taskPanel .show').style({
-                                                            opacity: 0.3
-                                                        });
-                                                        d3.select(this)
-                                                            .classed('selected', true)
-                                                            .style({
-                                                                opacity: 1
-                                                            });
-                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                            // tslint:disable-next-line:max-line-length
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex]).css({ opacity: 0.3 });
-                                                        }
-                                                        // tslint:disable-next-line:no-shadowed-variable
-                                                        for (let i: number = 0; i < tasks.length; i++) {
-                                                            // tslint:disable-next-line:max-line-length
-                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                                selobjchildrencncierarchy[j].rowId) {
-                                                                // tslint:disable-next-line:typedef
-                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                    .css('opacity', '1');
-                                                                thisk.addClass('selected');
-                                                                // tslint:disable-next-line:typedef
-                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                $(thiskk[0][i]).css('opacity', '1');
-                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                    .css({ opacity: 1 });
-                                                                j++;
-                                                            }
-                                                            if (j === selobjchildrencncierarchy.length) {
-                                                                break;
-                                                            }
-                                                        }
-                                                    } else {
-                                                        let j: number = 0;
-                                                        d3.selectAll('.taskRect.show').style({
-                                                            opacity: 0.3
-                                                        })
-                                                            .classed('selected', false);
-                                                        d3.selectAll('.gantt_taskPanel .show').style({
-                                                            opacity: 0.3
-                                                        });
-                                                        for (let kpiindex: number = 0; kpiindex < tasks.length; kpiindex++) {
-                                                            $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[kpiindex])
-                                                                .css({ opacity: 0.3 });
-                                                        }
-                                                        // tslint:disable-next-line:no-shadowed-variable
-                                                        for (let i: number = 0; i < tasks.length; i++) {
-                                                            // tslint:disable-next-line:max-line-length
-                                                            if (parseInt($(d3.selectAll('.taskRect.show')[0][i]).attr('data-rowid'), 10) ===
-                                                                selobjchildrencncierarchy[j].rowId) {
-                                                                j++;
-                                                                // tslint:disable-next-line:typedef
-                                                                const thisk = $($(d3.selectAll('.taskRect.show')[0][i]))
-                                                                    .css('opacity', '1');
-                                                                thisk.addClass('selected');
-                                                                // tslint:disable-next-line:typedef
-                                                                const thiskk = $(d3.selectAll('.gantt_taskPanel .show'));
-                                                                $(thiskk[0][i]).css('opacity', '1');
-                                                                $($(d3.selectAll('.gantt_kpiPanel')[0][0]).children()[i])
-                                                                    .css({ opacity: 1 });
-                                                            }
-                                                            if (j === selobjchildrencncierarchy.length) {
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                });
-                                            }
-                                        }
-                                    }
-                                    (<Event>d3.event).stopPropagation();
-                                });
-
-                            yPos = Gantt.getBarYCoordinate(tasknumber) + Gantt.getBarHeight() / 2 + Gantt.taskResourcePadding;
-                            if (xPos < thisObj.timeScale(currentLevel.end)) {
-                                xPos = thisObj.timeScale(currentLevel.start) +
-                                    // tslint:disable-next-line:max-line-length
-                                    (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
-                                xPosStart = thisObj.timeScale(currentLevel.start);
-                            }
-                            if (xPos < thisObj.timeScale(currentLevel.end)) {
-                                xPos = thisObj.timeScale(currentLevel.start) +
-                                    // tslint:disable-next-line:max-line-length
-                                    (0 === thisObj.taskDurationToWidth(currentLevel) ? 3 : thisObj.taskDurationToWidth(currentLevel));
-                                xPosStart = thisObj.timeScale(currentLevel.start);
-                            }
-                            thisObj.renderTooltip(taskRect);
-                            let labelnormalizer: number;
-                            labelnormalizer =
-                                (thisObj.viewModel.settings.taskResource.fontSize *
-                                    Gantt.maximumNormalizedFontSize) / Gantt.maximumFontSize;
-                            if (taskResourceShow) {
-                                // tslint:disable-next-line:no-any
-                                let taskResource: any;
-                                taskResource = barBackgroundDiv
-                                    .append('text')
-                                    .classed(Selectors.taskResource.class + spaceLiteral + taskRowLiteral + tasknumber, true);
-                                let titleWidth: number;
-                                titleWidth = $('.resourceLabelText').innerWidth() * 0.7;
-                                d3.selectAll('.resourceLabelText').remove();
-                                let xPosVal: number = 0;
-                                // tslint:disable-next-line:prefer-template
-                                const barStartpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('margin-left');
-                                // tslint:disable-next-line:radix
-                                const barStartpt1: number = parseInt(barStartpt.substring(0, barStartpt.length - 2));
-                                // tslint:disable-next-line:prefer-template
-                                const barEndpt: string = $('div.taskRect[data-row = "' + tasknumber + '"]').css('width');
-                                // tslint:disable-next-line:radix
-                                const barEndpt1: number = parseInt(barEndpt.substring(0, barEndpt.length - 2));
-                                switch (thisObj.viewModel.settings.taskResource.position.toLowerCase()) {
-                                    case 'top':
-                                        xPosVal = ((barStartpt1 + (barEndpt1 / 2)));
-                                        break;
-                                    case 'left':
-                                        xPosVal = barStartpt1 - 20;
-                                        break;
-                                    case 'right':
-                                    default:
-                                        xPosVal = barStartpt1 + barEndpt1 + 5;
-                                        break;
-                                }
-                                Gantt.datalabelValueFormatter = ValueFormatter.create({
-                                    format: measureFormat ? measureFormat : ValueFormatter.DefaultNumericFormat
-                                });
-                                if (currentLevel.resource !== null) {
-                                    currentLevel.resource = Gantt.datalabelValueFormatter.format(currentLevel.resource);
-                                } else {
-                                    currentLevel.resource = ' ';
-
-                                }
-                                taskResource
-                                    .style({
-                                        'margin-left': xPosVal + pxLiteral
-                                    })
-                                    .text(currentLevel.resource)
-                                    .style({
-                                        color: taskResourceColor,
-                                        'font-size': labelnormalizer + pxLiteral,
-                                        'font-family': dataLabelsFontFamily
-                                    });
-                                taskResource.append('title').text(currentLevel.resource);
-                                if (thisObj.viewModel.settings.taskResource.position.toLowerCase() === 'top') {
-                                    taskResource.remove();
-                                    let displayText: string;
-                                    displayText = null || undefined === currentLevel.resource ? '' : currentLevel.resource;
-                                    taskRect[0][0].append(displayText);
-                                    taskRect.style({
-                                        color: taskResourceColor,
-                                        'font-size': labelnormalizer + pxLiteral,
-                                        'font-family': dataLabelsFontFamily,
-                                        'text-align': 'center'
-                                    });
                                 }
                             }
 
+                            $('.gantt_legendIndicatorPanel').hide();
+                            $('.arrow').hide();
                         }
-
-                        if (!tasks[tasknumber].expanded && tasks[tasknumber].parentId !== 1) {
-                            // tslint:disable-next-line:prefer-template
-                            $('div[data-row = "' + tasknumber + '"]').hide();
-                        }
-                        if (tasks[tasknumber].expanded) {
-                            expandeditems.push(tasks[tasknumber].id);
-                        }
-                        $('.gantt_legendIndicatorPanel').hide();
-                        $('.arrow').hide();
-                    }
-                    for (let jiterator: number = 0; jiterator < expandeditems.length; jiterator++) {
-                        thisObj.expandFunctinality(tasks, expandeditems[jiterator]);
                     }
                 }
                 let chartHeight: number;
@@ -9159,7 +9195,7 @@ module powerbi.extensibility.visual {
                 properties: {
                     show: taskLabelsSettings.show,
                     fill: taskLabelsSettings.fill,
-                    fontSize: taskLabelsSettings.fontSize,
+                    fontSize: taskLabelsSettings.fontSize > 20 ? 20 : taskLabelsSettings.fontSize,
                     fontFamily: taskLabelsSettings.fontFamily,
                     isExpanded: taskLabelsSettings.isExpanded,
                     isHierarchy: taskLabelsSettings.isHierarchy
@@ -9169,7 +9205,7 @@ module powerbi.extensibility.visual {
             instances[0].properties = {
                 show: taskLabelsSettings.show,
                 fill: taskLabelsSettings.fill,
-                fontSize: taskLabelsSettings.fontSize,
+                fontSize: taskLabelsSettings.fontSize > 20 ? 20 : taskLabelsSettings.fontSize,
                 fontFamily: taskLabelsSettings.fontFamily,
                 isExpanded: taskLabelsSettings.isExpanded,
                 isHierarchy: taskLabelsSettings.isHierarchy
@@ -9190,7 +9226,7 @@ module powerbi.extensibility.visual {
                     fill2: columnHeaderSettings.fill2,
                     columnOutline: columnHeaderSettings.columnOutline,
                     fontFamily: columnHeaderSettings.fontFamily,
-                    fontSize: columnHeaderSettings.fontSize
+                    fontSize: columnHeaderSettings.fontSize > 20 ? 20 : columnHeaderSettings.fontSize
                 }
             }];
 
@@ -9207,7 +9243,7 @@ module powerbi.extensibility.visual {
                     show: taskResourceSettings.show,
                     position: taskResourceSettings.position,
                     fill: taskResourceSettings.fill,
-                    fontSize: taskResourceSettings.fontSize,
+                    fontSize: taskResourceSettings.fontSize > 20 ? 20 : taskResourceSettings.fontSize,
                     fontFamily: taskResourceSettings.fontFamily
                 }
             }];
