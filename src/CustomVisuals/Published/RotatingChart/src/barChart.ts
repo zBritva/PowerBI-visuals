@@ -83,7 +83,7 @@ module powerbi.extensibility.visual {
         dataPoints: IBarChartDataPoint[];
         dataMax: number;
         name: string;
-        dataMin : number;
+        dataMin: number;
     }
     interface IBarChartDataPoint {
         value: number;
@@ -192,7 +192,7 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         let dataValue: any;
         dataValue = categorical.values[measureIndex];
-        let dataMax : number;
+        let dataMax: number;
         // tslint:disable-next-line:no-any
         let mName: any;
         mName = categorical.values[measureIndex].source.displayName;
@@ -200,7 +200,7 @@ module powerbi.extensibility.visual {
         let barChartDataPoints: IBarChartDataPoint[];
         barChartDataPoints = [];
         //let dataMax: number;
-        let dataMin : number;
+        let dataMin: number;
         let colorPalette: powerbi.extensibility.IColorPalette;
         colorPalette = host.colorPalette;
         let objects: DataViewObjects;
@@ -271,8 +271,8 @@ module powerbi.extensibility.visual {
         private measureCount: number;
         private dataviews: DataView;
         private rootElement: d3.Selection<SVGElement>;
-        private maxData : number;
-        private minData : number;
+        private maxData: number;
+        private minData: number;
 
         // tslint:disable-next-line:typedef
         public static statConfig = {
@@ -316,7 +316,7 @@ module powerbi.extensibility.visual {
 
         }
 
-        public update(options: VisualUpdateOptions) : void {
+        public update(options: VisualUpdateOptions): void {
 
             this.options = options;
             this.dataviews = options.dataViews[0];
@@ -455,12 +455,12 @@ module powerbi.extensibility.visual {
             let yScale: d3.scale.Linear<number, number>;
             if (this.viewModel.dataMin < 0) {
                 yScale = d3.scale.linear()
-                .domain([0, Math.abs(this.viewModel.dataMax) + Math.abs(this.viewModel.dataMin)]  )
-                .range([this.width, (this.margin * this.width * 2 )]);
+                    .domain([0, Math.abs(this.viewModel.dataMax) + Math.abs(this.viewModel.dataMin)])
+                    .range([this.width, (this.margin * this.width * 2)]);
             } else {
                 yScale = d3.scale.linear()
-                .domain([0, Math.abs(this.viewModel.dataMax)]  )
-                .range([this.width, (this.margin *  this.width *  2 )]);
+                    .domain([0, Math.abs(this.viewModel.dataMax)])
+                    .range([this.width, (this.margin * this.width * 2)]);
 
             }
 
@@ -475,9 +475,9 @@ module powerbi.extensibility.visual {
 
             let add: number;
             if ((this.viewModel.dataMax > 0 && this.viewModel.dataMin < 0)
-            || ((this.viewModel.dataMax < 0 && this.viewModel.dataMin < 0))) {
+                || ((this.viewModel.dataMax < 0 && this.viewModel.dataMin < 0))) {
 
-            add = (this.width - yScale(Math.abs(this.viewModel.dataMin)));
+                add = (this.width - yScale(Math.abs(this.viewModel.dataMin)));
             } else {
                 add = 0;
             }
@@ -490,16 +490,16 @@ module powerbi.extensibility.visual {
             bars.attr({
                 // tslint:disable-next-line:typedef
                 width: d => (this.width - yScale(parseFloat(`${d.value}`))) < 0 ? (this.width - yScale(d.value * -1))
-                : (this.width - yScale(d.value)),
+                    : (this.width - yScale(d.value)),
                 height: this.xScale.rangeBand(),
                 // tslint:disable-next-line:typedef
                 y: d => this.xScale(d.category),
                 // tslint:disable-next-line:typedef
                 x: d => (this.width - yScale(parseFloat(`${d.value}`))) < 0 ?
-                (d.value === this.viewModel.dataMin ? (this.width * this.margin) : (this.width * this.margin) + Math.abs(add)
-                - ((this.width - yScale(parseFloat(`${d.value}`))) < 0 ? (this.width - yScale(d.value * -1))
-                : (this.width - yScale(d.value))) ) :
-                (this.width * this.margin) + Math.abs(add)  ,
+                    (d.value === this.viewModel.dataMin ? (this.width * this.margin) : (this.width * this.margin) + Math.abs(add)
+                        - ((this.width - yScale(parseFloat(`${d.value}`))) < 0 ? (this.width - yScale(d.value * -1))
+                            : (this.width - yScale(d.value)))) :
+                    (this.width * this.margin) + Math.abs(add),
                 // tslint:disable-next-line:typedef
                 fill: d => d.color,
                 'fill-opacity': BarChart.statConfig.solidOpacity
@@ -562,10 +562,10 @@ module powerbi.extensibility.visual {
                             fontFamily: 'sans-serif',
                             fontSize: `${labelSettings.fontSize}px`
                         };
-                                // tslint:disable-next-line:no-shadowed-variable typedef
+                        // tslint:disable-next-line:no-shadowed-variable typedef
                         measureValue.append('title').text(function (d) {
-                    return formatter.format(d.value);
-                });
+                            return formatter.format(d.value);
+                        });
 
                         return textMeasurementService.getTailoredTextOrDefault(measureProperties, width / 9);
                     });
@@ -588,8 +588,9 @@ module powerbi.extensibility.visual {
             }
 
             this.tooltipServiceWrapper.addTooltip(this.horizBarContainer.selectAll('.bar'),
-                                                  (tooltipEvent: TooltipEventArgs<number>) => BarChart.getTooltipData(tooltipEvent.data),
-                                                  (tooltipEvent: TooltipEventArgs<number>) => null);
+                                                  (tooltipEvent: TooltipEventArgs<IBarChartDataPoint>) =>
+                                                   BarChart.getTooltipData(tooltipEvent.data),
+                                                  (tooltipEvent: TooltipEventArgs<IBarChartDataPoint>) => tooltipEvent.data.selectionId);
 
             let selectionManager: ISelectionManager;
             selectionManager = this.selectionManager;
