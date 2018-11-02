@@ -1434,7 +1434,7 @@ module powerbi.extensibility.visual {
                         validImage = imagePatt.test(backgroundImage.imageUrl);
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xlink:href', validImage ? backgroundImage.imageUrl : '');
+                            .attr('xlink:href', backgroundImage.imageUrl);
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
@@ -1806,13 +1806,13 @@ module powerbi.extensibility.visual {
 
                         this.tooltipServiceWrapper.addTooltip(
                             this.barContainer.selectAll('.bar,.barforecasted'),
-                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) => this.getTooltipData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) => tooltipEvent.data.selectionId);
                         this.tooltipServiceWrapper.addTooltip(this.targetLines.selectAll('.circle'),
-                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) =>
-                                this.getTooltipIndividualTargetData(tooltipEvent.data),
-                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
-
+                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) =>
+                            this.getTooltipIndividualTargetData(tooltipEvent.data),
+                                                              (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) =>
+                                                               tooltipEvent.data.selectionId);
                         let selectionManager: ISelectionManager;
                         selectionManager = this.selectionManager;
                         let allowInteractions: boolean;
@@ -2062,11 +2062,12 @@ module powerbi.extensibility.visual {
                                 }
                             }
                         }
+
                         let validImage: boolean;
                         validImage = imagePatt.test(backgroundImage.imageUrl);
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xlink:href', validImage ? backgroundImage.imageUrl : '');
+                            .attr('xlink:href', backgroundImage.imageUrl);
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
@@ -2415,12 +2416,14 @@ module powerbi.extensibility.visual {
                         }
                         this.tooltipServiceWrapper.addTooltip(
                             this.barContainer.selectAll('.bar,.barforecasted'),
-                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) => this.getTooltipData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) => tooltipEvent.data.selectionId);
                         this.tooltipServiceWrapper.addTooltip(
                             this.targetLines.selectAll('.circle'),
-                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => this.getTooltipIndividualTargetData(tooltipEvent.data),
-                            (tooltipEvent: tooltipUtils.TooltipEventArgs<number>) => null);
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) =>
+                            this.getTooltipIndividualTargetData(tooltipEvent.data),
+                            (tooltipEvent: tooltipUtils.TooltipEventArgs<IBarChartDataPoint>) =>
+                                                               tooltipEvent.data.selectionId);
 
                         let selectionManager: ISelectionManager;
                         selectionManager = this.selectionManager;
