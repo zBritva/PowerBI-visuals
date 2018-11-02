@@ -36,18 +36,11 @@ module powerbi.extensibility.visual {
 
         public bindEvents(options: GanttBehaviorOptions, selectionHandler: ISelectionHandler): void {
             this.options = options;
-            // tslint:disable-next-line:no-any
-            let clearCatcher: Selection<any>;
-            clearCatcher = options.clearCatcher;
             this.selectionHandler = selectionHandler;
 
             options.taskSelection.on('click', (d: SelectableDataPoint) => {
                 selectionHandler.handleSelection(d, (d3.event as MouseEvent).ctrlKey);
                 (d3.event as MouseEvent).stopPropagation();
-            });
-
-            clearCatcher.on('click', () => {
-                selectionHandler.handleClearSelection();
             });
         }
 

@@ -71,7 +71,9 @@
             "properties": {
                 "duration": {
                     "displayName": "Delay (seconds)",
-                    "type": { "numeric": true }
+                    "type": {
+                        "numeric": true
+                    }
                 }
             }
         },
@@ -98,11 +100,17 @@
                 },
                 "displayUnits": {
                     "displayName": "Display Units",
-                    "type": { "formatting": { "labelDisplayUnits": true } }
+                    "type": {
+                        "formatting": {
+                            "labelDisplayUnits": true
+                        }
+                    }
                 },
                 "textPrecision": {
                     "displayName": "Decimal Places",
-                    "type": { "numeric": true },
+                    "type": {
+                        "numeric": true
+                    },
                     "suppressFormatPainterCopy": true
                 }
             }
@@ -130,5 +138,14 @@
                 }
             }
         }
+    },
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        },
+        "roles": [
+            "tooltips"
+        ]
     }
 }

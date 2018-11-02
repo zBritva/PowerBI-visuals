@@ -372,7 +372,7 @@ module powerbi.extensibility.visual {
         private static taskLabels: ITaskLabelsSettings = {
             show: true,
             fill: '#000000',
-            fontSize: 23,
+            fontSize: 11,
             fontFamily: 'Segoe UI',
             width: 10,
             isExpanded: true,
@@ -384,14 +384,14 @@ module powerbi.extensibility.visual {
             fill2: '#ffffff',
             columnOutline: 'none',
             fontFamily: 'Segoe UI',
-            fontSize: 23
+            fontSize: 11
         };
 
         private static taskResource: ITaskResourceSettings = {
             show: true,
             position: 'Right',
             fill: '#000000',
-            fontSize: 23,
+            fontSize: 11,
             fontFamily: 'Segoe UI'
         };
 
