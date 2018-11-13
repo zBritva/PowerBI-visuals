@@ -1734,6 +1734,47 @@ module powerbi.extensibility.visual {
                     this.xAxisSvg.selectAll('.boxWhisker_xAxis .tick text').text('');
                     this.xAxis.selectAll('path').remove();
                 }
+                // plotting boxes, whiskers, median lines
+                // plotting box below median (Q2)
+                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                let boxWidth: number = yScale.rangeBand() / 2;
+                if (this.boxOptionsSetting.boxWidth === 'Small') {
+                    boxWidth /= 2;
+                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
+                    boxWidth *= 1.5;
+                }
+
+                boxesLower.enter()
+                    .append('rect')
+                    .classed('boxLower', true);
+
+                boxesLower.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.Q1),
+                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
+                    width: (d: IBoxDataPoints): number => xScale(d.Q2) - xScale(d.Q1),
+                    height: (d: IBoxDataPoints): number => boxWidth,
+                    fill: this.boxOptionsSetting.boxLowerColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
+
+                // plotting box above median (Q2)
+                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                boxesUpper.enter()
+                    .append('rect')
+                    .classed('boxUpper', true);
+
+                boxesUpper.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.Q2),
+                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
+                    width: (d: IBoxDataPoints): number => xScale(d.Q3) - xScale(d.Q2),
+                    height: (d: IBoxDataPoints): number => boxWidth,
+                    fill: this.boxOptionsSetting.boxUpperColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
 
                 if (rangeConfig.dots || boxOptionsSettings.outliers) {
                     const boxWhiskerdot: d3.Selection<IBoxWhiskerViewModel> = this.dotsContainer.selectAll('.boxWhisker_dot');
@@ -1792,48 +1833,6 @@ module powerbi.extensibility.visual {
                         });
                     }
                 }
-
-                // plotting boxes, whiskers, median lines
-                // plotting box below median (Q2)
-                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
-                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                let boxWidth: number = yScale.rangeBand() / 2;
-                if (this.boxOptionsSetting.boxWidth === 'Small') {
-                    boxWidth /= 2;
-                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
-                    boxWidth *= 1.5;
-                }
-
-                boxesLower.enter()
-                    .append('rect')
-                    .classed('boxLower', true);
-
-                boxesLower.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.Q1),
-                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
-                    width: (d: IBoxDataPoints): number => xScale(d.Q2) - xScale(d.Q1),
-                    height: (d: IBoxDataPoints): number => boxWidth,
-                    fill: this.boxOptionsSetting.boxLowerColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
-
-                // plotting box above median (Q2)
-                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
-                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                boxesUpper.enter()
-                    .append('rect')
-                    .classed('boxUpper', true);
-
-                boxesUpper.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.Q2),
-                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
-                    width: (d: IBoxDataPoints): number => xScale(d.Q3) - xScale(d.Q2),
-                    height: (d: IBoxDataPoints): number => boxWidth,
-                    fill: this.boxOptionsSetting.boxUpperColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
 
                 // plotting Q1
                 const lineQ1: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxOutlineQ1')
@@ -2689,6 +2688,48 @@ module powerbi.extensibility.visual {
                     this.yAxis.selectAll('path').remove();
                 }
 
+                // plotting boxes, whiskers, median lines
+                // plotting box below median (Q2)
+                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                let boxWidth: number = xScale.rangeBand() / 2;
+                if (this.boxOptionsSetting.boxWidth === 'Small') {
+                    boxWidth /= 2;
+                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
+                    boxWidth *= 1.5;
+                }
+
+                boxesLower.enter()
+                    .append('rect')
+                    .classed('boxLower', true);
+
+                boxesLower.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
+                    y: (d: IBoxDataPoints): number => yScale(d.Q2),
+                    width: (d: IBoxDataPoints): number => boxWidth,
+                    height: (d: IBoxDataPoints): number => yScale(d.Q1) - yScale(d.Q2),
+                    fill: this.boxOptionsSetting.boxLowerColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
+
+                // plotting box above median (Q2)
+                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                boxesUpper.enter()
+                    .append('rect')
+                    .classed('boxUpper', true);
+
+                boxesUpper.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
+                    y: (d: IBoxDataPoints): number => yScale(d.Q3),
+                    width: (d: IBoxDataPoints): number => boxWidth,
+                    height: (d: IBoxDataPoints): number => yScale(d.Q2) - yScale(d.Q3),
+                    fill: this.boxOptionsSetting.boxUpperColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
+
                 if (rangeConfig.dots || boxOptionsSettings.outliers) {
                     const boxWhiskerdot: d3.Selection<IBoxWhiskerViewModel> = this.dotsContainer.selectAll('.boxWhisker_dot');
                     let circles: d3.selection.Update<IBoxWhiskerViewModel>;
@@ -2747,48 +2788,6 @@ module powerbi.extensibility.visual {
                         });
                     }
                 }
-
-                // plotting boxes, whiskers, median lines
-                // plotting box below median (Q2)
-                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
-                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                let boxWidth: number = xScale.rangeBand() / 2;
-                if (this.boxOptionsSetting.boxWidth === 'Small') {
-                    boxWidth /= 2;
-                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
-                    boxWidth *= 1.5;
-                }
-
-                boxesLower.enter()
-                    .append('rect')
-                    .classed('boxLower', true);
-
-                boxesLower.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
-                    y: (d: IBoxDataPoints): number => yScale(d.Q2),
-                    width: (d: IBoxDataPoints): number => boxWidth,
-                    height: (d: IBoxDataPoints): number => yScale(d.Q1) - yScale(d.Q2),
-                    fill: this.boxOptionsSetting.boxLowerColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
-
-                // plotting box above median (Q2)
-                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
-                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                boxesUpper.enter()
-                    .append('rect')
-                    .classed('boxUpper', true);
-
-                boxesUpper.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
-                    y: (d: IBoxDataPoints): number => yScale(d.Q3),
-                    width: (d: IBoxDataPoints): number => boxWidth,
-                    height: (d: IBoxDataPoints): number => yScale(d.Q2) - yScale(d.Q3),
-                    fill: this.boxOptionsSetting.boxUpperColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
 
                 // plotting Q1
                 const lineQ1: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxOutlineQ1')
@@ -3013,8 +3012,8 @@ module powerbi.extensibility.visual {
             // Adding tooltips on dots
             this.tooltipServiceWrapper.addTooltip(
                 d3.selectAll('.boxWhisker_dot'),
-                (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data, 0),
-                (tooltipEvent: TooltipEventArgs<number>) => null
+                (tooltipEvent: TooltipEventArgs<IBoxWhiskerViewModel>) => this.getTooltipData(tooltipEvent.data, 0),
+                (tooltipEvent: TooltipEventArgs<IBoxWhiskerViewModel>) => tooltipEvent.data.selectionId
             );
 
             // Adding tooltips on box, Q1 and Q3
