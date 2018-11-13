@@ -1584,5 +1584,14 @@
                 }
             }
         }
+    },
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        },
+        "roles": [
+            "tooltips"
+        ]
     }
 }
