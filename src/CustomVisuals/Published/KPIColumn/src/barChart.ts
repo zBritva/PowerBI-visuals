@@ -1434,7 +1434,7 @@ module powerbi.extensibility.visual {
                         validImage = imagePatt.test(backgroundImage.imageUrl);
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xlink:href', backgroundImage.imageUrl);
+                        .attr('xlink:href', validImage ? backgroundImage.imageUrl : '');
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
@@ -2067,7 +2067,7 @@ module powerbi.extensibility.visual {
                         validImage = imagePatt.test(backgroundImage.imageUrl);
                         // tslint:disable-next-line:no-any
                         const chartBackground: any = this.barContainer.append('image')
-                            .attr('xlink:href', backgroundImage.imageUrl);
+                        .attr('xlink:href', validImage ? backgroundImage.imageUrl : '');
 
                         let barData: IBarChartDataPoint[];
                         barData = [];
