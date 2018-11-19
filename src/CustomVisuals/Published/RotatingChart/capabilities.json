@@ -69,6 +69,11 @@
         "animationSettings": {
             "displayName": "Animation settings",
             "properties": {
+                "show": {
+                    "type":{
+                        "bool": true
+                    }
+                },
                 "duration": {
                     "displayName": "Delay (seconds)",
                     "type": {
@@ -106,12 +111,13 @@
                         }
                     }
                 },
-                "textPrecision": {
+                "strokeWidth": {
                     "displayName": "Decimal Places",
                     "type": {
-                        "numeric": true
-                    },
-                    "suppressFormatPainterCopy": true
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
                 }
             }
         },
