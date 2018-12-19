@@ -16,6 +16,7 @@
     "node_modules/powerbi-visuals-utils-interactivityutils/lib/index.d.ts",
     "node_modules/powerbi-visuals-utils-svgutils/lib/index.d.ts",
     "node_modules/powerbi-visuals-utils-chartutils/lib/index.d.ts",
+    "node_modules/powerbi-models/dist/models-noexports.d.ts",
     "src/settings.ts",
     "typings/index.d.ts",
     "node_modules/@types/js-base64/index.d.ts",
