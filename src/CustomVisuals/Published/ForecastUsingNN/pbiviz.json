@@ -1,8 +1,8 @@
 {
   "visual": {
-    "name": "ForecastUsingNeuralNetworkByMAQSoftwareTest",
+    "name": "ForecastUsingNeuralNetworkByMAQSoftware",
     "displayName": "Forecast using Neural Network by MAQ Software",
-    "guid": "ForecastUsingNeuralNetworkC3FF19A2F6084F9DB72C16B27773958_1",
+    "guid": "ForecastUsingNeuralNetworkC3FF19A2F6084F9DB72C16B27773958",
     "visualClassName": "ForecastingUsingNN",
     "version": "3.0.6",
     "description": "Uses neural network algorithm to forecast future values based on historical data.",
