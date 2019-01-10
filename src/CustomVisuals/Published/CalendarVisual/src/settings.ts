@@ -13,6 +13,10 @@ module powerbi.extensibility.visual {
     public workDays: WorkDays = new WorkDays();
     public persistCalendarView: PersistCalendarView = new PersistCalendarView();
     public persistCalendarDate: PersistCalendarDate = new PersistCalendarDate();
+    public caption: CaptionValues = new CaptionValues();
+  }
+  export class CaptionValues {
+    public captionValue: string = '{}';
   }
 
   export class LegendSettings {
@@ -22,6 +26,7 @@ module powerbi.extensibility.visual {
     public fontSize: number = 9;
   }
 
+  // tslint:disable-next-line:max-classes-per-file
   export class ColorSelector {
     public fill: string = '#ffffff';
   }
