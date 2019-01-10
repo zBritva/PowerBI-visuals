@@ -970,8 +970,10 @@ module powerbi.extensibility.visual {
                 .attr('cy', yscale(this.data1.value) + 5);
 
             if (this.settings.showZones) {
-                this.highlightCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
+                if (this.highlight) {
+                    this.highlightCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
                 : width / 2 - this.margins.small - 5);
+                }
                 this.fillCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
                 : width / 2 - this.margins.small - 5);
                 this.bottomCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5

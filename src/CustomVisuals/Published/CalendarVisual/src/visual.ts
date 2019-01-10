@@ -458,7 +458,7 @@ module powerbi.extensibility.visual {
               selectionId: this.host.createSelectionIdBuilder().withCategory(startDateCategory, index).createSelectionId()
             });
             uniqueValues.push(dataViewCategories[eventGroupIndex].values[index] !== null ?
-              <string>dataViewCategories[eventGroupIndex].values[index] : 'Others');
+              <string>dataViewCategories[eventGroupIndex].values[index] : <string>dataViewCategories[eventGroupIndex].values[index]);
           }
           eventArray.push(<string>dataViewCategories[eventIndex].values[index]);
           eventGroupArray.push(dataViewCategories[eventGroupIndex].values[index] !== null

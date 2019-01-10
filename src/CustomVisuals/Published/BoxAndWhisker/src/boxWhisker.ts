@@ -40,11 +40,11 @@ module powerbi.extensibility.visual {
             right: number;
             top: number;
         } = {
-            bottom: 30,
-            left: 40,
-            right: 0,
-            top: 0
-        };
+                bottom: 30,
+                left: 40,
+                right: 0,
+                top: 0
+            };
         public static isGradientPresent: boolean;
         public static isColorCategoryPresent: boolean;
         public static legendDataPoints: ILegendDataPoint[];
@@ -121,11 +121,7 @@ module powerbi.extensibility.visual {
             this.selectionManager.registerOnSelectCallback(() => {
                 this.dotSelection = d3.selectAll('.boxWhisker_dot');
                 this.legendSelection = d3.selectAll('.legendItem');
-                this.syncSelectionState(
-                    this.dotSelection,
-                    this.legendSelection,
-                    this.selectionManager.getSelectionIds() as ISelectionId[]
-                );
+
             });
             this.selectionIdBuilder = options.host.createSelectionIdBuilder();
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
@@ -262,25 +258,40 @@ module powerbi.extensibility.visual {
 
                         this.highlight = dataView.categorical.values[0].highlights ? true : false;
                         for (let cat1: number = 0; cat1 < dataView.categorical.categories.length; cat1++) {
-                            const formatter1: utils.formatting.IValueFormatter = valueFormatter.create({
+                            formatter = valueFormatter.create({
                                 format: dataView.categorical.categories[cat1].source.format
                             });
-                            if (dataView.categorical.categories[cat1].source.roles.hasOwnProperty('category')) {
-                                dataPoint.category = formatter1.format(dataView.categorical.categories[cat1].values[i]);
+                            // tslint:disable-next-line:no-any
+                            const data : any = dataView.categorical.categories[cat1];
+                            if (data.source.roles.hasOwnProperty('category')) {
+                                dataPoint.category = formatter.format(data.values[i]);
                             }
-                            if (dataView.categorical.categories[cat1].source.roles.hasOwnProperty('categoryGroup')) {
-                                boxWhiskerdataPoints.xTitleText = dataView.categorical.categories[cat1].source.displayName;
-                                dataPoint.categoryGroup = formatter1.format(dataView.categorical.categories[cat1].values[i]);
-                                Visual.catGroupPresent = true;
+                            if (data.source.roles.hasOwnProperty('categoryGroup')) {
+
+                                if (data.source.displayName !== name) {
+                                    boxWhiskerdataPoints.xTitleText = data.source.displayName;
+                                    if (data.source.type.dateTime) {
+                                        dataPoint.categoryGroup = formatter.format(new Date(data.values[i].toString()));
+                                    } else {
+                                        dataPoint.categoryGroup = formatter.format(data.values[i]);
+                                    }
+                                    Visual.catGroupPresent = true;
+                                }
                             }
-                            if (dataView.categorical.categories[cat1].source.roles.hasOwnProperty('xCategoryParent')) {
+                            if (data.source.roles.hasOwnProperty('xCategoryParent')) {
+
+                                name = data.source.displayName;
                                 xParentIndex = cat1;
-                                dataPoint.xCategoryParent = formatter1.format(dataView.categorical.categories[cat1].values[i]);
+                                if (data.source.type.dateTime) {
+                                    dataPoint.xCategoryParent = formatter.format(new Date(data.values[i].toString()));
+                                } else {
+                                    dataPoint.xCategoryParent = formatter.format(data.values[i]);
+                                }
                                 Visual.xParentPresent = true;
                             }
                             const tooltipDataPoint: ITooltipDataPoints = {
-                                name: dataView.categorical.categories[cat1].source.displayName,
-                                value: formatter1.format(dataView.categorical.categories[cat1].values[i])
+                                name: data.source.displayName,
+                                value: formatter.format(data.values[i])
                             };
 
                             if (JSON.stringify(dataPoint.tooltipData).indexOf(JSON.stringify(tooltipDataPoint)) < 0) {
@@ -344,7 +355,8 @@ module powerbi.extensibility.visual {
                     .map((group: DataViewValueColumnGroup, index: number) => {
                         const defaultColor: Fill = {
                             solid: {
-                                color: colorPalette.getColor(<any> group.name).value
+                                // tslint:disable-next-line:no-any
+                                color: colorPalette.getColor(<any>group.name).value
                             }
                         };
 
@@ -380,24 +392,45 @@ module powerbi.extensibility.visual {
             let catDistinctParentElements: string[];
             let concatenatedCat: string[] = [];
             let formatter: utils.formatting.IValueFormatter;
-
+            let name: string;
             for (const cat1 of dataView.categorical.categories) {
                 if (cat1.source.roles.hasOwnProperty('categoryGroup')) {
-                    catElements = [];
-                    formatter = valueFormatter.create({ format: cat1.source.format });
-                    // tslint:disable-next-line:no-any
-                    cat1.values.forEach((element: any) => {
-                        catElements.push(formatter.format(element));
-                    });
-                    catDistinctElements = catElements.filter(boxWhiskerUtils.getDistinctElements);
-                    if (this.sortSetting.axis === 'desc') {
-                        catDistinctElements.reverse();
+                    if (cat1.source.displayName !== name) {
+                        catElements = [];
+                        formatter = valueFormatter.create({ format: cat1.source.format });
+                        if (cat1.source.type.dateTime) {
+
+                            cat1.values.forEach((element: string) => {
+
+                                catElements.push(formatter.format(new Date(element)));
+                            });
+
+                        } else {
+                            cat1.values.forEach((element: string) => {
+                            catElements.push(formatter.format(element));
+                            });
+                        }
+                        catDistinctElements = catElements.filter(boxWhiskerUtils.getDistinctElements);
+                        if (this.sortSetting.axis === 'desc') {
+                            catDistinctElements.reverse();
+                        }
                     }
                 }
                 if (cat1.source.roles.hasOwnProperty('xCategoryParent')) {
+
+                    name = cat1.source.displayName;
                     formatter = valueFormatter.create({ format: cat1.source.format });
-                    // tslint:disable-next-line:no-any
-                    cat1.values.forEach((element: any) => {
+                    if (cat1.source.type.dateTime) {
+                        cat1.values.forEach((element: string) => {
+                            catParentElements.push(formatter.format(new Date(element)));
+                        });
+                    } else {
+                        cat1.values.forEach((element: string) => {
+                            catParentElements.push(formatter.format(element));
+                        });
+
+                    }
+                    cat1.values.forEach((element: string) => {
                         catParentElements.push(formatter.format(element));
                     });
                     catDistinctParentElements = catParentElements.filter(boxWhiskerUtils.getDistinctElements);
@@ -408,6 +441,7 @@ module powerbi.extensibility.visual {
             }
 
             if (Visual.xParentPresent && Visual.catGroupPresent) {
+
                 for (let iCounter: number = 0; iCounter < catParentElements.length; iCounter++) {
                     concatenatedCat.push(`${catParentElements[iCounter]}$$$${catElements[iCounter]}`);
                 }
@@ -459,8 +493,9 @@ module powerbi.extensibility.visual {
                     this.boxArray[0].updatedXCategoryParent = item.updatedXCategoryParent;
                 }
 
-              // initializing values and adding datapoints for boxes when category, categoryGroup and xCategoryParent are present
+                // initializing values and adding datapoints for boxes when category, categoryGroup and xCategoryParent are present
             } else if (Visual.xParentPresent && Visual.catGroupPresent) {
+
                 for (i = 0; i < concatenatedCat.length; i++) {
                     this.boxArray[i] = {
                         dataPoints: [],
@@ -476,12 +511,13 @@ module powerbi.extensibility.visual {
                     };
                 }
                 for (const item of boxWhiskerdataPoints.dataPoints) {
+
                     item.key = concatenatedCat.indexOf(item.updatedXCategoryParent) + 1;
                     this.boxArray[item.key - 1].dataPoints.push(item.value);
                     this.boxArray[item.key - 1].updatedXCategoryParent = item.updatedXCategoryParent;
                 }
 
-              // initializing values and adding datapoints for boxes when category and xCategoryParent are present
+                // initializing values and adding datapoints for boxes when category and xCategoryParent are present
             } else if (Visual.xParentPresent && !Visual.catGroupPresent) {
                 for (i = 0; i < catDistinctParentElements.length; i++) {
                     this.boxArray[i] = {
@@ -503,7 +539,7 @@ module powerbi.extensibility.visual {
                     this.boxArray[item.key - 1].updatedXCategoryParent = item.updatedXCategoryParent;
                 }
 
-              // initializing values and adding datapoints for boxes when category, categoryGroup and xCategory parent are present
+                // initializing values and adding datapoints for boxes when category, categoryGroup and xCategory parent are present
             } else if (Visual.catGroupPresent) {
                 for (i = 0; i < catDistinctElements.length; i++) {
                     this.boxArray[i] = {
@@ -520,6 +556,7 @@ module powerbi.extensibility.visual {
                     };
                 }
                 for (const item of boxWhiskerdataPoints.dataPoints) {
+
                     item.key = catDistinctElements.indexOf(item.categoryGroup) + 1;
                     this.boxArray[item.key - 1].dataPoints.push(item.value);
                     this.boxArray[item.key - 1].updatedXCategoryParent = item.updatedXCategoryParent;
@@ -532,6 +569,7 @@ module powerbi.extensibility.visual {
         }
 
         public update(options: VisualUpdateOptions): void {
+
             this.colorPalette = this.host.colorPalette;
             if (!options) {
                 return;
@@ -894,13 +932,15 @@ module powerbi.extensibility.visual {
                     }
 
                 }
+
                 // box calculations
 
                 // formatting and adding tooltip data for boxes
                 const formatter: utils.formatting.IValueFormatter = valueFormatter.create({
                     format: options.dataViews[0].categorical.values[0].source.format
-                                        ? options.dataViews[0].categorical.values[0].source.format : valueFormatter.DefaultNumericFormat
+                        ? options.dataViews[0].categorical.values[0].source.format : valueFormatter.DefaultNumericFormat
                 });
+
                 this.boxArray[i].tooltipData = [
                     {
                         name: 'Median Type',
@@ -948,7 +988,6 @@ module powerbi.extensibility.visual {
                     }
                 ];
             }
-
             let xAxisTitleText: string = Visual.xTitleText;
             let yAxisTitleText: string = Visual.yTitleText;
 
@@ -991,6 +1030,7 @@ module powerbi.extensibility.visual {
             }
 
             if (flipSetting.orient === 'horizontal') {
+
                 this.scrollableContainer.style({ 'overflow-x': 'hidden', 'overflow-y': 'auto' });
                 if (this.xAxisSvg) {
                     this.xAxisSvg.remove();
@@ -1067,9 +1107,10 @@ module powerbi.extensibility.visual {
                         decimalPlaces = xAxisConfig.decimalPlaces;
                     }
                 }
+
                 xAxisFormatter = valueFormatter.create({
                     format: format, precision: decimalPlaces, value: xAxisConfig.displayUnits === 0 ?
-                    boxWhiskerUtils.getValueUpdated(value) : xAxisConfig.displayUnits
+                        boxWhiskerUtils.getValueUpdated(value) : xAxisConfig.displayUnits
                 });
                 const formattedMaxMeasure: string = xAxisFormatter.format(value);
                 measureTextProperties = {
@@ -1282,6 +1323,7 @@ module powerbi.extensibility.visual {
                 }
                 // Update y-Axis labels
                 if (yAxisConfig.show) {
+
                     if (yAxisConfig.showTitle) {
                         const yTitleTextProps: TextProperties = {
                             fontFamily: yAxisConfig.titleFontFamily,
@@ -1345,6 +1387,7 @@ module powerbi.extensibility.visual {
                         .remove();
 
                     // For category Parent
+
                     if (!(!Visual.catGroupPresent && Visual.xParentPresent) || (!Visual.xParentPresent)) {
                         this.yParentAxis.selectAll('.boxWhisker_xAxisGridLines').remove();
 
@@ -1595,12 +1638,12 @@ module powerbi.extensibility.visual {
                         this.yAxisSvg.selectAll('.boxWhisker_yAxis .tick').append('title')
                             .text(function (d: string): string {
                                 return d.substring(0, d.indexOf('$$$'));
-                        });
+                            });
                     } else {
                         this.yAxisSvg.selectAll('.boxWhisker_yAxis .tick').append('title')
                             .text(function (d: string): string {
                                 return d.substring(d.indexOf('$$$') >= 0 ? d.indexOf('$$$') + 3 : 0, d.length);
-                        });
+                            });
                     }
                 } else {
                     this.yAxisSvg.selectAll('.boxWhisker_yAxis .tick text').text('');
@@ -1691,6 +1734,47 @@ module powerbi.extensibility.visual {
                     this.xAxisSvg.selectAll('.boxWhisker_xAxis .tick text').text('');
                     this.xAxis.selectAll('path').remove();
                 }
+                // plotting boxes, whiskers, median lines
+                // plotting box below median (Q2)
+                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                let boxWidth: number = yScale.rangeBand() / 2;
+                if (this.boxOptionsSetting.boxWidth === 'Small') {
+                    boxWidth /= 2;
+                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
+                    boxWidth *= 1.5;
+                }
+
+                boxesLower.enter()
+                    .append('rect')
+                    .classed('boxLower', true);
+
+                boxesLower.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.Q1),
+                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
+                    width: (d: IBoxDataPoints): number => xScale(d.Q2) - xScale(d.Q1),
+                    height: (d: IBoxDataPoints): number => boxWidth,
+                    fill: this.boxOptionsSetting.boxLowerColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
+
+                // plotting box above median (Q2)
+                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                boxesUpper.enter()
+                    .append('rect')
+                    .classed('boxUpper', true);
+
+                boxesUpper.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.Q2),
+                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
+                    width: (d: IBoxDataPoints): number => xScale(d.Q3) - xScale(d.Q2),
+                    height: (d: IBoxDataPoints): number => boxWidth,
+                    fill: this.boxOptionsSetting.boxUpperColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
 
                 if (rangeConfig.dots || boxOptionsSettings.outliers) {
                     const boxWhiskerdot: d3.Selection<IBoxWhiskerViewModel> = this.dotsContainer.selectAll('.boxWhisker_dot');
@@ -1699,12 +1783,12 @@ module powerbi.extensibility.visual {
                     // filters dots based on whether outliers are disabled or enabled
                     if (!boxOptionsSettings.outliers) {
                         circles = boxWhiskerdot.data(data.dataPoints.filter((outlier: IBoxWhiskerViewModel) =>
-                                                                        outlier.value >= this.boxArray[outlier.key - 1].min
-                                                                        && outlier.value <= this.boxArray[outlier.key - 1].max));
+                            outlier.value >= this.boxArray[outlier.key - 1].min
+                            && outlier.value <= this.boxArray[outlier.key - 1].max));
                     } else if (!rangeConfig.dots) {
                         circles = boxWhiskerdot.data(data.dataPoints.filter((outlier: IBoxWhiskerViewModel) =>
-                                                                        outlier.value < this.boxArray[outlier.key - 1].min
-                                                                        || outlier.value > this.boxArray[outlier.key - 1].max));
+                            outlier.value < this.boxArray[outlier.key - 1].min
+                            || outlier.value > this.boxArray[outlier.key - 1].max));
                     } else {
                         circles = boxWhiskerdot.data(data.dataPoints);
                     }
@@ -1750,51 +1834,9 @@ module powerbi.extensibility.visual {
                     }
                 }
 
-                // plotting boxes, whiskers, median lines
-                // plotting box below median (Q2)
-                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                let boxWidth: number = yScale.rangeBand() / 2;
-                if (this.boxOptionsSetting.boxWidth === 'Small') {
-                    boxWidth /= 2;
-                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
-                    boxWidth *= 1.5;
-                }
-
-                boxesLower.enter()
-                    .append('rect')
-                    .classed('boxLower', true);
-
-                boxesLower.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.Q1),
-                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
-                    width: (d: IBoxDataPoints): number => xScale(d.Q2) - xScale(d.Q1),
-                    height: (d: IBoxDataPoints): number => boxWidth,
-                    fill: this.boxOptionsSetting.boxLowerColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
-
-                // plotting box above median (Q2)
-                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                boxesUpper.enter()
-                    .append('rect')
-                    .classed('boxUpper', true);
-
-                boxesUpper.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.Q2),
-                    y: (d: IBoxDataPoints): number => yScale(d.updatedXCategoryParent) + yScale.rangeBand() / 2 - boxWidth / 2,
-                    width: (d: IBoxDataPoints): number => xScale(d.Q3) - xScale(d.Q2),
-                    height: (d: IBoxDataPoints): number => boxWidth,
-                    fill: this.boxOptionsSetting.boxUpperColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
-
                 // plotting Q1
                 const lineQ1: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxOutlineQ1')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineQ1.enter()
                     .append('line')
@@ -1812,7 +1854,7 @@ module powerbi.extensibility.visual {
 
                 // plotting Q3
                 const lineQ3: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxOutlineQ3')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineQ3.enter()
                     .append('line')
@@ -1830,7 +1872,7 @@ module powerbi.extensibility.visual {
 
                 // plotting lower whisker (vertical line)
                 const lineMin: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMin')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMin.enter()
                     .append('line')
@@ -1848,7 +1890,7 @@ module powerbi.extensibility.visual {
 
                 // plotting upper whisker (vertical line)
                 const lineMax: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMax')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMax.enter()
                     .append('line')
@@ -1866,7 +1908,7 @@ module powerbi.extensibility.visual {
 
                 // plotting lower whisker (horizontal line)
                 const lineMinBox: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMinBox')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMinBox.enter()
                     .append('line')
@@ -1884,7 +1926,7 @@ module powerbi.extensibility.visual {
 
                 // plotting upper whisker (horizontal line)
                 const lineMaxBox: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMaxBox')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMaxBox.enter()
                     .append('line')
@@ -1901,9 +1943,9 @@ module powerbi.extensibility.visual {
                 });
 
                 // plotting mean
-                if ( this.meanSetting.show ) {
+                if (this.meanSetting.show) {
                     const shapeMean: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.shapeMean')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                        .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                     let meanWidth: number = yScale.rangeBand() / 16;
                     if (this.meanSetting.meanWidth === 'Small') {
@@ -1930,8 +1972,8 @@ module powerbi.extensibility.visual {
                     } else if (this.meanSetting.meanShape === 'Square') {                         // square shape
 
                         shapeMean.enter()
-                        .append('rect')
-                        .classed('shapeMean', true);
+                            .append('rect')
+                            .classed('shapeMean', true);
 
                         shapeMean.attr({
                             x: (d: IBoxDataPoints): number => xScale(d.mean) - meanWidth,
@@ -1970,6 +2012,7 @@ module powerbi.extensibility.visual {
                 }
 
             } else {
+
                 let xAxisHeight: number = 0;
                 Visual.margins.right = 0;
                 Visual.margins.top = 0;
@@ -2051,7 +2094,7 @@ module powerbi.extensibility.visual {
 
                 yAxisFormatter = valueFormatter.create({
                     format: format, precision: decimalPlaces, value: yAxisConfig.displayUnits === 0 ?
-                    boxWhiskerUtils.getValueUpdated(value) : yAxisConfig.displayUnits
+                        boxWhiskerUtils.getValueUpdated(value) : yAxisConfig.displayUnits
                 });
                 const formattedMaxMeasure: string = yAxisFormatter.format(value);
                 const measureTextPropertiesForMeasure: TextProperties = {
@@ -2536,14 +2579,14 @@ module powerbi.extensibility.visual {
 
                     if (!Visual.catGroupPresent && Visual.xParentPresent) {
                         this.xAxisSvg.selectAll('.boxWhisker_xAxis .tick').append('title')
-                        .text(function (d: string): string {
-                            return d.substring(0, d.indexOf('$$$'));
-                        });
+                            .text(function (d: string): string {
+                                return d.substring(0, d.indexOf('$$$'));
+                            });
                     } else {
                         this.xAxisSvg.selectAll('.boxWhisker_xAxis .tick').append('title')
-                        .text(function (d: string): string {
-                            return d.substring(d.indexOf('$$$') >= 0 ? d.indexOf('$$$') + 3 : 0, d.length);
-                        });
+                            .text(function (d: string): string {
+                                return d.substring(d.indexOf('$$$') >= 0 ? d.indexOf('$$$') + 3 : 0, d.length);
+                            });
                     }
                 } else {
                     this.xAxisSvg.selectAll('.boxWhisker_xAxis .tick text').text('');
@@ -2645,6 +2688,48 @@ module powerbi.extensibility.visual {
                     this.yAxis.selectAll('path').remove();
                 }
 
+                // plotting boxes, whiskers, median lines
+                // plotting box below median (Q2)
+                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                let boxWidth: number = xScale.rangeBand() / 2;
+                if (this.boxOptionsSetting.boxWidth === 'Small') {
+                    boxWidth /= 2;
+                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
+                    boxWidth *= 1.5;
+                }
+
+                boxesLower.enter()
+                    .append('rect')
+                    .classed('boxLower', true);
+
+                boxesLower.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
+                    y: (d: IBoxDataPoints): number => yScale(d.Q2),
+                    width: (d: IBoxDataPoints): number => boxWidth,
+                    height: (d: IBoxDataPoints): number => yScale(d.Q1) - yScale(d.Q2),
+                    fill: this.boxOptionsSetting.boxLowerColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
+
+                // plotting box above median (Q2)
+                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+
+                boxesUpper.enter()
+                    .append('rect')
+                    .classed('boxUpper', true);
+
+                boxesUpper.attr({
+                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
+                    y: (d: IBoxDataPoints): number => yScale(d.Q3),
+                    width: (d: IBoxDataPoints): number => boxWidth,
+                    height: (d: IBoxDataPoints): number => yScale(d.Q2) - yScale(d.Q3),
+                    fill: this.boxOptionsSetting.boxUpperColor,
+                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
+                });
+
                 if (rangeConfig.dots || boxOptionsSettings.outliers) {
                     const boxWhiskerdot: d3.Selection<IBoxWhiskerViewModel> = this.dotsContainer.selectAll('.boxWhisker_dot');
                     let circles: d3.selection.Update<IBoxWhiskerViewModel>;
@@ -2652,15 +2737,15 @@ module powerbi.extensibility.visual {
                     // filters dots based on whether outliers are disabled or enabled
                     if (!boxOptionsSettings.outliers) {
                         circles = boxWhiskerdot.data(data.dataPoints
-                                .filter((outlier: IBoxWhiskerViewModel) => outlier.value >= this.boxArray[outlier.key - 1].min
-                                                                        && outlier.value <= this.boxArray[outlier.key - 1].max));
+                            .filter((outlier: IBoxWhiskerViewModel) => outlier.value >= this.boxArray[outlier.key - 1].min
+                                && outlier.value <= this.boxArray[outlier.key - 1].max));
                     } else if (!rangeConfig.dots) {
                         circles = boxWhiskerdot.data(data.dataPoints
-                                .filter((outlier: IBoxWhiskerViewModel) => outlier.value < this.boxArray[outlier.key - 1].min
-                                                                        || outlier.value > this.boxArray[outlier.key - 1].max));
+                            .filter((outlier: IBoxWhiskerViewModel) => outlier.value < this.boxArray[outlier.key - 1].min
+                                || outlier.value > this.boxArray[outlier.key - 1].max));
                     } else {
                         circles =
-                        boxWhiskerdot.data(data.dataPoints);
+                            boxWhiskerdot.data(data.dataPoints);
                     }
 
                     circles.enter()
@@ -2704,51 +2789,9 @@ module powerbi.extensibility.visual {
                     }
                 }
 
-                // plotting boxes, whiskers, median lines
-                // plotting box below median (Q2)
-                const boxesLower: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxLower')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                let boxWidth: number = xScale.rangeBand() / 2;
-                if (this.boxOptionsSetting.boxWidth === 'Small') {
-                    boxWidth /= 2;
-                } else if (this.boxOptionsSetting.boxWidth === 'Large') {
-                    boxWidth *= 1.5;
-                }
-
-                boxesLower.enter()
-                    .append('rect')
-                    .classed('boxLower', true);
-
-                boxesLower.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
-                    y: (d: IBoxDataPoints): number => yScale(d.Q2),
-                    width: (d: IBoxDataPoints): number => boxWidth,
-                    height: (d: IBoxDataPoints): number => yScale(d.Q1) - yScale(d.Q2),
-                    fill: this.boxOptionsSetting.boxLowerColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
-
-                // plotting box above median (Q2)
-                const boxesUpper: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxUpper')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
-
-                boxesUpper.enter()
-                    .append('rect')
-                    .classed('boxUpper', true);
-
-                boxesUpper.attr({
-                    x: (d: IBoxDataPoints): number => xScale(d.updatedXCategoryParent) + xScale.rangeBand() / 2 - boxWidth / 2,
-                    y: (d: IBoxDataPoints): number => yScale(d.Q3),
-                    width: (d: IBoxDataPoints): number => boxWidth,
-                    height: (d: IBoxDataPoints): number => yScale(d.Q2) - yScale(d.Q3),
-                    fill: this.boxOptionsSetting.boxUpperColor,
-                    'fill-opacity': (100 - this.boxOptionsSetting.boxTransparency) / 100
-                });
-
                 // plotting Q1
                 const lineQ1: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxOutlineQ1')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineQ1.enter()
                     .append('line')
@@ -2766,7 +2809,7 @@ module powerbi.extensibility.visual {
 
                 // plotting Q3
                 const lineQ3: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.boxOutlineQ3')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineQ3.enter()
                     .append('line')
@@ -2784,7 +2827,7 @@ module powerbi.extensibility.visual {
 
                 // plotting lower whisker (horizontal line)
                 const lineMin: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMin')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMin.enter()
                     .append('line')
@@ -2802,7 +2845,7 @@ module powerbi.extensibility.visual {
 
                 // plotting upper whisker (horizontal line)
                 const lineMax: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMax')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMax.enter()
                     .append('line')
@@ -2820,7 +2863,7 @@ module powerbi.extensibility.visual {
 
                 // plotting lower whisker (vertical line)
                 const lineMinBox: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMinBox')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMinBox.enter()
                     .append('line')
@@ -2838,7 +2881,7 @@ module powerbi.extensibility.visual {
 
                 // plotting upper whisker (vertical line)
                 const lineMaxBox: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.whiskerMaxBox')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                 lineMaxBox.enter()
                     .append('line')
@@ -2855,9 +2898,9 @@ module powerbi.extensibility.visual {
                 });
 
                 // plotting mean
-                if ( this.meanSetting.show ) {
+                if (this.meanSetting.show) {
                     const shapeMean: d3.selection.Update<IBoxDataPoints> = this.dotsContainer.selectAll('.shapeMean')
-                                    .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
+                        .data(this.boxArray.filter((d: IBoxDataPoints): boolean => d.dataPoints.length > 0));
 
                     let meanWidth: number = xScale.rangeBand() / 16;
                     if (this.meanSetting.meanWidth === 'Small') {
@@ -2947,6 +2990,7 @@ module powerbi.extensibility.visual {
                     }
                 });
             // Cross filtering
+
             dots.on('click', function (d: IBoxWhiskerViewModel): void {
                 visualContext.selectionManager.select(d.selectionId, true).then((ids: ISelectionId[]) => {
                     visualContext.syncSelectionState(dots, d3.selectAll('.legendItem'), ids);
@@ -2961,15 +3005,15 @@ module powerbi.extensibility.visual {
             // Document click
             $(document)
                 .on('click', () => this.selectionManager.clear()
-                .then(() => {
-                    visualContext.syncSelectionState(dots, d3.selectAll('.legendItem'), []);
-                }));
+                    .then(() => {
+                        visualContext.syncSelectionState(dots, d3.selectAll('.legendItem'), []);
+                    }));
 
             // Adding tooltips on dots
             this.tooltipServiceWrapper.addTooltip(
                 d3.selectAll('.boxWhisker_dot'),
-                (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data, 0),
-                (tooltipEvent: TooltipEventArgs<number>) => null
+                (tooltipEvent: TooltipEventArgs<IBoxWhiskerViewModel>) => this.getTooltipData(tooltipEvent.data, 0),
+                (tooltipEvent: TooltipEventArgs<IBoxWhiskerViewModel>) => tooltipEvent.data.selectionId
             );
 
             // Adding tooltips on box, Q1 and Q3
@@ -2999,12 +3043,14 @@ module powerbi.extensibility.visual {
 
         // method to render visual selections according to selections
         private syncSelectionState(
+
             selection1: d3.Selection<IBoxWhiskerViewModel>,
             // tslint:disable-next-line:no-any
             selection2: d3.Selection<any>,
             // tslint:disable-next-line:no-any
             selectionIds: any[]
         ): void {
+
             if (!selection1 || !selection2 || !selectionIds) {
 
                 return;
@@ -3051,18 +3097,18 @@ module powerbi.extensibility.visual {
             let legendClicked: boolean = false;
 
             selection1.each(function (dataPoint: IBoxWhiskerViewModel): void {
-                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, dataPoint.selectionId);
 
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, dataPoint.selectionId);
                 d3.select(this).attr(
                     'fill-opacity',
                     isSelected ?
-                    0.9 : 0.15
+                        0.9 : 0.15
                 );
 
                 d3.select(this).attr(
                     'stroke-opacity',
                     isSelected ?
-                    0.9 : 0.15
+                        0.9 : 0.15
                 );
             });
 
@@ -3085,7 +3131,7 @@ module powerbi.extensibility.visual {
                     d3.select(this).attr(
                         'fill-opacity',
                         isSelected ?
-                        1 : 0.15
+                            1 : 0.15
                     );
                 });
             }
@@ -3105,23 +3151,49 @@ module powerbi.extensibility.visual {
         public addLegendSelection(): void {
             const dots: d3.Selection<IBoxWhiskerViewModel> = d3.selectAll('.boxWhisker_dot');
             const visualContext: this = this;
+            let currentThis: this;
+            currentThis = this;
             // tslint:disable-next-line:no-any
             const legends: d3.Selection<any> = d3.selectAll('.legendItem');
+            let selectionManager: ISelectionManager;
+            selectionManager = this.selectionManager;
             // tslint:disable-next-line:no-any
             legends.on('click', function (d: any): void {
+                // tslint:disable-next-line:no-any
+                const this1: any = this;
                 const index: number = visualContext.color.indexOf(d.tooltip.toString());
                 if (index === -1) {
                     visualContext.color.push(d.tooltip.toString());
                 } else {
                     visualContext.color.splice(index, 1);
                 }
-                visualContext.selectionManager.select(d.identity, true).then((ids: ISelectionId[]) => {
-                    visualContext.syncSelectionState(dots, legends, ids);
+                // tslint:disable-next-line:no-any
+                selectionManager.select(d.identity).then((ids: any[]) => {
+                    if (ids.length > 0) {
+                        // tslint:disable-next-line:no-any
+                        dots.attr('fill-opacity', (d1: any) => {
+                            if (this1.__data__.tooltip === d1.categoryColor) {
+                                return 2;
+                            } else {
+                                return 0.15;
+                            }
+                        });
+                    } else {
+                        visualContext.syncSelectionState(dots, d3.selectAll('.legendItem'), []);
+                        d3.selectAll('.boxWhisker_dot').attr({
+                            'fill-opacity': 2
+                        });
+                    }
+                    legends.attr({
+                        'fill-opacity': ids.length > 0 ? 0.5 : 1
+                    });
+                    d3.select(this).attr({
+                        'fill-opacity': 1
+                    });
                 });
                 (<Event>d3.event).stopPropagation();
             });
         }
-
         public renderLegend(dataViews: DataView, legendConfig: ILegendConfig, isScrollPresent: boolean): void {
             if (!Visual.legendDataPoints && Visual.legendDataPoints.length) { return; }
             const sTitle: string = '';
@@ -3226,9 +3298,9 @@ module powerbi.extensibility.visual {
                         cX: number;
                         r: number;
                     } = {
-                            cX: cX,
-                            r: radius
-                        };
+                        cX: cX,
+                        r: radius
+                    };
                     sizeArray.push(obj);
                 }
                 for (let iCounter: number = 1; iCounter < sizeArray.length; iCounter++) {
@@ -3288,8 +3360,8 @@ module powerbi.extensibility.visual {
                 // Size legend title
                 const sizeLegendTitleUpdatedText: string = textMeasurementService
                     .getTailoredTextOrDefault(
-                    measureTextProperties,
-                    (isScrollPresent ? options.viewport.width : options.viewport.width / 2) - totalWidth - 20
+                        measureTextProperties,
+                        (isScrollPresent ? options.viewport.width : options.viewport.width / 2) - totalWidth - 20
                     );
 
                 measureTextProperties = {
@@ -3346,9 +3418,9 @@ module powerbi.extensibility.visual {
                         cY: number;
                         r: number;
                     } = {
-                            cY: cY,
-                            r: radius
-                        };
+                        cY: cY,
+                        r: radius
+                    };
                     sizeArray.push(obj);
                 }
                 for (let iCounter: number = 1; iCounter < sizeArray.length; iCounter++) {
@@ -3449,7 +3521,7 @@ module powerbi.extensibility.visual {
             const tooltipDataPoints: VisualTooltipDataItem[] = [];
             if (isMean === 1) {
                 for (const iCounter of value.tooltipData) {
-                    if ( iCounter.name === 'Mean') {
+                    if (iCounter.name === 'Mean') {
                         const tooltipData: VisualTooltipDataItem = {
                             displayName: '',
                             value: ''

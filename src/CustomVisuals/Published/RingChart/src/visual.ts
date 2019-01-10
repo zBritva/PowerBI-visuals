@@ -1531,13 +1531,10 @@ module powerbi.extensibility.visual {
             this.tooltipServiceWrapper
                 .addTooltip(
                     this.svg.selectAll('.ring_arc'),
-                    (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                    (tooltipEvent: TooltipEventArgs<number>) => null
-                );
-
+                    (tooltipEvent: TooltipEventArgs<IRingChartDataPoint>) => this.getTooltipData(tooltipEvent.data),
+                    (tooltipEvent: TooltipEventArgs<IRingChartDataPoint>) => tooltipEvent.data[`data`].selectionId);
             let selectionManager: ISelectionManager;
             selectionManager = this.selectionManager;
-
             // This must be an anonymous function instead of a lambda because
             // d3 uses 'this' as the reference to the element that was clicked.
             arcs.on('click', function (d: IRingChartDataPoint): void {

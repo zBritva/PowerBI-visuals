@@ -59,6 +59,7 @@ module powerbi.extensibility.visual {
         private timeoutID: number;
         private marginLeft: number;
         private googleString: string;
+        private generateAPIURL: string;
 
         constructor(options: VisualConstructorOptions) {
             this.divs = {
@@ -113,7 +114,7 @@ module powerbi.extensibility.visual {
         }
 
         // Initialises and loads the map
-        private initMap (options: VisualUpdateOptions): void {
+        private initMap(options: VisualUpdateOptions): void {
             this.divs.googleMap.selectAll('*').remove();
             const marginTop: number = (Visual.isType && this.settings.routeSetting.show) || this.isImage ? 25 : 0;
             // tslint:disable-next-line:no-any
@@ -153,7 +154,7 @@ module powerbi.extensibility.visual {
                 minZoom: 2,
                 mapTypeControlOptions: {
                     mapTypeIds: ['roadmap', 'Standard Map', 'Silver Map',
-                    'Night Map', 'Basic Map']
+                        'Night Map', 'Basic Map']
                 }
             });
             this.map.mapTypes.set('Standard Map', this.mapTypes.styledMapStandard);
@@ -164,7 +165,7 @@ module powerbi.extensibility.visual {
             this.map.setMapTypeId(mapType);
 
             // to set the cursor to arrow pointer instead of hand
-            this.map.setOptions({draggableCursor: 'default' });
+            this.map.setOptions({ draggableCursor: 'default' });
 
             // handling map according to zoom level
             const dim: number = Math.pow(2, this.zoom) * 256;
@@ -180,19 +181,19 @@ module powerbi.extensibility.visual {
             google.maps.event.addListener(this.map, 'click', () => {
                 visualContext.selectedIds = [];
                 this.selectionManager.clear()
-                .then(() => {
-                    let iCounter: number = 0;
-                    for (iCounter = 0; iCounter < this.flightData.data.length; iCounter++) {
-                        visualContext.changeOpacity(iCounter, 1);
-                        visualContext.changeVisibility(iCounter, true, visualContext.map);
-                    }
-                })
-                .then(() => {
+                    .then(() => {
+                        let iCounter: number = 0;
+                        for (iCounter = 0; iCounter < this.flightData.data.length; iCounter++) {
+                            visualContext.changeOpacity(iCounter, 1);
+                            visualContext.changeVisibility(iCounter, true, visualContext.map);
+                        }
+                    })
+                    .then(() => {
                         $('.flightLessThanTarget').attr('clickFlag', 0);
                         $('.flightGreaterThanTarget').attr('clickFlag', 0);
                         $('.flightCircle').attr('clickFlag', 0); // Update click counter
                     }
-                );
+                    );
                 event.stopPropagation();
             });
 
@@ -212,6 +213,41 @@ module powerbi.extensibility.visual {
                 this.LoadThreshLegend(options);
                 this.zoom = zoom;
             });
+
+            let targetElement: HTMLElement = document.getElementById('googleMap');
+
+            google.maps.event.addDomListener(targetElement, 'DOMNodeRemoved', function (e) {
+
+                if (e.target.className === 'gm-err-container') {
+                    const message: string = `Please add valid 'Google Map API Key' in the 'API Key' field of the formatting pane`;
+                    const linkMessage: string = `To get an API key, click `;
+                    const linkMessage2: string = `This will enable the Google Map to appear in the visual`;
+
+                    d3.selectAll('.flightLegendImage').remove();
+                    d3.selectAll('.flightLegendTypeImage').remove();
+                    d3.selectAll('.flightLegendThreshImage').remove();
+                    d3.selectAll('.flightCustomErrorMessage').remove();
+                    d3.selectAll('.flightErrorMessage').remove();
+
+                    let errorElement = visualContext.rootElement
+                        .append('div')
+                        .classed('flightCustomErrorMessage', true)
+                        .text(message)
+                        .attr('title', message + linkMessage + `here`)
+                        .append('div')
+                        .text(linkMessage);
+
+                    errorElement.append('a')
+                        .text('here')
+                        .on('click', () => {
+                            visualContext.host.launchUrl(visualContext.generateAPIURL);
+                        });
+
+                    errorElement.append('div')
+                        .text(linkMessage2);
+                }
+            });
+
         }
 
         // checks if the data needed is present and displays error message if not
@@ -264,7 +300,7 @@ module powerbi.extensibility.visual {
                         .classed('flightErrorMessage', true)
                         .text(errorMessage)
                         .attr('title', errorMessage);
-                },                          30000);
+                }, 30000);
 
                 return 0;
             }
@@ -284,8 +320,8 @@ module powerbi.extensibility.visual {
                 for (let iCounter: number = 0; iCounter < group.values[0].values.length; iCounter++) {
                     if (group.values[0].values[iCounter] !== null) {
                         mapModel = {
-                            sourceDataPoints: {latitude: 0, longitude: 0},
-                            destinationDataPoints: {latitude: 0, longitude: 0},
+                            sourceDataPoints: { latitude: 0, longitude: 0 },
+                            destinationDataPoints: { latitude: 0, longitude: 0 },
                             flightDataPoints: null,
                             flightType: null,
                             flightDetail: null,
@@ -355,7 +391,7 @@ module powerbi.extensibility.visual {
                                 });
                             }
                             if (group.values[k].source.roles.hasOwnProperty('tooltipData')) {
-                                separated ++;
+                                separated++;
                                 const tooltipDataPoint: ITooltipDataPoints = {
                                     name: group.values[k].source.displayName,
                                     value: formatter.format(group.values[k].values[iCounter])
@@ -379,7 +415,7 @@ module powerbi.extensibility.visual {
         }
 
         // function to change transparency of markers and paths
-        public changeOpacity (index: number, opacity: number): void {
+        public changeOpacity(index: number, opacity: number): void {
             // tslint:disable-next-line:no-any
             const icons: any = this.mapElements.flightPath[index].get('icons');
             icons[0].icon.strokeOpacity = opacity;
@@ -394,7 +430,7 @@ module powerbi.extensibility.visual {
 
         // function to hide/show markers and paths
         // tslint:disable-next-line:no-any
-        public changeVisibility (index: number, visibility: boolean, map: any): void {
+        public changeVisibility(index: number, visibility: boolean, map: any): void {
             this.mapElements.flightPath[index].setOptions({
                 visible: visibility
             });
@@ -403,7 +439,7 @@ module powerbi.extensibility.visual {
         }
 
         // returns the name of map chosen
-        public setMapType (mapSetting: string): string {
+        public setMapType(mapSetting: string): string {
             switch (mapSetting) {
                 case 'silver': return 'Silver Map';
                 case 'night': return 'Night Map';
@@ -487,19 +523,19 @@ module powerbi.extensibility.visual {
                     let jCounter: number;
                     for (jCounter = 0; jCounter < visualContext.flightData.data.length; jCounter++) {
                         if (flag === 1 && (e.latLng.lat().toFixed(2) ===
-                                parseFloat(visualContext.convertToString(visualContext.flightData.data[jCounter].sourceDataPoints.latitude))
+                            parseFloat(visualContext.convertToString(visualContext.flightData.data[jCounter].sourceDataPoints.latitude))
                                 .toFixed(2)
                             && e.latLng.lng().toFixed(2) ===
-                                parseFloat(visualContext.convertToString(
-                                    visualContext.flightData.data[jCounter].sourceDataPoints.longitude)).toFixed(2))) {
-                                visualContext.selectedIds.push(visualContext.flightData.data[jCounter].selectionId);
+                            parseFloat(visualContext.convertToString(
+                                visualContext.flightData.data[jCounter].sourceDataPoints.longitude)).toFixed(2))) {
+                            visualContext.selectedIds.push(visualContext.flightData.data[jCounter].selectionId);
                         } else if (flag === 2 && (e.latLng.lat().toFixed(2) ===
-                                parseFloat(visualContext.convertToString(
-                                    visualContext.flightData.data[jCounter].destinationDataPoints.latitude)).toFixed(2)
+                            parseFloat(visualContext.convertToString(
+                                visualContext.flightData.data[jCounter].destinationDataPoints.latitude)).toFixed(2)
                             && e.latLng.lng().toFixed(2) ===
-                                parseFloat(visualContext.convertToString(
-                                    visualContext.flightData.data[jCounter].destinationDataPoints.longitude)).toFixed(2))) {
-                                visualContext.selectedIds.push(visualContext.flightData.data[jCounter].selectionId);
+                            parseFloat(visualContext.convertToString(
+                                visualContext.flightData.data[jCounter].destinationDataPoints.longitude)).toFixed(2))) {
+                            visualContext.selectedIds.push(visualContext.flightData.data[jCounter].selectionId);
                         } else {
                             visualContext.changeVisibility(jCounter, false, null);
                         }
@@ -513,14 +549,14 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         public animateLine(plane: any, flightPath: any, destinationPin: any,
             // tslint:disable-next-line:no-any
-                           google: any, latLngSource: any, latLngDest: any, iCounter: number): void {
+            google: any, latLngSource: any, latLngDest: any, iCounter: number): void {
             // Displaying the moving icon only if animation is enabled
             plane.setMap(this.map);
             // The following code snippet adds animation to the paths and flight icons
             let stepNo: number = 0;
             // Altering animation speed
             const steps: number = this.settings.animationSetting.speed === 'low' ? 150 : this.settings.animationSetting.speed === 'medium'
-                            ? 60 : 20;
+                ? 60 : 20;
             const timePerStep: number = 2; // Change this to set animation resolution
             const interval: number = setInterval(() => {
                 stepNo += 1;
@@ -533,11 +569,11 @@ module powerbi.extensibility.visual {
                     flightPath.setPath([latLngSource, latLngMiddle]);
                     plane.setPosition(latLngMiddle);
                 }
-            },                                   timePerStep);
+            }, timePerStep);
         }
 
         // assigns color to each line/path
-        public fillColor (index: number): string {
+        public fillColor(index: number): string {
             let kpi: string = this.formatter.format(this.flightData.data[index].kpi);
             const flag: number = kpi.indexOf('%') >= 0 ? 1 : 0;
             kpi = kpi.split(',').join('');
@@ -566,47 +602,47 @@ module powerbi.extensibility.visual {
         }
 
         // identifies the clicked circle
-        public setCircles (id: string): IStartEnd {
+        public setCircles(id: string): IStartEnd {
             let circle: string = null;
             let start: number = 0;
             let end: number = 0;
             const clickedFlag: number = parseInt($(`.${id}`).attr('clickFlag'), null);
             switch (id) {
                 case 'flightCircle1': circle = 'c1';
-                                      start = this.settings.colorSetting.circleThresh1;
-                                      break;
+                    start = this.settings.colorSetting.circleThresh1;
+                    break;
                 case 'flightCircle2': circle = 'c2';
-                                      start = this.settings.colorSetting.circleThresh1;
-                                      end = this.settings.colorSetting.circleThresh2;
-                                      break;
+                    start = this.settings.colorSetting.circleThresh1;
+                    end = this.settings.colorSetting.circleThresh2;
+                    break;
                 case 'flightCircle3': circle = 'c3';
-                                      start = this.settings.colorSetting.circleThresh2;
-                                      end = this.settings.colorSetting.circleThresh3;
-                                      break;
+                    start = this.settings.colorSetting.circleThresh2;
+                    end = this.settings.colorSetting.circleThresh3;
+                    break;
                 case 'flightCircle4': circle = 'c4';
-                                      start = this.settings.colorSetting.circleThresh3;
-                                      end = this.settings.colorSetting.circleThresh4;
-                                      break;
+                    start = this.settings.colorSetting.circleThresh3;
+                    end = this.settings.colorSetting.circleThresh4;
+                    break;
                 case 'flightCircle5': circle = 'c5';
-                                      start = this.settings.colorSetting.circleThresh4;
-                                      end = this.settings.colorSetting.circleThresh5;
-                                      break;
+                    start = this.settings.colorSetting.circleThresh4;
+                    end = this.settings.colorSetting.circleThresh5;
+                    break;
                 case 'flightCircle6': circle = 'c6';
-                                      start = this.settings.colorSetting.circleThresh5;
-                                      end = this.settings.colorSetting.circleThresh6;
-                                      break;
+                    start = this.settings.colorSetting.circleThresh5;
+                    end = this.settings.colorSetting.circleThresh6;
+                    break;
                 case 'flightCircle7': circle = 'c7';
-                                      start = this.settings.colorSetting.circleThresh6;
-                                      break;
+                    start = this.settings.colorSetting.circleThresh6;
+                    break;
                 default: circle = 'c1';
-                         start = this.settings.colorSetting.circleThresh1;
-                         break;
+                    start = this.settings.colorSetting.circleThresh1;
+                    break;
             }
             $('.flightLessThanTarget').attr('clickFlag', 0);
             $('.flightGreaterThanTarget').attr('clickFlag', 0);
             $('.flightCircle').attr('clickFlag', 0); // Update click counters of other circles
             $(`.${id}`).attr('clickFlag', clickedFlag);
-            const toReturn: IStartEnd = {circle: null , start : 0, end: 0};
+            const toReturn: IStartEnd = { circle: null, start: 0, end: 0 };
             toReturn.circle = circle;
             toReturn.start = start;
             toReturn.end = end;
@@ -614,7 +650,7 @@ module powerbi.extensibility.visual {
             return toReturn;
         }
 
-        public loadComponents (options: VisualUpdateOptions): void {
+        public loadComponents(options: VisualUpdateOptions): void {
             if (typeof document !== 'undefined') {
                 // tslint:disable-next-line:no-any
                 const google: any = window[this.googleString] || window.window[this.googleString];     // to use the class google
@@ -659,11 +695,11 @@ module powerbi.extensibility.visual {
                     // setting source latitude and longitude in each iteration
                     // tslint:disable-next-line:no-any
                     const latLngSource: any = new google.maps.LatLng(this.flightData.data[iCounter].sourceDataPoints.latitude,
-                                                                     this.flightData.data[iCounter].sourceDataPoints.longitude);
+                        this.flightData.data[iCounter].sourceDataPoints.longitude);
                     // setting destination latitude and longitude in each iteration
                     // tslint:disable-next-line:no-any
                     const latLngDest: any = new google.maps.LatLng(this.flightData.data[iCounter].destinationDataPoints.latitude,
-                                                                   this.flightData.data[iCounter].destinationDataPoints.longitude);
+                        this.flightData.data[iCounter].destinationDataPoints.longitude);
                     // to store color of paths
                     let pathColor: string = null;
                     const value: number = 0;
@@ -673,7 +709,7 @@ module powerbi.extensibility.visual {
                         this.flightData.data[iCounter].flightType.toLowerCase();
                     const routeType: string = (!Visual.isType ? this.settings.routeSetting.route :
                         type === 'international' ? this.settings.routeSetting.internationalRoute :
-                        type === 'domestic' ? this.settings.routeSetting.domesticRoute : this.settings.routeSetting.otherRoute);
+                            type === 'domestic' ? this.settings.routeSetting.domesticRoute : this.settings.routeSetting.otherRoute);
 
                     // setting the source pin
                     this.mapElements.sourcePin.push(new google.maps.Marker({
@@ -725,9 +761,9 @@ module powerbi.extensibility.visual {
                     // tslint:disable-next-line:no-any
                     const icons: any = this.mapElements.flightPath[iCounter].get('icons');
                     switch (routeType) {
-                        case 'Dotted': icons[0].repeat = '6px';    break;
-                        case 'Dashed': icons[0].repeat = '12px';    break;
-                        case 'Solid': icons[0].repeat = '2px';    break;
+                        case 'Dotted': icons[0].repeat = '6px'; break;
+                        case 'Dashed': icons[0].repeat = '12px'; break;
+                        case 'Solid': icons[0].repeat = '2px'; break;
                         default: icons[0].repeat = '2px';
                     }
                     this.mapElements.flightPath[iCounter].set('icons', icons);
@@ -735,7 +771,7 @@ module powerbi.extensibility.visual {
                     // called to animate the paths and flight icons
                     if (this.settings.animationSetting.show) {
                         this.animateLine(plane, this.mapElements.flightPath[iCounter], this.mapElements.destinationPin[iCounter],
-                                         google, latLngSource, latLngDest, iCounter);
+                            google, latLngSource, latLngDest, iCounter);
                     } else {
                         this.mapElements.flightPath[iCounter].setPath([latLngSource, latLngDest]);
                     }
@@ -747,7 +783,7 @@ module powerbi.extensibility.visual {
         // Loads the destination/source legend
         public LoadMarkerLegend(options: VisualUpdateOptions): void {
             const width: number = (Visual.isType && this.settings.routeSetting.show) ? options.viewport.width / 3 - this.marginLeft
-                            : options.viewport.width - this.marginLeft;
+                : options.viewport.width - this.marginLeft;
             this.divs.legendImage.selectAll('*').remove();
             this.divs.legendImage.style('width', `${width}px`);
             this.divs.legendImage.style('margin-left', `${this.marginLeft}px`);
@@ -772,41 +808,41 @@ module powerbi.extensibility.visual {
         public assignImage(type: string): string {
             if (type === 'Dashed') {
                 return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAUCAYAAACaq43EAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFEmlUWHR' +
-                'YTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0' +
-                'YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxO' +
-                'jA2OjM5ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmR' +
-                'mOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcH' +
-                'VybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bX' +
-                'BNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXN' +
-                'vdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAxOC0wNC0xOFQxN' +
-                'To0MjoyMiswNTozMCIgeG1wOk1vZGlmeURhdGU9IjIwMTgtMDQtMThUMTU6NTE6MzErMDU6MzAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMTgtMDQtMThUMTU' +
-                '6NTE6MzErMDU6MzAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiBwaG90b3Nob3A6SUNDUHJvZmlsZT0ic1JHQiBJRUM' +
-                '2MTk2Ni0yLjEiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OWMyOWRkMTItZTI0Ny1jNTQ5LTgzYWMtMmI1ZDFhMGU0MmMxIiB4bXBNTTpEb2N1bWVudEl' +
-                'EPSJ4bXAuZGlkOjljMjlkZDEyLWUyNDctYzU0OS04M2FjLTJiNWQxYTBlNDJjMSIgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ4bXAuZGlkOjljMjlkZDE' +
-                'yLWUyNDctYzU0OS04M2FjLTJiNWQxYTBlNDJjMSI+IDx4bXBNTTpIaXN0b3J5PiA8cmRmOlNlcT4gPHJkZjpsaSBzdEV2dDphY3Rpb249ImNyZWF0Z' +
-                'WQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6OWMyOWRkMTItZTI0Ny1jNTQ5LTgzYWMtMmI1ZDFhMGU0MmMxIiBzdEV2dDp3aGVuPSIyMDE4LTA' +
-                '0LTE4VDE1OjQyOjIyKzA1OjMwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gP' +
-                'C94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PmFd334AAABP' +
-                'SURBVEiJY/z//z/DQACmAbF11OJRi0ctpiZg1DOcBCtBDl48l+uArkDfaDJGCXPxXC4jOer0jSY3MDAw1DMwDKSPR4vMUYtHLR61mFwAAEc3FRAp0Cg' +
-                '6AAAAAElFTkSuQmCC';
+                    'YTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0' +
+                    'YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxO' +
+                    'jA2OjM5ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmR' +
+                    'mOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcH' +
+                    'VybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bX' +
+                    'BNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXN' +
+                    'vdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAxOC0wNC0xOFQxN' +
+                    'To0MjoyMiswNTozMCIgeG1wOk1vZGlmeURhdGU9IjIwMTgtMDQtMThUMTU6NTE6MzErMDU6MzAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMTgtMDQtMThUMTU' +
+                    '6NTE6MzErMDU6MzAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiBwaG90b3Nob3A6SUNDUHJvZmlsZT0ic1JHQiBJRUM' +
+                    '2MTk2Ni0yLjEiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OWMyOWRkMTItZTI0Ny1jNTQ5LTgzYWMtMmI1ZDFhMGU0MmMxIiB4bXBNTTpEb2N1bWVudEl' +
+                    'EPSJ4bXAuZGlkOjljMjlkZDEyLWUyNDctYzU0OS04M2FjLTJiNWQxYTBlNDJjMSIgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ4bXAuZGlkOjljMjlkZDE' +
+                    'yLWUyNDctYzU0OS04M2FjLTJiNWQxYTBlNDJjMSI+IDx4bXBNTTpIaXN0b3J5PiA8cmRmOlNlcT4gPHJkZjpsaSBzdEV2dDphY3Rpb249ImNyZWF0Z' +
+                    'WQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6OWMyOWRkMTItZTI0Ny1jNTQ5LTgzYWMtMmI1ZDFhMGU0MmMxIiBzdEV2dDp3aGVuPSIyMDE4LTA' +
+                    '0LTE4VDE1OjQyOjIyKzA1OjMwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gP' +
+                    'C94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PmFd334AAABP' +
+                    'SURBVEiJY/z//z/DQACmAbF11OJRi0ctpiZg1DOcBCtBDl48l+uArkDfaDJGCXPxXC4jOer0jSY3MDAw1DMwDKSPR4vMUYtHLR61mFwAAEc3FRAp0Cg' +
+                    '6AAAAAElFTkSuQmCC';
             } else if (type === 'Solid') {
                 return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAUCAYAAACaq43EAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFEmlUWHRYT' +
-                'Uw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4' +
-                'bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5' +
-                'ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2Nya' +
-                'XB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGM' +
-                'vZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0c' +
-                'DovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV' +
-                '2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAxOC0wNC0xOFQxNTo0M' +
-                'joyMiswNTozMCIgeG1wOk1vZGlmeURhdGU9IjIwMTgtMDQtMThUMTU6NTA6NDIrMDU6MzAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMTgtMDQtMThUMTU6' +
-                'NTA6NDIrMDU6MzAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiBwaG90b3Nob3A6SUNDUHJvZmlsZT0ic1JHQiB' +
-                'JRUM2MTk2Ni0yLjEiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NDYyY2RlMmYtOWQ4My02YTQ5LWE5MzgtNTQ5YTc2OTAxN2U3IiB4bXBNTTpEb2' +
-                'N1bWVudElEPSJ4bXAuZGlkOjQ2MmNkZTJmLTlkODMtNmE0OS1hOTM4LTU0OWE3NjkwMTdlNyIgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ4bXAuZ' +
-                'GlkOjQ2MmNkZTJmLTlkODMtNmE0OS1hOTM4LTU0OWE3NjkwMTdlNyI+IDx4bXBNTTpIaXN0b3J5PiA8cmRmOlNlcT4gPHJkZjpsaSBzdEV2dDphY3Rp' +
-                'b249ImNyZWF0ZWQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6NDYyY2RlMmYtOWQ4My02YTQ5LWE5MzgtNTQ5YTc2OTAxN2U3IiBzdEV2dDp3aGVu' +
-                'PSIyMDE4LTA0LTE4VDE1OjQyOjIyKzA1OjMwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIi8+IDwvcmRm' +
-                'OlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PnXa' +
-                'p9UAAAA6SURBVEiJY/z//z/DQACmAbF11OJRi0ctpiZg1DOcdGAgLGZhYGCwHyiLHQfCYsbRsnrU4lGLh7zFAFUYCFVsfs+3AAAAAElFTkSuQmCC';
+                    'Uw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4' +
+                    'bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5' +
+                    'ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2Nya' +
+                    'XB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGM' +
+                    'vZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0c' +
+                    'DovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV' +
+                    '2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAxOC0wNC0xOFQxNTo0M' +
+                    'joyMiswNTozMCIgeG1wOk1vZGlmeURhdGU9IjIwMTgtMDQtMThUMTU6NTA6NDIrMDU6MzAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMTgtMDQtMThUMTU6' +
+                    'NTA6NDIrMDU6MzAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiBwaG90b3Nob3A6SUNDUHJvZmlsZT0ic1JHQiB' +
+                    'JRUM2MTk2Ni0yLjEiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NDYyY2RlMmYtOWQ4My02YTQ5LWE5MzgtNTQ5YTc2OTAxN2U3IiB4bXBNTTpEb2' +
+                    'N1bWVudElEPSJ4bXAuZGlkOjQ2MmNkZTJmLTlkODMtNmE0OS1hOTM4LTU0OWE3NjkwMTdlNyIgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ4bXAuZ' +
+                    'GlkOjQ2MmNkZTJmLTlkODMtNmE0OS1hOTM4LTU0OWE3NjkwMTdlNyI+IDx4bXBNTTpIaXN0b3J5PiA8cmRmOlNlcT4gPHJkZjpsaSBzdEV2dDphY3Rp' +
+                    'b249ImNyZWF0ZWQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6NDYyY2RlMmYtOWQ4My02YTQ5LWE5MzgtNTQ5YTc2OTAxN2U3IiBzdEV2dDp3aGVu' +
+                    'PSIyMDE4LTA0LTE4VDE1OjQyOjIyKzA1OjMwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIi8+IDwvcmRm' +
+                    'OlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PnXa' +
+                    'p9UAAAA6SURBVEiJY/z//z/DQACmAbF11OJRi0ctpiZg1DOcdGAgLGZhYGCwHyiLHQfCYsbRsnrU4lGLh7zFAFUYCFVsfs+3AAAAAElFTkSuQmCC';
             }
 
             return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAUCAYAAACaq43EAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFEmlUWHRYTUw6' +
@@ -834,7 +870,7 @@ module powerbi.extensibility.visual {
         public LoadTypeLegend(options: VisualUpdateOptions): void {
             const visualContext: this = this;
             const width: number = (this.isImage) ? options.viewport.width * 2 / 3 - this.marginLeft - 5
-                            : options.viewport.width - this.marginLeft;
+                : options.viewport.width - this.marginLeft;
             this.divs.legendTypeImage.selectAll('*').remove();
             this.divs.legendTypeImage.style('width', `${width}px`);
             const international: string = this.assignImage(this.settings.routeSetting.internationalRoute);
@@ -869,7 +905,7 @@ module powerbi.extensibility.visual {
                 .text(' (International)');
 
             // tslint:disable-next-line:no-any
-            internationalRoute.on('click', function(): any {
+            internationalRoute.on('click', function (): any {
                 // the following code snippet resets the selection if it already exists
                 visualContext.selectedIds = [];
                 visualContext.selectionManager.clear()
@@ -945,7 +981,7 @@ module powerbi.extensibility.visual {
             });
 
             // tslint:disable-next-line:no-any
-            otherRoute.on('click', function(): any {
+            otherRoute.on('click', function (): any {
                 // the following code snippet resets the selection if it already exists
                 visualContext.selectedIds = [];
                 visualContext.selectionManager.clear()
@@ -988,8 +1024,8 @@ module powerbi.extensibility.visual {
         public LoadThreshLegend(options: VisualUpdateOptions): void {
             d3.selectAll('.flightLegendThreshImage').remove();
             this.divs.legendThreshImage = d3.select(this.target)
-                    .append('div')
-                    .classed('flightLegendThreshImage', true);
+                .append('div')
+                .classed('flightLegendThreshImage', true);
             const visualContext: this = this;
             const width: number = options.viewport.width - 70;
             const margin: number = this.marginLeft + 70;
@@ -1006,10 +1042,10 @@ module powerbi.extensibility.visual {
             let iCounter: number;
             for (iCounter = 0; iCounter < Visual.gradients; iCounter++) {
                 target.append('span')
-                .classed(`flightCircle${iCounter + 1}`, true)
-                .classed('flightCircle', true)
-                .attr('id', `flightCircle${iCounter + 1}`)
-                .attr('clickFlag', 0);
+                    .classed(`flightCircle${iCounter + 1}`, true)
+                    .classed('flightCircle', true)
+                    .attr('id', `flightCircle${iCounter + 1}`)
+                    .attr('clickFlag', 0);
             }
             if (Visual.gradients === 1) {
                 $('.flightCircle1').css('background-color', this.settings.colorSetting.pathColor);
@@ -1025,7 +1061,7 @@ module powerbi.extensibility.visual {
 
             $('.flightCircle').off('click');
             // tslint:disable-next-line:no-any
-            $('.flightCircle').on('click', function(e: any): any {
+            $('.flightCircle').on('click', function (e: any): any {
                 const returned: IStartEnd = visualContext.setCircles(e.target.id);
                 // the following code snippet resets the selection if it already exists
                 visualContext.selectedIds = [];
@@ -1059,26 +1095,26 @@ module powerbi.extensibility.visual {
                         switch (returned.circle) {
                             // when circle 1 is clicked
                             case 'c1': if (value <= returned.start && Visual.gradients !== 1) {
-                                        visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
-                                        flag = 1;
-                                    } else if (Visual.gradients === 1) {
-                                        visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
-                                        flag = 1;
-                                    }
-                                       break;
+                                visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
+                                flag = 1;
+                            } else if (Visual.gradients === 1) {
+                                visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
+                                flag = 1;
+                            }
+                                break;
                             // when circle 7 is clicked
                             case `c${Visual.gradients}`: if (value > returned.start) {
-                                        visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
-                                        flag = 1;
-                                    }
-                                                         break;
+                                visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
+                                flag = 1;
+                            }
+                                break;
                             // when any other circle is clicked
                             default: if (value > returned.start &&
-                                        value <= returned.end) {
-                                        visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
-                                        flag = 1;
-                                    }
-                                     break;
+                                value <= returned.end) {
+                                visualContext.selectedIds.push(visualContext.flightData.data[iCounterMarkers].selectionId);
+                                flag = 1;
+                            }
+                                break;
                         }
                         // hides all the other paths and markers
                         if (!flag) {
@@ -1100,9 +1136,9 @@ module powerbi.extensibility.visual {
             const threshLegend: JQuery = $('.flightLegendThreshImage');
             // remove the legend indicating domestic/international routes if enough space is not available
             if (typeLegend[0] && ((typeLegend[0].scrollHeight > typeLegend[0].clientHeight
-                        || typeLegend[0].scrollWidth > typeLegend[0].clientWidth)
-                    || (imageLegend[0] && (imageLegend[0].scrollHeight > imageLegend[0].clientHeight
-                        || imageLegend[0].scrollWidth > imageLegend[0].clientWidth)))) {
+                || typeLegend[0].scrollWidth > typeLegend[0].clientWidth)
+                || (imageLegend[0] && (imageLegend[0].scrollHeight > imageLegend[0].clientHeight
+                    || imageLegend[0].scrollWidth > imageLegend[0].clientWidth)))) {
                 Visual.isType = false;
                 d3.selectAll('.flightLegendTypeImage').remove();
                 if (!this.isImage) {
@@ -1187,24 +1223,41 @@ module powerbi.extensibility.visual {
         public update(options: VisualUpdateOptions): void {
             clearTimeout(this.timeoutID);
             this.rootElement.selectAll('.flightErrorMessage').remove();
+            this.rootElement.selectAll('.flightCustomErrorMessage').remove();
             d3.select('#outerDiv').remove();
             d3.selectAll('.flightLegendImage').remove();
             d3.selectAll('.flightLegendTypeImage').remove();
             d3.selectAll('.flightLegendThreshImage').remove();
+
             this.dataView = options.dataViews && options.dataViews[0]
                 ? options.dataViews[0]
                 : null;
 
             // displays message to enter API field
+            let This: this = this;
+            this.generateAPIURL = `https://cloud.google.com/console/google/maps-apis/overview`;
             this.settings.apiSetting = null;
             this.settings.apiSetting = enumSettings.getAPISettings(this.dataView);
             if (!this.settings.apiSetting) {
-                const message: string = `Please add 'API Key' field in the formatting pane`;
-                this.rootElement
+                const message: string = `Please add 'Google Map API Key' in the 'API Key' field of the formatting pane.`;
+                const linkMessage: string = `To get an API key, click `;
+                const linkMessage2: string = `This will enable the Google Map to appear in the visual`;
+
+
+                let errorElement = this.rootElement
                     .append('div')
                     .classed('flightErrorMessage', true)
                     .text(message)
-                    .attr('title', message);
+                    .attr('title', message + linkMessage + `here`)
+                    .append('div')
+                    .text(linkMessage);
+                errorElement.append('a')
+                    .text('here')
+                    .on('click', () => {
+                        This.host.launchUrl(This.generateAPIURL);
+                    });
+                errorElement.append('div')
+                    .text(linkMessage2);
 
                 return;
             }
@@ -1250,11 +1303,11 @@ module powerbi.extensibility.visual {
             if (this.updateCount === 1 || this.previousAPI !== this.settings.apiSetting) {
                 this.divs.googleMap = d3.select(this.target)
                     .append('script')
-                        .attr({
-                            type: 'text/javascript',
-                            src: `https://maps.googleapis.com/maps/api/js?key=${this.settings.apiSetting}&libraries=geometry`,
-                            async: true
-                        });
+                    .attr({
+                        type: 'text/javascript',
+                        src: `https://maps.googleapis.com/maps/api/js?key=${this.settings.apiSetting}&libraries=geometry`,
+                        async: true
+                    });
                 this.divs.googleMap
                     .on('load', () => {
                         this.initMap(options);
@@ -1313,124 +1366,124 @@ module powerbi.extensibility.visual {
             this.mapTypes.styledMapStandard = new google.maps.StyledMapType(
                 [
                     {
-                    elementType: 'labels',
-                    stylers: [
-                        {
-                            visibility: 'off'
-                        }
-                    ]
+                        elementType: 'labels',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                    featureType: 'administrative',
-                    elementType: 'geometry',
-                    stylers: [
-                        {
-                            visibility: 'off'
-                        }
-                    ]
+                        featureType: 'administrative',
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                    featureType: 'administrative.neighborhood',
-                    stylers: [
-                        {
-                        visibility: 'off'
-                        }
-                    ]
+                        featureType: 'administrative.neighborhood',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     }
                 ],
-                {name: 'Standard Map'});
-            this.mapTypes.styledMapSilver  = new google.maps.StyledMapType(
+                { name: 'Standard Map' });
+            this.mapTypes.styledMapSilver = new google.maps.StyledMapType(
                 [
                     {
-                    elementType: 'geometry',
-                    stylers: [
-                        {
-                        color: '#f5f5f5'
-                        }
-                    ]
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                color: '#f5f5f5'
+                            }
+                        ]
                     },
                     {
-                    elementType: 'labels',
-                    stylers: [
-                        {
-                        visibility: 'off'
-                        }
-                    ]
+                        elementType: 'labels',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                    featureType: 'administrative',
-                    stylers: [
-                        {
-                        visibility: 'off'
-                        }
-                    ]
+                        featureType: 'administrative',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                    featureType: 'administrative',
-                    elementType: 'geometry',
-                    stylers: [
-                        {
-                        visibility: 'off'
-                        }
-                    ]
+                        featureType: 'administrative',
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                    featureType: 'water',
-                    elementType: 'geometry',
-                    stylers: [
-                        {
-                        color: '#c9c9c9'
-                        }
-                    ]
+                        featureType: 'water',
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                color: '#c9c9c9'
+                            }
+                        ]
                     }
                 ],
-                {name: 'Silver Map'});
+                { name: 'Silver Map' });
             this.mapTypes.styledMapNight = new google.maps.StyledMapType(
                 [
                     {
-                      elementType: 'geometry',
-                      stylers: [
-                        {
-                          color: '#212121'
-                        }
-                      ]
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                color: '#212121'
+                            }
+                        ]
                     },
                     {
-                      elementType: 'labels',
-                      stylers: [
-                        {
-                          visibility: 'off'
-                        }
-                      ]
+                        elementType: 'labels',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                      featureType: 'administrative',
-                      stylers: [
-                        {
-                          visibility: 'off'
-                        }
-                      ]
+                        featureType: 'administrative',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                    featureType: 'administrative',
-                    elementType: 'geometry',
-                    stylers: [
-                        {
-                        visibility: 'off'
-                        }
-                    ]
+                        featureType: 'administrative',
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
-                      featureType: 'water',
-                      elementType: 'geometry',
-                      stylers: [
-                        {
-                          color: '#000000'
-                        }
-                      ]
+                        featureType: 'water',
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                color: '#000000'
+                            }
+                        ]
                     }
                 ],
-                {name: 'Night Map'}
+                { name: 'Night Map' }
             );
             this.mapTypes.styledMap = new google.maps.StyledMapType(
                 [
@@ -1447,13 +1500,13 @@ module powerbi.extensibility.visual {
                         ]
                     },
                     {
-                    featureType: 'administrative',
-                    elementType: 'geometry',
-                    stylers: [
-                        {
-                        visibility: 'off'
-                        }
-                    ]
+                        featureType: 'administrative',
+                        elementType: 'geometry',
+                        stylers: [
+                            {
+                                visibility: 'off'
+                            }
+                        ]
                     },
                     {
                         featureType: 'landscape',
@@ -1525,7 +1578,7 @@ module powerbi.extensibility.visual {
                         ]
                     }
                 ],
-                {name: 'Basic Map'});
+                { name: 'Basic Map' });
         }
     }
 }

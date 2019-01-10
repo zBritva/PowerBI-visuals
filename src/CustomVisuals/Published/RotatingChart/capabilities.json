@@ -69,9 +69,16 @@
         "animationSettings": {
             "displayName": "Animation settings",
             "properties": {
+                "show": {
+                    "type":{
+                        "bool": true
+                    }
+                },
                 "duration": {
                     "displayName": "Delay (seconds)",
-                    "type": { "numeric": true }
+                    "type": {
+                        "numeric": true
+                    }
                 }
             }
         },
@@ -98,12 +105,19 @@
                 },
                 "displayUnits": {
                     "displayName": "Display Units",
-                    "type": { "formatting": { "labelDisplayUnits": true } }
+                    "type": {
+                        "formatting": {
+                            "labelDisplayUnits": true
+                        }
+                    }
                 },
-                "textPrecision": {
+                "strokeWidth": {
                     "displayName": "Decimal Places",
-                    "type": { "numeric": true },
-                    "suppressFormatPainterCopy": true
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
                 }
             }
         },
@@ -130,5 +144,14 @@
                 }
             }
         }
+    },
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        },
+        "roles": [
+            "tooltips"
+        ]
     }
 }
