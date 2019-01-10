@@ -25,6 +25,7 @@
  */
 
 module powerbi.extensibility.visual {
+    import ISelectionId = powerbi.visuals.ISelectionId;
     import ValueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
     import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
     import TextMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
@@ -364,6 +365,9 @@ module powerbi.extensibility.visual {
         private gradientColors: IGradientColors;
         private secondaryLabelSettings: ILabelSettings;
         private connectorSettings: IConnectorSettings;
+        // object to handle selections
+        // tslint:disable-next-line:no-any
+        private barSelection: any;
 
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
@@ -374,6 +378,15 @@ module powerbi.extensibility.visual {
             const cPalette: IDataColorPalette = options.host.colorPalette;
             this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
             this.selectionManager = options.host.createSelectionManager();
+            // function call to handle selections on bookmarks
+            this.selectionManager.registerOnSelectCallback(() => {
+                this.barSelection = this.root.selectAll('.hf_datapoint');
+                this.syncSelectionState(
+                    this.barSelection,
+                    this.selectionManager.getSelectionIds() as ISelectionId[]
+                );
+            });
+
             this.filterName = '';
             this.filterID = '';
         }
@@ -1215,6 +1228,51 @@ module powerbi.extensibility.visual {
                 renderVisual('', '');
                 $('circle.hfb_circle').removeClass('hfb_selectedCircle');
                 event.stopPropagation();
+            });
+            this.barSelection = this.root.selectAll('.hf_datapoint');
+            this.syncSelectionState(
+                this.barSelection,
+                this.selectionManager.getSelectionIds() as ISelectionId[]
+                );
+        }
+
+        // method to render visual based on selection state
+        private syncSelectionState(
+            selection: d3.Selection<IHFDataPoint>,
+            selectionIds: ISelectionId[]
+        ): void {
+            if (!selection || !selectionIds) {
+                return;
+            }
+
+            if (!selectionIds.length) {
+                selection.attr('fill-opacity', 1);
+
+                return;
+            }
+
+            const self: this = this;
+
+            selection.each(function (barDataPoint: IHFDataPoint): void {
+                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
+
+                d3.select(this).attr(
+                    'fill-opacity',
+                    isSelected
+                        ? 1
+                        : 0.5
+                );
+            });
+        }
+
+        // method to return boolean based on presence of value in array
+        private isSelectionIdInArray(selectionIds: ISelectionId[], selectionId: ISelectionId): boolean {
+            if (!selectionIds || !selectionId) {
+                return false;
+            }
+
+            return selectionIds.some((currentSelectionId: ISelectionId) => {
+                return currentSelectionId.includes(selectionId);
             });
         }
 

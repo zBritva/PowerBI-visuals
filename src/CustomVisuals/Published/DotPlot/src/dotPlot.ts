@@ -266,29 +266,41 @@ module powerbi.extensibility.visual {
 
                         dotPlotdataPoints.minValue = globalMin;
                         dotPlotdataPoints.maxValue = globalMax;
-
+                        let valueFormat: utils.formatting.IValueFormatter;
                         this.highlight = dataView.categorical.values[0].highlights ? true : false;
                         for (let cat1: number = 0; cat1 < dataView.categorical.categories.length; cat1++) {
-                            const formatter1: utils.formatting.IValueFormatter = valueFormatter.create({
+                            // tslint:disable-next-line:no-any
+                            const valueDataview: any = dataView.categorical.categories[cat1].values[i];
+                            valueFormat = valueFormatter.create({
                                 format: dataView.categorical.categories[cat1].source.format
                             });
                             if (dataView.categorical.categories[cat1].source.roles.hasOwnProperty('category')) {
-                                dataPoint.category = formatter1.format(dataView.categorical.categories[cat1].values[i]);
+                                dataPoint.category = valueFormat.format(valueDataview);
                                 Visual.catPresent = true;
                             }
                             if (dataView.categorical.categories[cat1].source.roles.hasOwnProperty('categoryGroup')) {
                                 dotPlotdataPoints.xTitleText = dataView.categorical.categories[cat1].source.displayName;
-                                dataPoint.categoryGroup = formatter1.format(dataView.categorical.categories[cat1].values[i]);
+                                if (dataView.categorical.categories[cat1].source.type.dateTime) {
+                                    dataPoint.categoryGroup = valueFormat.format
+                                    (new Date(valueDataview.toString()));
+                                } else {
+                                    dataPoint.categoryGroup = valueFormat.format(valueDataview);
+                                }
                                 Visual.catGroupPresent = true;
                             }
                             if (dataView.categorical.categories[cat1].source.roles.hasOwnProperty('xCategoryParent')) {
                                 xParentIndex = cat1;
-                                dataPoint.xCategoryParent = formatter1.format(dataView.categorical.categories[cat1].values[i]);
+                                if (dataView.categorical.categories[cat1].source.type.dateTime) {
+                                    dataPoint.xCategoryParent = valueFormat.format
+                                        (new Date(valueDataview.toString()));
+                                } else {
+                                    dataPoint.xCategoryParent = valueFormat.format(valueDataview);
+                                }
                                 Visual.xParentPresent = true;
                             }
                             const tooltipDataPoint: ITooltipDataPoints = {
                                 name: dataView.categorical.categories[cat1].source.displayName,
-                                value: formatter1.format(dataView.categorical.categories[cat1].values[i])
+                                value: valueFormat.format(valueDataview)
                             };
 
                             if (JSON.stringify(dataPoint.tooltipData).indexOf(JSON.stringify(tooltipDataPoint)) < 0) {
@@ -391,11 +403,24 @@ module powerbi.extensibility.visual {
             let formatter: utils.formatting.IValueFormatter;
             for (const cat1 of dataView.categorical.categories) {
                 if (cat1.source.roles.hasOwnProperty('categoryGroup')) {
-                    formatter = valueFormatter.create({ format: cat1.source.format });
-                    // tslint:disable-next-line:no-any
-                    cat1.values.forEach((element: any) => {
-                        catElements.push(formatter.format(element));
-                    });
+
+                    // tslint:disable-next-line:triple-equals
+                    if (cat1.source.displayName != name) {
+                        formatter = valueFormatter.create({ format: cat1.source.format });
+                        if (cat1.source.type.dateTime) {
+                            // tslint:disable-next-line:no-any
+                            cat1.values.forEach((element: any) => {
+                                catElements.push(formatter.format(new Date(element)));
+                            });
+                        } else {
+                            // tslint:disable-next-line:no-any
+                            cat1.values.forEach((element: any) => {
+
+                                catElements.push(formatter.format(element));
+                            });
+
+                        }
+                    }
                     catDistinctElements = catElements.filter(dotPlotUtils.getDistinctElements);
                     if (this.sortSetting.axis === 'desc') {
                         catDistinctElements.reverse();
@@ -403,6 +428,18 @@ module powerbi.extensibility.visual {
                 }
                 if (cat1.source.roles.hasOwnProperty('xCategoryParent')) {
                     formatter = valueFormatter.create({ format: cat1.source.format });
+                    if (cat1.source.type.dateTime) {
+                        // tslint:disable-next-line:no-any
+                        cat1.values.forEach((element: any) => {
+                            catParentElements.push(formatter.format(new Date(element)));
+                        });
+                    } else {
+                        // tslint:disable-next-line:no-any
+                        cat1.values.forEach((element: any) => {
+                            catParentElements.push(formatter.format(element));
+                        });
+
+                    }
                     // tslint:disable-next-line:no-any
                     cat1.values.forEach((element: any) => {
                         catParentElements.push(formatter.format(element));
@@ -2433,8 +2470,8 @@ module powerbi.extensibility.visual {
             // Adding tooltips
             this.tooltipServiceWrapper.addTooltip(
                 d3.selectAll('.dotPlot_dot'),
-                (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                (tooltipEvent: TooltipEventArgs<number>) => null
+                (tooltipEvent: TooltipEventArgs<IDotPlotViewModel>) => this.getTooltipData(tooltipEvent.data),
+                (tooltipEvent: TooltipEventArgs<IDotPlotViewModel>) => tooltipEvent.data.selectionId
             );
         }
 
