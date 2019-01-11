@@ -35,7 +35,11 @@ module powerbi.extensibility.visual {
   import LegendPosition = powerbi.extensibility.utils.chart.legend.LegendPosition;
   import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
   import ValueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
+  import DataViewObjects = powerbi.DataViewObjects;
 
+  let dataViews: DataView;
+  let objectCounter: number = 0;
+  let eventGroupObjectCounter: number = 0;
   let legendData: LegendData;
   let colorLegend: IColorLegend[] = [];
   let eventGroupFlag: boolean;
@@ -130,6 +134,12 @@ module powerbi.extensibility.visual {
         if (object) {
           const property: T = object[propertyName];
           if (property !== undefined) {
+            if (objectName === 'colorSelector' && !eventGroupFlag) {
+              objectCounter++;
+            } else if (objectName === 'colorSelector' && eventGroupFlag) {
+              eventGroupObjectCounter++;
+            }
+
             return property;
           }
         }
@@ -219,6 +229,7 @@ module powerbi.extensibility.visual {
     private legend: ILegend;
     private legendObjectProperties: DataViewObject;
     private selectionManager: ISelectionManager;
+    public colors: IColorPalette;
     //used for persisting Calendar View
     public  calendarView: string = 'month';
     public  persistedDate: string = '';
@@ -306,6 +317,7 @@ module powerbi.extensibility.visual {
     constructor(options: VisualConstructorOptions) {
       this.options = options;
       this.host = options.host;
+      this.colors = options.host.colorPalette;
       this.legend = createLegend(options.element, false, null, true);
       this.selectionManager = options.host.createSelectionManager();
       // tslint:disable-next-line:no-any
@@ -352,7 +364,7 @@ module powerbi.extensibility.visual {
       let endDateLength: number;
       let startDateCategory: DataViewCategoryColumn;
       let startWeekDay: number;
-      const dataViews: DataView = options.dataViews[0];
+      dataViews = options.dataViews[0];
       // tslint:disable-next-line:no-any
       const dataViewCategories: any[] = dataViews.categorical.categories;
 
@@ -436,27 +448,111 @@ module powerbi.extensibility.visual {
       const categoryColumn: DataViewCategoryColumn = dataViewCategories[startDateIndex];
       const eventColumn: DataViewCategoryColumn = dataViewCategories[eventIndex];
       let eventGroupColumn: DataViewCategoryColumn;
+      const caption: string = this.settings.caption.captionValue;
+      // tslint:disable-next-line
+      let arr: any = JSON.parse(caption || '{}');
+      for (let index: number = 0; index < startDateLength; index++) {
+        if (eventGroupIndex !== null) {
+          eventGroupColumn = dataViewCategories[eventGroupIndex];
+          const tempEventGroup: string = eventGroupColumn.values[index] !== null ? eventGroupColumn.values[index].toString() : 'Others';
+          const defaultColor: string = this.colors.getColor(tempEventGroup).value;
+          this.colors[`colorPalette`][tempEventGroup.toString()].value =
+          getCategoricalObjectValue<Fill>(startDateCategory, index, 'colorSelector', 'fillColor', {
+            solid: {
+              color: defaultColor
+            }
+          }).solid.color;
+        } else {
+          const defaultColor: string = this.colors.getColor(eventColumn.values[index].toString()).value;
+          this.colors[`colorPalette`][eventColumn.values[index].toString()].value =
+          getCategoricalObjectValue<Fill>(eventColumn, index, 'colorSelector', 'fillColor', {
+           solid: {
+             color: defaultColor
+           }
+         }).solid.color;
+
+        }
+      }
+      if (objectCounter !== 0) {
+        let properties: { [propertyName: string]: DataViewPropertyValue };
+        properties = {};
+        properties[`captionValue`] = JSON.stringify(this.colors[`colorPalette`]);
+        let caption1: VisualObjectInstancesToPersist;
+        caption1 = {
+          replace: [
+            {
+              objectName: 'caption',
+              selector: null,
+              properties: properties
+            }]
+        };
+        this.host.persistProperties(caption1);
+      } else if (eventGroupObjectCounter !== 0) {
+        let properties: { [propertyName: string]: DataViewPropertyValue };
+        properties = {};
+        properties[`captionValue`] = JSON.stringify(this.colors[`colorPalette`]);
+        let caption1: VisualObjectInstancesToPersist;
+        caption1 = {
+          replace: [
+            {
+              objectName: 'caption',
+              selector: null,
+              properties: properties
+            }]
+        };
+        this.host.persistProperties(caption1);
+      } else if (jQuery.isEmptyObject(arr) || Object.keys(arr).length !== Object.keys(this.colors[`colorPalette`]).length) {
+        let properties: { [propertyName: string]: DataViewPropertyValue };
+        properties = {};
+        properties[`captionValue`] = JSON.stringify(this.colors[`colorPalette`]);
+        let caption1: VisualObjectInstancesToPersist;
+        caption1 = {
+          replace: [
+            {
+              objectName: 'caption',
+              selector: null,
+              properties: properties
+            }]
+        };
+        this.host.persistProperties(caption1);
+      } else if ((Object.keys(arr).length !== Object.keys(this.colors[`colorPalette`]).length && eventGroupIndex !== null)) {
+        let properties: { [propertyName: string]: DataViewPropertyValue };
+        properties = {};
+        properties[`captionValue`] = JSON.stringify(this.colors[`colorPalette`]);
+        let caption1: VisualObjectInstancesToPersist;
+        caption1 = {
+          replace: [
+            {
+              objectName: 'caption',
+              selector: null,
+              properties: properties
+            }]
+        };
+        this.host.persistProperties(caption1);
+      }
 
       // If user enters data in Event Group databag, legends will be rendered on event group
       if (eventGroupIndex !== null) {
         eventGroupColumn = dataViewCategories[eventGroupIndex];
         colorLegend = [];
         const uniqueValues: string[] = [];
+        const objects: DataViewObjects = dataViews.metadata.objects;
+        const captionObject: string = this.settings.caption.captionValue;
+        // tslint:disable-next-line:no-any
+        const captionValue: any = JSON.parse(captionObject || '{}');
+
         for (let index: number = 0; index < startDateLength; index++) {
           if (uniqueValues.indexOf(<string>dataViewCategories[eventGroupIndex].values[index]) === -1 &&
             uniqueValues.indexOf('Others') === -1) {
             let tempEventGroup: string;
             tempEventGroup = eventGroupColumn.values[index] !== null ? eventGroupColumn.values[index].toString() : 'Others';
-            const defaultColor: string = this.host.colorPalette.getColor(tempEventGroup).value;
+            const defaultColor: string = this.colors.getColor(tempEventGroup).value;
             colorLegend.push({
               keyName: tempEventGroup,
-              color: getCategoricalObjectValue<Fill>(startDateCategory, index, 'colorSelector', 'fillColor', {
-                solid: {
-                  color: defaultColor
-                }
-              }).solid.color,
+              color: captionValue[tempEventGroup].value,
               selectionId: this.host.createSelectionIdBuilder().withCategory(startDateCategory, index).createSelectionId()
             });
+
             uniqueValues.push(dataViewCategories[eventGroupIndex].values[index] !== null ?
               <string>dataViewCategories[eventGroupIndex].values[index] : <string>dataViewCategories[eventGroupIndex].values[index]);
           }
@@ -465,21 +561,20 @@ module powerbi.extensibility.visual {
             ? eventGroupColumn.values[index].toString() : 'Others');
         }
       } else {  // If user  does not enters data in Event Group, legends will be rendered based on events
+        const captionObject: string = this.settings.caption.captionValue;
+        // tslint:disable-next-line:no-any
+        const captionValue: any = JSON.parse(captionObject || '{}');
         colorLegend = [];
         const uniqueValues: string[] = [];
+        const objects: DataViewObjects = dataViews.metadata.objects;
         for (let index: number = 0; index < startDateLength; index++) {
           if (uniqueValues.indexOf(<string>dataViewCategories[eventIndex].values[index]) === -1) {
-            const defaultColor: string = this.host.colorPalette.getColor(eventColumn.values[index].toString()).value;
+            const defaultColor: string = this.colors.getColor(eventColumn.values[index].toString()).value;
             colorLegend.push({
               keyName: eventColumn.values[index].toString(),
-              color: getCategoricalObjectValue<Fill>(eventColumn, index, 'colorSelector', 'fillColor', {
-                solid: {
-                  color: defaultColor
-                }
-              }).solid.color,
+              color: captionValue[eventColumn.values[index].toString()].value,
               selectionId: this.host.createSelectionIdBuilder().withCategory(eventColumn, index).createSelectionId()
             });
-
             uniqueValues.push(<string>dataViewCategories[eventIndex].values[index]);
           }
           eventArray.push(<string>dataViewCategories[eventIndex].values[index]);
@@ -797,7 +892,12 @@ module powerbi.extensibility.visual {
 
         this.legend.drawLegend(legendData, options.viewport);
       }
+      const THIS: this = this;
       this.addSelection(data, selectionID);
+      // tslint:disable-next-line:no-any
+      $('.legend #legendGroup').on('click.load', '.navArrow', function (): any {
+        THIS.addSelection(data, selectionID);
+      });
     }
 
     /**
