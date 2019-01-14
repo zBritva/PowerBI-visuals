@@ -133,12 +133,18 @@ module powerbi.extensibility.visual {
         categoryCoumnsWidth: ICategoryColumnsWidthSettings;
         sortAttributes: IsortAttributesSettings;
         persistExpandCollapseSettings: PersistExpandCollapseSettings;
+        captionValue: CaptionValues;
     }
+
+    export class CaptionValues {
+        public captionValue: string = '{}';
+      }
 
     // tslint:disable-next-line:max-classes-per-file
     export class PersistExpandCollapseSettings {
         public expandCollapseState: string = '{}';
     }
+    // tslint:disable-next-line:max-classes-per-file
     export class GanttSettings {
         // tslint:disable-next-line:typedef
         public static get Default() {
@@ -165,8 +171,8 @@ module powerbi.extensibility.visual {
                 displayRatio: this.parseDisplayRatioSettings(objects),
                 categoryCoumnsWidth: this.parseCategoryColumnsWidthSettings(objects),
                 sortAttributes: this.parsesortAttributesSettings(objects),
-                persistExpandCollapseSettings : new PersistExpandCollapseSettings()
-
+                persistExpandCollapseSettings : new PersistExpandCollapseSettings(),
+                captionValue: new CaptionValues()
             };
         }
 
