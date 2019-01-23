@@ -100,9 +100,10 @@ module powerbi.extensibility.visual {
         fontSize: number;
         color: string;
         displayUnits: number;
-        textPrecision: number;
+        strokeWidth: number;
     }
     export interface IAnimationSettings {
+        show: boolean;
         duration: number;
     }
 
@@ -117,9 +118,10 @@ module powerbi.extensibility.visual {
             color: <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'color' },
             fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'fontSize' },
             displayUnits: <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'displayUnits' },
-            textPrecision: <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'textPrecision' }
+            strokeWidth: <DataViewObjectPropertyIdentifier>{ objectName: 'labelSettings', propertyName: 'strokeWidth' }
         },
         animationSettings: {
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'animationSettings', propertyName: 'show' },
             duration: <DataViewObjectPropertyIdentifier>{ objectName: 'animationSettings', propertyName: 'duration' }
         }
     };
@@ -317,7 +319,6 @@ module powerbi.extensibility.visual {
         }
 
         public update(options: VisualUpdateOptions): void {
-
             this.options = options;
             this.dataviews = options.dataViews[0];
 
@@ -408,13 +409,14 @@ module powerbi.extensibility.visual {
             this.renderVisual();
 
             if (this.measureCount > 1) {
-                clearInterval(this.rotationId);
-                this.rotationId = setInterval(() => this.rotation(), animationSettings.duration * 1000);
+                if (animationSettings.show) {
+                    clearInterval(this.rotationId);
+                    this.rotationId = setInterval(() => this.rotation(), animationSettings.duration * 1000);
+                }
                 // Click functionality
                 $('.horizBarChart').on('click', () => {
                     clearInterval(this.rotationId);
                     this.rotation();
-                    this.rotationId = setInterval(() => this.rotation(), animationSettings.duration * 1000);
                 });
             }
         }
@@ -448,6 +450,8 @@ module powerbi.extensibility.visual {
             THIS = this;
             let width: number;
             width = this.width;
+            // tslint:disable-next-line
+            const availableWidth: any = width / 9;
             let measureTitle: IMeasureTitle;
             measureTitle = this.getMeasureTitle(this.dataviews);
             let labelSettings: ILabelSettings;
@@ -512,78 +516,68 @@ module powerbi.extensibility.visual {
                 let measureValue: d3.selection.Update<IBarChartDataPoint>;
                 measureValue = this.yAxisMeasures.selectAll('text').data(this.viewModel.dataPoints);
                 let measureLabel: d3.Selection<IBarChartDataPoint>;
+
+                const format: string = THIS.viewModel.dataPoints[0].format;
+                // tslint:disable-next-line:typedef
+                let formatter;
+                let tempMeasureData: String;
+                tempMeasureData = Math.round(THIS.viewModel.dataMax).toString();
+                let displayVal: number = 0;
+                if (labelSettings.displayUnits === 0) {
+                    let valLen: number;
+                    valLen = tempMeasureData.length;
+                    if (valLen > 9) {
+                        displayVal = 1e9;
+                    } else if (valLen <= 9 && valLen > 6) {
+                        displayVal = 1e6;
+                    } else if (valLen <= 6 && valLen >= 4) {
+                        displayVal = 1e3;
+                    } else {
+                        displayVal = 10;
+                    }
+                }
+                if (format && format.indexOf('%') !== -1) {
+                    formatter = ValueFormatter.create({
+                        format: format,
+                        value: labelSettings.displayUnits === 0 ? 0 : labelSettings.displayUnits,
+                        precision: labelSettings.strokeWidth
+                    });
+                } else {
+                    formatter = ValueFormatter.create({
+                        format: format,
+                        value: labelSettings.displayUnits === 0 ? displayVal : labelSettings.displayUnits,
+                        precision: labelSettings.strokeWidth
+                    });
+                }
                 measureLabel = measureValue.enter()
                     .append('text')
                     .classed('measureValue', true);
-
                 // measure value
                 measureLabel.attr({
-                    dy: '0.32em',
+                    dy: '0.40em',
                     // tslint:disable-next-line:typedef
                     y: d => this.xScale(d.category) + (barHeight * 0.5),
                     // tslint:disable-next-line:typedef
                     x: d => this.width - (this.margin * this.width) + 10
                 })
-                    .text(function (d: IBarChartDataPoint): string {
-                        // tslint:disable-next-line:typedef
-                        let formatter;
-                        let tempMeasureData: String;
-                        tempMeasureData = Math.round(THIS.viewModel.dataMax).toString();
-                        let displayVal: number = 0;
-                        if (labelSettings.displayUnits === 0) {
-                            let valLen: number;
-                            valLen = tempMeasureData.length;
-                            if (valLen > 9) {
-                                displayVal = 1e9;
-                            } else if (valLen <= 9 && valLen > 6) {
-                                displayVal = 1e6;
-                            } else if (valLen <= 6 && valLen >= 4) {
-                                displayVal = 1e3;
-                            } else {
-                                displayVal = 10;
-                            }
-                        }
-                        if (d.format && d.format.indexOf('%') !== -1) {
-                            formatter = ValueFormatter.create({
-                                format: d.format,
-                                value: labelSettings.displayUnits === 0 ? 0 : labelSettings.displayUnits,
-                                precision: labelSettings.textPrecision
-                            });
-                        } else {
-                            formatter = ValueFormatter.create({
-                                format: d.format,
-                                value: labelSettings.displayUnits === 0 ? displayVal : labelSettings.displayUnits,
-                                precision: labelSettings.textPrecision
-                            });
-                        }
-                        let measureProperties: TextProperties;
-                        measureProperties = {
-                            text: formatter.format(d.value),
-                            fontFamily: 'sans-serif',
-                            fontSize: `${labelSettings.fontSize}px`
-                        };
-                        // tslint:disable-next-line:no-shadowed-variable typedef
-                        measureValue.append('title').text(function (d) {
-                            return formatter.format(d.value);
-                        });
+                .text(function (d: IBarChartDataPoint): string {
+                    const value: string = THIS.applyEllipsis(d.value, formatter, labelSettings, availableWidth, measureValue);
 
-                        return textMeasurementService.getTailoredTextOrDefault(measureProperties, width / 9);
-                    });
-
+                    return value;
+                })
+                .append('title').text(function (d: IBarChartDataPoint): string {
+                    return formatter.format(d.value);
+                });
             }
 
             // Changing the text to ellipsis if the width of the window is small
             for (let i: number = 0; i < this.viewModel.dataPoints.length; i++) {
-                let labelProperties: TextProperties;
-                labelProperties = {
-                    text: this.viewModel.dataPoints[i].category,
-                    fontFamily: 'sans-serif',
-                    fontSize: `${labelSettings.fontSize}px`
-                };
                 let newDataLabel: string;
-                newDataLabel = textMeasurementService.getTailoredTextOrDefault(labelProperties, this.width / 9);
+                newDataLabel = THIS.applyEllipsis(this.viewModel.dataPoints[i].category, null, labelSettings, availableWidth, null);
                 if ($('.tick text') && $('.tick text')[i]) {
                     $('.tick text')[i].textContent = newDataLabel;
+                    d3.select($('.tick text')[i]).append('title').text(this.viewModel.dataPoints[i].category);
+                    d3.select($('.tick text')[i]).attr('line-height', '10px');
                 }
             }
 
@@ -598,6 +592,18 @@ module powerbi.extensibility.visual {
                 .remove();
         }
 
+        // tslint:disable-next-line:no-any
+        public applyEllipsis(d: any, formatter: any, labelSettings: ILabelSettings, width: any, measureValue: any): string {
+            let measureProperties: TextProperties;
+            measureProperties = {
+                text: formatter === null ? d : formatter.format(d),
+                fontFamily: 'sans-serif',
+                fontSize: `${labelSettings.fontSize}px`
+            };
+
+            return textMeasurementService.getTailoredTextOrDefault(measureProperties, width);
+        }
+
         private getDefaultMeasureTitle(): IMeasureTitle {
             return {
                 color: '#666666',
@@ -610,12 +616,13 @@ module powerbi.extensibility.visual {
                 color: '#000',
                 fontSize: 12,
                 displayUnits: 0,
-                textPrecision: 0
+                strokeWidth: 0
             };
         }
 
         public getDefaultAnimationSettings(): IAnimationSettings {
             return {
+                show: false,
                 duration: 6
             };
         }
@@ -648,11 +655,14 @@ module powerbi.extensibility.visual {
             const labelProps = props;
             labelSettings.color = DataViewObjects.getFillColor(objects, labelProps.labelSettings.color, labelSettings.color);
             labelSettings.fontSize = DataViewObjects.getValue(objects, labelProps.labelSettings.fontSize, labelSettings.fontSize);
-            labelSettings.fontSize = labelSettings.fontSize > 30 ? 30 : labelSettings.fontSize;
+            labelSettings.fontSize = labelSettings.fontSize > 25 ? 25 : labelSettings.fontSize;
             labelSettings.displayUnits = DataViewObjects.getValue(objects,
                                                                   labelProps.labelSettings.displayUnits, labelSettings.displayUnits);
-            labelSettings.textPrecision = DataViewObjects.getValue(objects,
-                                                                   labelProps.labelSettings.textPrecision, labelSettings.textPrecision);
+            labelSettings.strokeWidth = DataViewObjects.getValue(objects,
+                                                                 labelProps.labelSettings.strokeWidth, labelSettings.strokeWidth);
+            if (labelSettings.strokeWidth > 4) {
+                labelSettings.strokeWidth = 4;
+            }
 
             return labelSettings;
         }
@@ -668,6 +678,7 @@ module powerbi.extensibility.visual {
             // tslint:disable-next-line:typedef
             let properties;
             properties = props;
+            settings.show = DataViewObjects.getValue(objects, properties.animationSettings.show, settings.show);
             settings.duration = DataViewObjects.getValue(objects, properties.animationSettings.duration, settings.duration);
             settings.duration = settings.duration < 2 ? 2 : settings.duration > 20 ? 20 : settings.duration;
 
@@ -694,6 +705,7 @@ module powerbi.extensibility.visual {
                         displayName: 'Delay (seconds)',
                         selector: null,
                         properties: {
+                            show: animationSettings.show,
                             duration: animationSettings.duration
                         }
                     });
@@ -705,7 +717,7 @@ module powerbi.extensibility.visual {
                             color: labels.color,
                             fontSize: labels.fontSize,
                             displayUnits: labels.displayUnits,
-                            textPrecision: labels.textPrecision
+                            strokeWidth: labels.strokeWidth
                         },
                         selector: null
                     });

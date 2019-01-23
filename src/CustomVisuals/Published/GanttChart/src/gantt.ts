@@ -107,6 +107,8 @@ module powerbi.extensibility.visual {
     // tslint:disable-next-line:no-any
     let uniqueColors: any;
     let iterator: number = 1;
+    // tslint:disable-next-line:no-any
+    let colorsPersistObject: any = {};
     let errorMessage: boolean = false;
     let legIndex: number;
     let r: number;
@@ -419,6 +421,8 @@ module powerbi.extensibility.visual {
     }
 
     export class Gantt implements IVisual {
+        // tslint:disable-next-line:no-any
+        public dataview: any;
         private viewport: IViewport;
         private colors: IColorPalette;
         private legend: ILegend;
@@ -1163,7 +1167,7 @@ module powerbi.extensibility.visual {
             }
 
             this.bottomTaskDiv.style({
-                height: PixelConverter.toString(30),
+                height: PixelConverter.toString(28),
                 width: PixelConverter.toString(categoryWidth),
                 left: PixelConverter.toString(0),
                 bottom: PixelConverter.toString(0),
@@ -1270,9 +1274,13 @@ module powerbi.extensibility.visual {
                                 let iValueFormatter: IValueFormatter;
                                 if (categorical.categories[iCatCount].source.format) {
                                     iValueFormatter = ValueFormatter.create({ format: categorical.categories[iCatCount].source.format });
+                                    const flag: boolean = dateFormat.test(categorical.categories[iCatCount].values[taskIndex].toString()) ?
+                                    true : false;
                                     tooltipDataArray.push({
                                         displayName: tooltipIndex[iTooltipIndexCount].toString(),
-                                        value: iValueFormatter.format(categorical.categories[iCatCount].values[taskIndex])
+                                        value: flag ?
+                                        iValueFormatter.format(new Date(categorical.categories[iCatCount].values[taskIndex].toString())) :
+                                        iValueFormatter.format(categorical.categories[iCatCount].values[taskIndex])
                                     });
                                 } else {
                                     tooltipDataArray.push({
@@ -1295,9 +1303,13 @@ module powerbi.extensibility.visual {
 
                                 if (categorical.values[iValCount].source.format) {
                                     iValueFormatter = ValueFormatter.create({ format: categorical.values[iValCount].source.format });
+                                    const flag: boolean = dateFormat.test(categorical.values[iValCount].values[taskIndex].toString()) ?
+                                    true : false;
                                     tooltipDataArray.push({
                                         displayName: tooltipIndex[iTooltipIndexCount].toString(),
-                                        value: iValueFormatter.format(categorical.values[iValCount].values[taskIndex])
+                                        value: flag ?
+                                        iValueFormatter.format(new Date(categorical.values[iValCount].values[taskIndex].toString())) :
+                                        iValueFormatter.format(categorical.values[iValCount].values[taskIndex])
                                     });
                                 } else {
                                     let tooltipValues: string;
@@ -1475,7 +1487,7 @@ module powerbi.extensibility.visual {
          * @param series An array that holds the color data of different task groups.
          */
         private static createTasks(dataView: DataView, host: IVisualHost,
-                                   formatters: GanttChartFormatters, colors: IColorPalette
+                                   formatters: GanttChartFormatters, colorPalette: IColorPalette
             // tslint:disable-next-line
             , settings: IGanttSettings, barsLegend: ILegend, viewport: any): Task[] {
 
@@ -1564,7 +1576,6 @@ module powerbi.extensibility.visual {
                 title: 'Legend'
             };
 
-            const colorPalette: IColorPalette = host.colorPalette;
             // tslint:disable-next-line:no-any
             const oUniquelegend: any = [];
             // tslint:disable-next-line:no-any
@@ -1656,7 +1667,7 @@ module powerbi.extensibility.visual {
                         });
                     }
                     taskValues.push(value);
-                    value = (value === '' ? 'N/A' : value);
+                    value = (value === '' ? '(Blank)' : value);
 
                     if (typeof (value) === 'object' &&
                         categoriesdata[categoryRoles[kpiValueCounter]].values[index].toString().length > Gantt.maxTaskNameLength) {
@@ -1673,11 +1684,17 @@ module powerbi.extensibility.visual {
                 kpiRolesLength = kpiRoles.length;
 
                 for (let kpiValueCounter: number = 0; kpiValueCounter < kpiRolesLength; kpiValueCounter++) {
-                    // tslint:disable-next-line:prefer-const
-                    let name: string = <string>categoriesdata[kpiRoles[kpiValueCounter]].source.displayName;
-                    // tslint:disable-next-line:prefer-const
+                    const name: string = <string>categoriesdata[kpiRoles[kpiValueCounter]].source.displayName;
+                    const format: string = dataView.categorical.categories[kpiRoles[kpiValueCounter]].source.format;
                     let value: string = <string>categoriesdata[kpiRoles[kpiValueCounter]].values[index];
 
+                    if (format !== undefined) {
+                        if (dateFormat.test(value)) {
+                            value = ValueFormatter.format(new Date (value.toString()), format);
+                        } else {
+                            value = ValueFormatter.format(value, format);
+                        }
+                    }
                     kpiValues.push({
                         name: name,
                         value: value
@@ -1691,7 +1708,6 @@ module powerbi.extensibility.visual {
                     name = <string>categoriesdata[kpiRoles[tooltipValueCounter]].source.displayName;
                     let value: string;
                     value = <string>categoriesdata[kpiRoles[tooltipValueCounter]].values[index];
-
                     tooltipValues.push({
                         name: name,
                         value: value
@@ -1746,17 +1762,17 @@ module powerbi.extensibility.visual {
                         return arr.lastIndexOf(e) === i;
                     });
                 }
+                // tslint:disable-next-line
+                const label: string = legendIndex !== -1 ? dataView.categorical.categories[legendIndex].values[index] === null ?
+                // tslint:disable-next-line:no-use-before-declare
+                'Null' : dataView.categorical.categories[legendIndex].values[index].toString() : 'Null';
+                const catPresent: boolean = label in colorsPersistObject;
                 const defaultColor: Fill = {
                     solid: {
-                        // tslint:disable-next-line:no-use-before-declare
-                        color: legendIndex !== -1 ?
-                            // tslint:disable-next-line:no-use-before-declare
-                            colorPalette.getColor(dataView.categorical.categories[legendIndex].values[index] === null ?
-                                // tslint:disable-next-line:no-use-before-declare
-                                'Null' : dataView.categorical.categories[legendIndex].values[index].toString()).value
-                            : colorPalette.getColor('Null').value
+                        color: catPresent ? colorsPersistObject[label] : colorPalette.getColor(label).value
                     }
                 };
+                colorsPersistObject[label] = defaultColor.solid.color;
                 // tslint:disable-next-line:no-any
                 let taskColor: any;
                 let cnt: number = 0;
@@ -1879,7 +1895,6 @@ module powerbi.extensibility.visual {
                             mapId: index
                         });
                     } else {
-
                         tasks.push({
                             id: index,
                             repeat: r,
@@ -1908,6 +1923,13 @@ module powerbi.extensibility.visual {
                 } else {
                     r = 0;
                     if (settings.barColor.showall) {
+                        // tslint:disable-next-line:no-use-before-declare
+                        const labelCat: string = dataView.categorical.categories[legendIndex].values[index] === null ?
+                        // tslint:disable-next-line:no-use-before-declare
+                        'Null' : dataView.categorical.categories[legendIndex].values[index].toString();
+                        colorsPersistObject[labelCat] = this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0],
+                                                                                             index, 'barColor', 'fillColor',
+                                                                                             defaultColor).solid.color;
                         tasks.push({
                             id: index,
                             repeat: r,
@@ -1917,8 +1939,7 @@ module powerbi.extensibility.visual {
                             numStart: datamin,
                             numEnd: datamax,
                             resource: resource,
-                            color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
-                                                                        'barColor', 'fillColor', defaultColor).solid.color,
+                            color: colorsPersistObject[labelCat],
                             KPIValues: kpiValues,
                             tooltipValues: tooltipValues,
                             identity: null,
@@ -1937,10 +1958,13 @@ module powerbi.extensibility.visual {
                         // tslint:disable-next-line:no-any
                         const selection: any[] = [];
                         sel = tasks[index].name[legendindex];
+                        const catLabel: string = tasks[index].name[legendindex] === '' ? 'Null' : tasks[index].name[legendindex];
+                        colorsPersistObject[catLabel] = this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
+                                                                                             'barColor', 'fillColor', defaultColor)
+                                                                                             .solid.color;
                         if (uniquesColorsForLegends.indexOf(sel) === -1) {
                             uniquesColorsForLegends.push({
-                                color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
-                                                                            'barColor', 'fillColor', defaultColor).solid.color,
+                                color: colorsPersistObject[catLabel],
                                 name: tasks[index].name[legendindex]
                             });
                             Gantt.tasknew.push({
@@ -1976,9 +2000,15 @@ module powerbi.extensibility.visual {
                             parentId: null,
                             expanded: null
                         });
+                        // tslint:disable-next-line:no-use-before-declare
+                        const categoryLabel: string = dataView.categorical.categories[legendIndex].values[index] === null ?
+                        // tslint:disable-next-line:no-use-before-declare
+                        'Null' : dataView.categorical.categories[legendIndex].values[index].toString();
+                        colorsPersistObject[categoryLabel] =
+                        this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
+                                                             'barColor', 'fillColor', defaultColor).solid.color;
                         uniquesColorsForLegends.push({
-                            color: this.getCategoricalObjectValue<Fill>(dataView.categorical.categories[0], index,
-                                                                        'barColor', 'fillColor', defaultColor).solid.color
+                            color: colorsPersistObject[categoryLabel]
                         });
                     }
                 }
@@ -2007,6 +2037,9 @@ module powerbi.extensibility.visual {
                 let found: boolean = false;
                 // tslint:disable-next-line:no-any
                 uniquelegend = uniquelegend.filter(function (item: any): any {
+                    if (item === null) {
+                        item = '';
+                    }
                     if (!found && item === key) {
                         oUnique.push(item);
                         found = true;
@@ -2031,7 +2064,7 @@ module powerbi.extensibility.visual {
             if (legendIndex !== -1) {
                 uniquelegend.forEach(function (d: PrimitiveValue, i: number): void {
                     legendData.dataPoints.push({
-                        label: d.toString(),  //name of the label
+                        label: d.toString() === '' ? '(Blank)' : d.toString(),  //name of the label
                         color: uniquesColorsForLegends[i].color,
                         icon: powerbi.extensibility.utils.chart.legend.LegendIcon.Box, //type of the legend icon,
                         selected: false,  // indicates of the legend is selected or not
@@ -2058,13 +2091,15 @@ module powerbi.extensibility.visual {
 
             while (iIterator < levelofSorting) {
                 hashArr = [];
-                const id: string = `id` ;
                 const hyphenLiteral: string = '-';
                 for (let index: number = 0; index <= largest; index++) {
-                    if (hashArr[id + hyphenLiteral + tasks[index].name[iIterator - 1]] === undefined) {
-                        hashArr[id + hyphenLiteral + tasks[index].name[iIterator - 1]] = [];
+                    if (hashArr[tasks[index].name[iIterator - 3] + hyphenLiteral + tasks[index].name[iIterator - 2] + hyphenLiteral
+                        + tasks[index].name[iIterator - 1]] === undefined) {
+                        hashArr[tasks[index].name[iIterator - 3] + hyphenLiteral
+                            + tasks[index].name[iIterator - 2] + hyphenLiteral + tasks[index].name[iIterator - 1]] = [];
                     }
-                    hashArr[id + hyphenLiteral + tasks[index].name[iIterator - 1]].push(tasks[index]);
+                    hashArr[tasks[index].name[iIterator - 3] + hyphenLiteral + tasks[index].name[iIterator - 2] + hyphenLiteral
+                        + tasks[index].name[iIterator - 1]].push(tasks[index]);
                 }
 
                 Object.keys(hashArr).forEach(function (i: string): void {
@@ -2105,13 +2140,16 @@ module powerbi.extensibility.visual {
             while (levelofSorting < categoryRoles.length) {
                 hashArr = [];
                 const hyphenLiteral: string = '-';
-                const id: string = `id`;
                 for (let index: number = 0; index <= largest; index++) {
-                    if (hashArr[id + hyphenLiteral + tasks[index].name[levelofSorting - 1]] === undefined) {
-                        hashArr[id + hyphenLiteral + tasks[index].name[levelofSorting - 1]] = [];
+                    if (hashArr[tasks[index].name[levelofSorting - 3] + hyphenLiteral
+                        + tasks[index].name[levelofSorting - 2] + hyphenLiteral + tasks[index].name[levelofSorting - 1]] === undefined) {
+                        hashArr[tasks[index].name[levelofSorting - 3] + hyphenLiteral + tasks[index].name[levelofSorting - 2]
+                            + hyphenLiteral + tasks[index].name[levelofSorting - 1]] = [];
                     }
-                    hashArr[id + hyphenLiteral + tasks[index].name[levelofSorting - 1]].push(tasks[index]);
+                    hashArr[tasks[index].name[levelofSorting - 3] + hyphenLiteral + tasks[index].name[levelofSorting - 2]
+                        + hyphenLiteral + tasks[index].name[levelofSorting - 1]].push(tasks[index]);
                 }
+
                 if (!firstVisit) {
                     orderOfSorting = 'asc';
                 }
@@ -2534,7 +2572,7 @@ module powerbi.extensibility.visual {
             });
             let metadata: DataViewMetadata;
             metadata = dataView.metadata;
-
+            const colorPalette : IColorPalette = host.colorPalette;
             // tslint:disable-next-line
             let oMap: any = {};
             let displayName: string;
@@ -2604,7 +2642,7 @@ module powerbi.extensibility.visual {
             }
             Gantt.formatters = this.getFormatters(dataView);
 
-            const tasksNew: Task[] = Gantt.createTasks(dataView, host, Gantt.formatters, colors, settings, barsLegend, viewport);
+            const tasksNew: Task[] = Gantt.createTasks(dataView, host, Gantt.formatters, colorPalette, settings, barsLegend, viewport);
 
             // tslint:disable-next-line:no-any
             const rows1: any[] = [];
@@ -2615,6 +2653,7 @@ module powerbi.extensibility.visual {
             const mappingIndex: number[] = [];
             const categoriesLength: number = dataView.categorical.categories.length;
             const valuesLength: number = dataView.categorical.values.length;
+            let valuesLengthCounter: number = 0;
 
             // tslint:disable-next-line
             let roleIndexArray: any[] = [];
@@ -2625,6 +2664,7 @@ module powerbi.extensibility.visual {
             roleIndexArray[`Resource`] = [];
             roleIndexArray[`KPIValueBag`] = [];
             roleIndexArray[`Tooltip`] = [];
+            let combine: number[] = [];
             // tslint:disable-next-line
             let displayNameArray: any[] = [];
             for (let iCount: number = 0; iCount < categoriesLength; iCount++) {
@@ -2637,9 +2677,15 @@ module powerbi.extensibility.visual {
                 if (dataView.categorical.categories[iCount].source.roles.KPIValueBag) {
                     roleIndexArray[`KPIValueBag`].push(iCount);
                 }
+                if (dataView.categorical.categories[iCount].source.roles.Category &&
+                    dataView.categorical.categories[iCount].source.roles.KPIValueBag) {
+                    combine.push(iCount);
+                }
             }
 
-            if (roleIndexArray[`Legend`].length !== 0) {
+            const legendRoleLength: number = roleIndexArray[`Legend`].length;
+            const kpiRoleLength: number = roleIndexArray[`KPIValueBag`].length;
+            if (legendRoleLength !== 0 || kpiRoleLength !== 0) {
                 if (roleIndexArray[`Legend`].length === 3) {
                     roleIndexArray[`Legend`].splice(2, 1);
                 }
@@ -2654,40 +2700,52 @@ module powerbi.extensibility.visual {
                 if (iIndex !== -1) {
                     roleIndexArray[`KPIValueBag`].splice(iIndex, 1);
                 }
-                let indexNew: number;
-                for (let iCat: number = 0; iCat < roleIndexArray[`KPIValueBag`].length; iCat++) {
-                    indexNew = roleIndexArray[`Category`].indexOf(roleIndexArray[`KPIValueBag`][iCat]);
-                    if (indexNew !== -1 && index !== 0) {
-                        roleIndexArray[`Category`].splice(indexNew, 1);
-                        roleIndexArray[`KPIValueBag`].splice(0, 1);
-                        break;
-                    }
+                combine = combine.reverse();
+                const combineLen: number = Math.floor(combine.length / 2);
+                for (let iCat: number = 0; iCat < combineLen; iCat++) {
+                    const index1: number = roleIndexArray[`Category`].indexOf(combine[iCat]);
+                    const index2: number = roleIndexArray[`KPIValueBag`].indexOf(combine[iCat]);
+                    roleIndexArray[`Category`].splice(index1, 1);
+                    roleIndexArray[`KPIValueBag`].splice(index2, 1);
                 }
             }
 
             for (let iCount: number = 0; iCount < valuesLength; iCount++) {
                 if (dataView.categorical.values[iCount].source.roles.StartDate) {
                     roleIndexArray[`StartDate`].push(iCount);
+                    valuesLengthCounter++;
                 }
                 if (dataView.categorical.values[iCount].source.roles.EndDate) {
                     roleIndexArray[`EndDate`].push(iCount);
+                    valuesLengthCounter++;
                 }
                 if (dataView.categorical.values[iCount].source.roles.Resource) {
                     roleIndexArray[`Resource`].push(iCount);
+                    valuesLengthCounter++;
                 }
                 if (dataView.categorical.values[iCount].source.roles.Tooltip) {
                     roleIndexArray[`Tooltip`].push(iCount);
+                    valuesLengthCounter++;
                 }
             }
 
-            const totalLength: number = categoriesLength + valuesLength;
+            const totalLength: number = categoriesLength + valuesLengthCounter;
             let counter: number = 0;
             for (iRow = 0; iRow < len; iRow++) {
                 rows1[iRow] = [];
                 let iColumn: number = 0;
                 for (let iCat: number = 0; iCat < roleIndexArray[`Category`].length; iCat++) {
-
-                    rows1[iRow][iColumn] = dataView.categorical.categories[roleIndexArray[`Category`][iCat]].values[iRow];
+                    const format: string = dataView.categorical.categories[roleIndexArray[`Category`][iCat]].source.format;
+                    // tslint:disable-next-line:no-any
+                    let value: any = dataView.categorical.categories[roleIndexArray[`Category`][iCat]].values[iRow];
+                    if (format !== undefined) {
+                        if (dateFormat.test(value)) {
+                            value = ValueFormatter.format(new Date (value.toString()), format);
+                        } else {
+                            value = ValueFormatter.format(value, format);
+                        }
+                    }
+                    rows1[iRow][iColumn] = value;
 
                     if (displayNameArray.length < totalLength) {
                         displayNameArray.push(dataView.categorical.categories[roleIndexArray[`Category`][iCat]].source.displayName);
@@ -2707,21 +2765,52 @@ module powerbi.extensibility.visual {
                 }
                 iColumn++;
                 for (let iCat: number = 0; iCat < roleIndexArray[`Resource`].length; iCat++) {
-                    rows1[iRow][iColumn] = dataView.categorical.values[roleIndexArray[`Resource`][iCat]].values[iRow];
+                    const format: string = dataView.categorical.values[roleIndexArray[`Resource`][iCat]].source.format;
+                    // tslint:disable-next-line:no-any
+                    let value: any = dataView.categorical.values[roleIndexArray[`Resource`][iCat]].values[iRow];
+                    if (format !== undefined) {
+                        if (dateFormat.test(value)) {
+                            value = ValueFormatter.format(new Date (value.toString()), format);
+                        } else {
+                            value = ValueFormatter.format(value, format);
+                        }
+                    }
+                    rows1[iRow][iColumn] = value;
                     if (displayNameArray.length < totalLength) {
                         displayNameArray.push(dataView.categorical.values[roleIndexArray[`Resource`][iCat]].source.displayName);
                     }
                     iColumn++;
                 }
                 for (let iCat: number = 0; iCat < roleIndexArray[`KPIValueBag`].length; iCat++) {
-                    rows1[iRow][iColumn] = dataView.categorical.categories[roleIndexArray[`KPIValueBag`][iCat]].values[iRow];
+                    const format: string = dataView.categorical.categories[roleIndexArray[`KPIValueBag`][iCat]].source.format;
+                    // tslint:disable-next-line:no-any
+                    let value: any = dataView.categorical.categories[roleIndexArray[`KPIValueBag`][iCat]].values[iRow];
+                    if (format !== undefined) {
+                        if (dateFormat.test(value)) {
+                            value = ValueFormatter.format(new Date (value.toString()), format);
+                        } else {
+                            value = ValueFormatter.format(value, format);
+                        }
+                    }
+                    rows1[iRow][iColumn] = value;
                     if (displayNameArray.length < totalLength) {
                         displayNameArray.push(dataView.categorical.categories[roleIndexArray[`KPIValueBag`][iCat]].source.displayName);
                     }
                     iColumn++;
                 }
                 for (let iCat: number = 0; iCat < roleIndexArray[`Tooltip`].length; iCat++) {
-                    rows1[iRow][iColumn] = dataView.categorical.values[roleIndexArray[`Tooltip`][iCat]].values[iRow];
+                    const format: string = dataView.categorical.values[roleIndexArray[`Tooltip`][iCat]].source.format;
+                    // tslint:disable-next-line:no-any
+                    let value: any = dataView.categorical.values[roleIndexArray[`Tooltip`][iCat]].values[iRow];
+                    if (format !== undefined) {
+                        if (dateFormat.test(value)) {
+                            value = ValueFormatter.format(new Date (value.toString()), format);
+                        } else {
+                            value = ValueFormatter.format(value, format);
+                        }
+                    }
+
+                    rows1[iRow][iColumn] = value;
                     if (displayNameArray.length < totalLength) {
                         displayNameArray.push(dataView.categorical.values[roleIndexArray[`Tooltip`][iCat]].source.displayName);
                     }
@@ -2742,20 +2831,17 @@ module powerbi.extensibility.visual {
             // tslint:disable-next-line:no-any
             let valuesdata: any;
             valuesdata = dataView.categorical.values;
-            // tslint:disable-next-line:no-any
-            let categoriesdata: any;
+            // tslint:disable-next-line
+            let categoriesdata: any[] = [];
             let categoriesdataLen: number = 0;
+            for (let i: number = 0; i < roleIndexArray[`Category`].length; i++) {
+                categoriesdata.push(dataView.categorical.categories[roleIndexArray[`Category`][i]]);
+            }
 
             let kpiLength: number;
             kpiLength = kpiData.length;
             categoriesdataLen = dataView.categorical.categories.length - (kpiLength + 1);
 
-            if (legendIndex === -1) {
-                categoriesdata = dataView.categorical.categories;
-            } else {
-                dataView.categorical.categories.splice(categoriesdataLen, 1);
-                categoriesdata = dataView.categorical.categories;
-            }
             columnMappings = dataView.metadata.columns;
             // tslint:disable-next-line:no-any
             let elementIterator: any;
@@ -2795,9 +2881,6 @@ module powerbi.extensibility.visual {
                 if (categoryColumns[i].source.roles.Legend) {
                     legendIndex1 = i;
                 }
-            }
-            if (legendIndex1 !== -1) {
-                categoryColumns.length = categoryColumns.length - 1;
             }
             Gantt.categorylength = categoryColumns.length;
             // tslint:disable-next-line:no-any
@@ -2902,7 +2985,6 @@ module powerbi.extensibility.visual {
 
             // tslint:disable-next-line:no-any
             categoriesdata[0].values.map((child: any, index: number) => {
-
                 let startDate: Date = null;
                 let endDate: Date = null;
                 let datamin: number = null;
@@ -2994,11 +3076,12 @@ module powerbi.extensibility.visual {
                             let index: number = 0;
                             // tslint:disable-next-line:no-any
                             tooltipIndexNew.forEach(function (tooltipMeasure: any): void {
-                                tooltipValues.push({
-                                    name: tooltipIndexNew[index],
-                                    value: d[tooltipMeasure]
-                                });
-                                index++;
+                                    tooltipValues.push({
+                                        name: tooltipIndexNew[index],
+                                        value: d[tooltipMeasure]
+                                    });
+
+                                    index++;
                             });
                             resource = d[resourceFeild] === undefined ? '' : d[resourceFeild];
                             if (typeof d[startDisplayName] !== 'number') {
@@ -3102,11 +3185,14 @@ module powerbi.extensibility.visual {
                 for (let iIterator: number = 0; iIterator < children.length; iIterator++) {
                     toArray(children[iIterator], level1, currentId);
                 }
+                const label: string = currentId.toString();
+                const catPresent: boolean = label in colorsPersistObject;
                 const defaultColor: Fill = {
                     solid: {
-                        color: colors.getColor(currentId.toString()).value
+                        color: catPresent ? colorsPersistObject[label] : colorPalette.getColor(currentId.toString()).value
                     }
                 };
+                colorsPersistObject[currentId.toString()] = defaultColor.solid.color;
                 const identity: string = null;
                 let selected: boolean;
                 selected = false;
@@ -3115,8 +3201,6 @@ module powerbi.extensibility.visual {
                 KPIValues = [];
                 // tslint:disable-next-line
                 let tooltipValues: KPIValues[];
-                // tslint:disable-next-line:typedef
-                //;
 
                 // tslint:disable-next-line:typedef
                 const row = {
@@ -3199,7 +3283,6 @@ module powerbi.extensibility.visual {
                 // tslint:disable-next-line:no-any
                 let cnt: number = 0;
                 const length: number = levels.length;
-                const colorPalette: IColorPalette = host.colorPalette;
                 // tslint:disable-next-line:no-any
                 const arrName: any[] = [];
                 arrName.push(arr.name);
@@ -3605,7 +3688,7 @@ module powerbi.extensibility.visual {
             const categoryLength: number = options.dataViews[0].categorical.categories.length;
             const valuesLength: number = options.dataViews[0].categorical.values.length;
             // tslint:disable-next-line:no-any
-            const dataview: any = options.dataViews[0];
+            this.dataview = options.dataViews[0];
             position(d3.select('.gantt-body'), this.barsLegend);
             if (!options.dataViews || !options.dataViews[0] || options.dataViews[0].categorical.categories[0].values.length === 0) {
                 this.clearViewport();
@@ -3644,6 +3727,13 @@ module powerbi.extensibility.visual {
 
             let objects: DataViewObjects = null;
             objects = options.dataViews[0].metadata.objects;
+            const colorsPersistedArray: string = getValue<string>(objects, 'caption', 'captionValue', '{}');
+            //Retrieve persisted colors array value
+            // tslint:disable-next-line:no-any
+            const colorsParsedArray: any = JSON.parse(colorsPersistedArray);
+            if (colorsPersistedArray !== '{}') {
+                colorsPersistObject = colorsParsedArray;
+            }
             let getJSONString1: string;
             getJSONString1 = getValue<string>(objects, 'sortAttributes', 'sortOrder', 'asc');
             let getJSONString2: number;
@@ -3654,8 +3744,7 @@ module powerbi.extensibility.visual {
             Gantt.sortLevel = getJSONString2;
             Gantt.prevSortedColumn = getJSONString2;
             const thisObj: this = this;
-            this.viewModel = Gantt.converter(dataview, this.host, this.colors, this.barsLegend, options.viewport);
-            //;
+            this.viewModel = Gantt.converter(this.dataview, this.host, this.colors, this.barsLegend, options.viewport);
             this.persistExpandCollapseSettings = this.viewModel.settings.persistExpandCollapseSettings;
             this.barsLegend.changeOrientation(LegendPosition.Top);
             Gantt.expandCollapseStates = JSON.parse(this.persistExpandCollapseSettings.expandCollapseState || '{}');
@@ -4243,6 +4332,21 @@ module powerbi.extensibility.visual {
                 d3.selectAll(dotLiteral + Selectors.taskRect.class),
                 this.selectionManager.getSelectionIds()
             );
+
+            //Persist colors array
+            let properties: { [propertyName: string]: DataViewPropertyValue };
+            properties = {};
+            properties[`captionValue`] = JSON.stringify(colorsPersistObject);
+            let caption1: VisualObjectInstancesToPersist;
+            caption1 = {
+                replace: [
+                    {
+                        objectName: 'caption',
+                        selector: null,
+                        properties: properties
+                    }]
+            };
+            this.host.persistProperties(caption1);
         }
 
         private syncSelectionState(
@@ -5661,7 +5765,6 @@ module powerbi.extensibility.visual {
             }
 
             if (!isTaskLabelHierarchyView) {
-                //;
                 let objects: DataViewObjects = null;
                 let getJSONString: string;
                 let columnWidth: number;
@@ -5945,26 +6048,49 @@ module powerbi.extensibility.visual {
                     let trancheAttr: string = '';
                     for (let jCount: number = 0; jCount < totalCategories; jCount++) {
                         let categoryLabel: string = tasks[tasknumber].name[jCount].toString();
+                        // tslint:disable-next-line:no-any
+                        const dataViewNew: any = this.dataview;
                         // tslint:disable-next-line:switch-default
                         switch (jCount) {
                             case 0: {
                                 regionAttr = tasks[tasknumber].name[jCount];
-                                categoryLabel = Gantt.regionValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                if (dateFormat.test(tasks[tasknumber].name[jCount])) {
+                                    categoryLabel = ValueFormatter.format(new Date(tasks[tasknumber].name[jCount].toString()),
+                                                                          dataViewNew.categorical.categories[jCount].source.format);
+                                } else {
+                                    categoryLabel = Gantt.regionValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                }
                                 break;
                             }
                             case 1: {
                                 metroAttr = tasks[tasknumber].name[jCount];
-                                categoryLabel = Gantt.metroValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                if (dateFormat.test(tasks[tasknumber].name[jCount])) {
+                                    categoryLabel = ValueFormatter.format(new Date(tasks[tasknumber].name[jCount].toString()),
+                                                                          dataViewNew.categorical.categories[jCount].source.format);
+                                } else {
+                                    categoryLabel = Gantt.metroValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                }
+
                                 break;
                             }
                             case 2: {
                                 projectAttr = tasks[tasknumber].name[jCount];
-                                categoryLabel = Gantt.projectValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                if (dateFormat.test(tasks[tasknumber].name[jCount])) {
+                                    categoryLabel = ValueFormatter.format(new Date(tasks[tasknumber].name[jCount].toString()),
+                                                                          dataViewNew.categorical.categories[jCount].source.format);
+                                } else {
+                                    categoryLabel = Gantt.projectValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                }
                                 break;
                             }
                             case 3: {
                                 trancheAttr = tasks[tasknumber].name[jCount];
-                                categoryLabel = Gantt.trancheValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                if (dateFormat.test(tasks[tasknumber].name[jCount])) {
+                                    categoryLabel = ValueFormatter.format(new Date(tasks[tasknumber].name[jCount].toString()),
+                                                                          dataViewNew.categorical.categories[jCount].source.format);
+                                } else {
+                                    categoryLabel = Gantt.trancheValueFormatter.format(tasks[tasknumber].name[jCount]);
+                                }
                             }
 
                         }
@@ -6017,7 +6143,7 @@ module powerbi.extensibility.visual {
                             }
 
                             if (categoryLabel === '') {
-                                categoryLabel = 'N/A';
+                                categoryLabel = '(Blank)';
                             }
 
                             if (jCount === totalCategories - 1) {
@@ -7124,16 +7250,15 @@ module powerbi.extensibility.visual {
                                 }
                                 scrollWidth = textMargin;
                             }
-                            let printString: string;
                             // tslint:disable-next-line:no-any
-                            if (dateFormat.test(<any>tasks[tasknumber].name)) {
-                                // tslint:disable-next-line:no-any
-                                printString = <any>tasks[tasknumber].start;
-                            } else {
-                                // tslint:disable-next-line:no-any
-                                printString = <any>tasks[tasknumber].name;
-                            }
-                            axisLabel = lineDiv.append('text').text(printString)
+                            const lableWidth: number = textMeasurementService.measureSvgTextWidth(<any>tasks[tasknumber].name);
+                            const availableWIdth: number = Gantt.taskLabelWidthOriginal;
+                            const catwidth: number = lableWidth > availableWIdth ? lableWidth : availableWIdth - textMargin;
+                            axisLabel = lineDiv.append('text').text(tasks[tasknumber].name)
+                            .call(
+                                AxisHelper.LabelLayoutStrategy.clip,
+                                catwidth,
+                                textMeasurementService.svgEllipsis)
                                 .attr('title', tasks[tasknumber].name);
                             axisLabel
                                 .style('font-size', normalizer + pxLiteral).style('font-family', taskLabelsFontFamily)
@@ -8561,7 +8686,7 @@ module powerbi.extensibility.visual {
                                             xPosVal = ((barStartpt1 + (barEndpt1 / 2)));
                                             break;
                                         case 'left':
-                                            xPosVal = barStartpt1 - 70;
+                                            xPosVal = barStartpt1 - 50;
                                             break;
                                         case 'right':
                                         default:
@@ -9110,7 +9235,8 @@ module powerbi.extensibility.visual {
                             if (this.viewModelNew.tasksNew[iIterator].repeat === 0) {
                                 instances.push({
                                     objectName: 'barColor',
-                                    displayName: `${this.viewModelNew.tasksNew[iIterator].name[categoryIndx]}`,
+                                    displayName: this.viewModelNew.tasksNew[iIterator].name[categoryIndx] === '' ?
+                                    '(Blank)' : this.viewModelNew.tasksNew[iIterator].name[categoryIndx],
                                     properties: {
                                         fillColor: this.viewModelNew.tasksNew[iIterator].color
                                     },
@@ -9152,7 +9278,7 @@ module powerbi.extensibility.visual {
                                 Gantt.tasknew[iIterator].repeat === 0) {
                                 instances.push({
                                     objectName: 'barColor',
-                                    displayName: displayName.toString(),
+                                    displayName: displayName.toString() === '' ? '(Blank)' : displayName.toString(),
                                     properties: {
                                         fillColor: Gantt.tasknew[iIterator].color
                                     },

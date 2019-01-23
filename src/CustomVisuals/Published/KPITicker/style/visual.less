@@ -46,7 +46,6 @@
 	height: 0;
 	margin-top: 3%;
 	margin-right: 10px;
-	overflow: hidden;
 	width: 0;
 }
 .arrowDown {
@@ -59,12 +58,14 @@
 	background: #efefef;
 	border-left: 1px solid #ffffff;
 	border-top: 1px solid #ffffff;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
 	color: #333;
 	float: left;
 	font-family: 'Segoe UI';
 	font-weight: bold;
 	height: 80px;
-	overflow: hidden;
 	cursor: initial;
 }
 .indicator {
@@ -110,11 +111,15 @@
 .tliChange {
 	color: #043c74;
 	font-family: 'SEGOE UI';
+	height: auto;
 	font-size: 10px;
-	height: 10%;
-	margin-top: 2%;
+	margin-top: 1%;
 	margin-right: 10px;
+	overflow: hidden;
 	display:inline-block;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+		
 }
 .tliChangeKPIOne{
 	margin-top: 1%;
@@ -128,14 +133,22 @@
 .tliChangePositive {
 	color: #090;
 }
+.ellipsis{
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
 .tliChangePrice {
 	color: #043c74;
 	font-family: 'SEGOE UI';
 	font-size: 10px;
-	height: 10%;
-	margin-top: 2% ;
+	height: auto;
+	margin-top: 1%;
 	margin-right: 10px;
 	display: inline-block;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
 }
 .tliChangePriceKPIOne{
 	margin-top: 1%;
@@ -152,7 +165,7 @@
 .tliName {
 	color: #043c74;
 	font-size: 12px;
-	height: 50%;
+	height: auto;
 	margin-left: 5px;
 	white-space: nowrap;
 	text-overflow: ellipsis;
@@ -175,10 +188,13 @@
 	color: #043c74;
 	font-family: 'SEGOE UI';
 	font-size: 10px;
-	height: 10%;
-	margin-top: 2%;
+	height: auto;
+	margin-top: 1%;
 	margin-left: 10px;
 	margin-right: 10px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 	display: inline-block;
 }
 .tliPriceKPIOne{
@@ -188,8 +204,8 @@
 #wrapper {
 	margin: 15px;
 	height: 80px;
-	overflow: hidden;
 	position: absolute;
+	overflow: hidden;
 	cursor: initial;
 }
 #wrapper1, #wrapper2 {

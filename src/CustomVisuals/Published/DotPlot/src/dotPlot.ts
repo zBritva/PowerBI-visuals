@@ -2470,8 +2470,8 @@ module powerbi.extensibility.visual {
             // Adding tooltips
             this.tooltipServiceWrapper.addTooltip(
                 d3.selectAll('.dotPlot_dot'),
-                (tooltipEvent: TooltipEventArgs<number>) => this.getTooltipData(tooltipEvent.data),
-                (tooltipEvent: TooltipEventArgs<number>) => null
+                (tooltipEvent: TooltipEventArgs<IDotPlotViewModel>) => this.getTooltipData(tooltipEvent.data),
+                (tooltipEvent: TooltipEventArgs<IDotPlotViewModel>) => tooltipEvent.data.selectionId
             );
         }
 
