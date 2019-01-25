@@ -48,10 +48,10 @@
                     "xAxis": {
                         "max": 1
                     },
-                    "yAxis": {
+                    "radialAxis": {
                         "max": 1
                     },
-                    "radialAxis": {
+                    "yAxis": {
                         "max": 1
                     }
                 }
