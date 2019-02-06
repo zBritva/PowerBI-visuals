@@ -27,6 +27,18 @@
         }
     ],
     "objects": {
+        "caption":{
+           "displayName": "Caption Value",
+           "properties":{
+               "captionValue":{
+                   "displayName": "Caption Value",
+                   "description": "Caption Value",
+                   "type":{
+                       "text": true
+                   }
+               }
+            }
+        },
         "legend": {
             "displayName": "Legend",
             "description": "Formatting properties for legends",

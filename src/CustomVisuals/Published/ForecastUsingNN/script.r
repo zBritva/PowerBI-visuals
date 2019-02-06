@@ -384,7 +384,7 @@ error=function(e)
      #initiating date time extraction
                         pretsSeries<-data.frame(Category,Value)
                         colnames(pretsSeries)<-c("seriesStamps","dataValues")
-                        x<-as.POSIXct(pretsSeries$seriesStamps)
+                        x<-as.POSIXct(pretsSeries$seriesStamps, origin = "1960-10-01")
 
                         tsSeries<-structure(list(y=c(pretsSeries$dataValues), date=c(x)))
 
