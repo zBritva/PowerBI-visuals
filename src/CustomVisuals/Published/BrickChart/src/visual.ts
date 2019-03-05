@@ -831,7 +831,7 @@ module powerbi.extensibility.visual {
                                 }
                             }
                         } else {
-                            for (iRow = 0; iRow < 10; iRow++) { 
+                            for (iRow = 0; iRow < 10; iRow++) {
                                 for (iColumn = 0; iColumn < 10; iColumn++) {
                                     let svg: d3.Selection<SVGElement>;
                                     svg = this.svg
@@ -849,7 +849,7 @@ module powerbi.extensibility.visual {
                     if (flag === 1) {
                         for (iRow = 0; iRow < 10; iRow++) {
                             for (iColumn = 0; iColumn < 20; iColumn++) {
-                                let svg: d3.Selection<SVGElement>;                                
+                                let svg: d3.Selection<SVGElement>;
                                 svg = this.svg
                                     .append('rect')
                                     .classed('linearSVG', true)
@@ -913,7 +913,7 @@ module powerbi.extensibility.visual {
                     if (this.data.dataPoints.length < 1000) {
                         let counter: number;
                         for (counter = 0; counter < this.data.dataPoints.length; counter++) {
-                            let data: IBrickChartDataPoint[] = [];
+                            const data: IBrickChartDataPoint[] = [];
                             data.push(this.data.dataPoints[counter]);
                             if (this.data.dataPoints[counter].value > 0) {
                                 let cnt: number;
@@ -985,7 +985,7 @@ module powerbi.extensibility.visual {
                     if (this.data.dataPoints.length < 1000) {
                         let counter: number;
                         for (counter = 0; counter < this.data.dataPoints.length; counter++) {
-                            let data: IBrickChartDataPoint[] = [];
+                            const data: IBrickChartDataPoint[] = [];
                             data.push(this.data.dataPoints[counter]);
                             if (this.data.dataPoints[counter].value > 0) {
                                 let cnt: number;
@@ -1074,7 +1074,7 @@ module powerbi.extensibility.visual {
                 this.renderLegend(this.data, sum);
                 this.updateStyleColor();
                 this.tooltipServiceWrapper.addTooltip(
-                    d3.selectAll('svg>*'), (tooltipEvent: tooltip.TooltipEventArgs<IBrickChartDataPoint>) => {
+                    d3.selectAll('.linearSVG'), (tooltipEvent: tooltip.TooltipEventArgs<IBrickChartDataPoint>) => {
                         return tooltipEvent.context['cust-tooltip'];
                     },
                     // tslint:disable-next-line:max-line-length
