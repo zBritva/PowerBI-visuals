@@ -2980,7 +2980,7 @@ module powerbi.extensibility.visual {
                 formatter = ValueFormatter.create({
                     format: formattingString
                 });
-                if (isNaN(parseFloat(tooltipDataPoints[i].value))) {
+                if (isNaN(Number(tooltipDataPoints[i].value))) {
                     tooltipData.value = (tooltipDataPoints[i].value === '' ? '(Blank)' : tooltipDataPoints[i].value);
                 } else {
                     tooltipData.value = formatter.format(parseFloat(tooltipDataPoints[i].value));
