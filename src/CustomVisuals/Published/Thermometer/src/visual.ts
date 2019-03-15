@@ -239,8 +239,8 @@ module powerbi.extensibility.visual {
             let tempAvailable : boolean;
             tempAvailable = false;
             if (dataView && dataView.categorical) {
-                for (let i : number = 0; i < dataView.metadata.columns.length; i++) {
-                    if (options.dataViews[0].metadata.columns[i].roles[`Temperature`]) {
+                for (let iCatValue : number = 0; iCatValue < dataView.categorical.values.length; iCatValue++) {
+                    if (options.dataViews[0].categorical.values[iCatValue].source.roles[`Temperature`]) {
                         tempAvailable = true;
                     }
                 }
@@ -580,20 +580,20 @@ module powerbi.extensibility.visual {
         private getLowValueForLegend(): number[] {
             // tslint:disable-next-line:no-any
             const low : any[] = [];
-            for (let k : number = 0; k < 4; k++) {
-                if (k === 0) {
+            for (let lowVal : number = 0; lowVal < 4; lowVal++) {
+                if (lowVal === 0) {
                     if (this.data.min !== null) {
                         low.push(this.data.min);
                     }
-                } else if (k === 1) {
+                } else if (lowVal === 1) {
                     if (this.range.range1 !== null) {
                         low.push(this.range.range1);
                     }
-                } else if (k === 2) {
+                } else if (lowVal === 2) {
                     if (this.range.range2 !== null) {
                         low.push(this.range.range2);
                     }
-                } else if (k === 3) {
+                } else if (lowVal === 3) {
                     if (this.range.range3 !== null) {
                         low.push(this.range.range3);
                     }
@@ -605,14 +605,14 @@ module powerbi.extensibility.visual {
         private getHighValueForLegend(): number[] {
             // tslint:disable-next-line:no-any
             const high : any[] = [];
-            for (let k : number = 0; k < 4; k++) {
-                if (k === 0) {
+            for (let highVal : number = 0; highVal < 4; highVal++) {
+                if (highVal === 0) {
                     if (this.range.range1 !== null) { high.push(this.range.range1); }
-                } else if (k === 1) {
+                } else if (highVal === 1) {
                     if (this.range.range2 !== null) { high.push(this.range.range2); }
-                } else if (k === 2) {
+                } else if (highVal === 2) {
                     if (this.range.range3 !== null) { high.push(this.range.range3); }
-                } else if (k === 3) {
+                } else if (highVal === 3) {
                     if (this.data.max !== null) { high.push(this.data.max); }
                 }
             }
