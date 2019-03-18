@@ -143,7 +143,7 @@ module powerbi.extensibility.visual {
             if (dataView && dataView.categorical) {
                 let index: number;
                 for (iCount = 0; iCount < categoriesLength; iCount++) {
-                    index = dataView.metadata.columns[iCount].index;
+                    index = dataView.categorical.values[iCount].source.index;
                     // tslint:disable-next-line:no-any
                     const dataViewSourceRole: any = dataView.categorical.values[iCount].source.roles;
                     if (dataViewSourceRole.hasOwnProperty('Values')) {
@@ -323,64 +323,66 @@ module powerbi.extensibility.visual {
         /** Update is called for data updates, resizes & formatting changes */
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
-             this.margins = {
+            this.margins = {
                 bottom: 30,
                 small: 20,
                 big: 0
             };
-             this.svg.selectAll('.cylinder').remove();
-             this.svg.selectAll('.yLabels').remove();
-             this.svg.selectAll('line').remove();
-             this.rootElement.selectAll('.ErrorMessage').remove();
+            this.svg.selectAll('.cylinder').remove();
+            this.svg.selectAll('.yLabels').remove();
+            this.svg.selectAll('line').remove();
+            this.rootElement.selectAll('.ErrorMessage').remove();
 
-             if (options.viewport.width <= 50) {
+            if (options.viewport.width <= 50) {
                 return;
             }
-             const mainGroup: d3.Selection<SVGElement> = this.svg.append('g').classed('cylinder', true);
-             this.gradient = mainGroup.append('svg:linearGradient');
-             this.gradient1 = mainGroup.append('svg:linearGradient');
-             this.gradient2 = mainGroup.append('svg:linearGradient');
-             this.gradient3 = mainGroup.append('svg:linearGradient');
-             this.gradient4 = mainGroup.append('svg:linearGradient');
-             this.backRect = mainGroup.append('rect');
-             this.backCircle = mainGroup.append('ellipse');
-             this.zones = mainGroup.append('g').classed('zones', true);
-             this.zone1 = mainGroup.append('ellipse').classed('zone1', true);
-             this.zone2 = mainGroup.append('ellipse').classed('zone2', true);
-             this.zone3 = mainGroup.append('ellipse').classed('zone3', true);
-             this.zone4 = mainGroup.append('ellipse').classed('zone4', true);
-             this.topCircle = mainGroup.append('ellipse');
-             this.fillRect1 = mainGroup.append('rect').classed('front_rect1', true);
-             this.fillRect2 = mainGroup.append('rect').classed('front_rect2', true);
-             this.fillCircle = mainGroup.append('ellipse').classed('top', true);
-             this.highlightCircle = mainGroup.append('ellipse').classed('highlightCircle', true);
-             this.tempMarkings = this.svg.append('g').attr('class', 'yLabels axis');
-             this.axisMarking = this.svg.append('line').classed('highlight_line', true);
-             this.bottomCircle = mainGroup.append('ellipse').classed('bottom', true);
-             this.targetCircle = mainGroup.append('ellipse').classed('Target', true);
+            const mainGroup: d3.Selection<SVGElement> = this.svg.append('g').classed('cylinder', true);
+            this.gradient = mainGroup.append('svg:linearGradient');
+            this.gradient1 = mainGroup.append('svg:linearGradient');
+            this.gradient2 = mainGroup.append('svg:linearGradient');
+            this.gradient3 = mainGroup.append('svg:linearGradient');
+            this.gradient4 = mainGroup.append('svg:linearGradient');
+            this.backRect = mainGroup.append('rect');
+            this.backCircle = mainGroup.append('ellipse');
+            this.zones = mainGroup.append('g').classed('zones', true);
+            this.zone1 = mainGroup.append('ellipse').classed('zone1', true);
+            this.zone2 = mainGroup.append('ellipse').classed('zone2', true);
+            this.zone3 = mainGroup.append('ellipse').classed('zone3', true);
+            this.zone4 = mainGroup.append('ellipse').classed('zone4', true);
+            this.topCircle = mainGroup.append('ellipse');
+            this.fillRect1 = mainGroup.append('rect').classed('front_rect1', true);
+            this.fillRect2 = mainGroup.append('rect').classed('front_rect2', true);
+            this.fillCircle = mainGroup.append('ellipse').classed('top', true);
+            this.highlightCircle = mainGroup.append('ellipse').classed('highlightCircle', true);
+            this.tempMarkings = this.svg.append('g').attr('class', 'yLabels axis');
+            this.axisMarking = this.svg.append('line').classed('highlight_line', true);
+            this.bottomCircle = mainGroup.append('ellipse').classed('bottom', true);
+            this.targetCircle = mainGroup.append('ellipse').classed('Target', true);
             //target range circles
-             this.greaterCircle = mainGroup.append('ellipse').classed('targetcircle_greater', true);
-             this.lessCircle = mainGroup.append('ellipse').classed('targetcircle_less', true);
-             this.zoneLines = mainGroup.append('g').classed('zoneLines', true);
-             this.text = mainGroup.append('text');
-             this.viewport = options.viewport;
-             this.isActual = false;
-             this.isMin = false;
-             this.isMax = false;
-             this.isTarget = false;
+            this.greaterCircle = mainGroup.append('ellipse').classed('targetcircle_greater', true);
+            this.lessCircle = mainGroup.append('ellipse').classed('targetcircle_less', true);
+            this.zoneLines = mainGroup.append('g').classed('zoneLines', true);
+            this.text = mainGroup.append('text');
+            this.viewport = options.viewport;
+            this.isActual = false;
+            this.isMin = false;
+            this.isMax = false;
+            this.isTarget = false;
              // tslint:disable-next-line:no-any
-             const dataViewOptions: any = options.dataViews[0];
-             this.highlight = dataViewOptions.categorical.values[0].highlights ? true : false;
-             if (this.highlight) {
-                this.highlightValue = dataViewOptions.categorical.values[0].highlights[0] === null ? 0
-                : <number>dataViewOptions.categorical.values[0].highlights[0];
+            const dataViewOptions: any = options.dataViews[0];
+            // tslint:disable-next-line:no-any
+            const dataViewOptionsCatValues: any = dataViewOptions.categorical.values;
+            this.highlight = dataViewOptionsCatValues[0].highlights ? true : false;
+            if (this.highlight) {
+                this.highlightValue = dataViewOptionsCatValues[0].highlights[0] === null ? 0
+                : <number>dataViewOptionsCatValues[0].highlights[0];
                 if (this.isTarget) {
-                    this.highlightTarget = <number>dataViewOptions.categorical.values[1].highlights[0];
+                    this.highlightTarget = <number>dataViewOptionsCatValues[1].highlights[0];
                 }
             }
-             for (let iCatValue: number = 0; iCatValue < dataViewOptions.categorical.values.length; iCatValue++) {
+            for (let iCatValue: number = 0; iCatValue < dataViewOptionsCatValues.length; iCatValue++) {
                  // tslint:disable-next-line:no-any
-                 const dataViewRole: any = dataViewOptions.categorical.values[iCatValue].source.roles;
+                 const dataViewRole: any = dataViewOptionsCatValues[iCatValue].source.roles;
                  if (dataViewRole.hasOwnProperty('Values')) {
                     this.isActual = true;
                 }
@@ -395,10 +397,10 @@ module powerbi.extensibility.visual {
                 }
             }
 
-             if (!options.dataViews || 0 === options.dataViews.length) {
+            if (!options.dataViews || 0 === options.dataViews.length) {
                 return;
             }
-             if (!this.isActual) {
+            if (!this.isActual) {
                 const message: string = 'Please add "Actual Value" field';
                 this.rootElement
                     .append('div')
@@ -409,71 +411,71 @@ module powerbi.extensibility.visual {
                 return;
             }
 
-             const dataView: DataView = this.dataView = options.dataViews[0];
-             this.data = null;
-             this.data1 = null;
-             this.data = CylindricalGauge.converter1(dataView);
-             this.data1 = CylindricalGauge.converter(options.dataViews[0], null);
-             if (!this.data) {
+            const dataView: DataView = this.dataView = options.dataViews[0];
+            this.data = null;
+            this.data1 = null;
+            this.data = CylindricalGauge.converter1(dataView);
+            this.data1 = CylindricalGauge.converter(options.dataViews[0], null);
+            if (!this.data) {
                 return;
             }
-             this.getSettings(dataView.metadata.objects);
+            this.getSettings(dataView.metadata.objects);
 
-             this.data1.max = this.data.maxValue || this.settings.maxValue;
-             this.data1.Greater = this.settings.Greater;
-             this.data1.Less = this.settings.Less;
-             this.data1.min = this.data.minValue || this.settings.minValue;
-             this.data1.drawTickBar = this.settings.tickBar;
-             this.data1.targetRange = this.settings.targetRange;
-             this.data1.targetValue = this.data.targetValue || this.settings.tarValue;
+            this.data1.max = this.data.maxValue || this.settings.maxValue;
+            this.data1.Greater = this.settings.Greater;
+            this.data1.Less = this.settings.Less;
+            this.data1.min = this.data.minValue || this.settings.minValue;
+            this.data1.drawTickBar = this.settings.tickBar;
+            this.data1.targetRange = this.settings.targetRange;
+            this.data1.targetValue = this.data.targetValue || this.settings.tarValue;
 
             // to handle invalid datatypes
-             if (typeof (this.data1.value) === 'string' || typeof (this.data1.value) === 'object') {
+            if (typeof (this.data1.value) === 'string' || typeof (this.data1.value) === 'object') {
                 this.data1.value = 0;
             }
             // to handle value greater than max value
-             if (this.data1.value > this.data1.max || this.data1.max === null) {
+            if (this.data1.value > this.data1.max || this.data1.max === null) {
                 if (this.data1.value >= 0) {
                     this.data1.max = this.data1.value * 2;
                 } else {
                     this.data1.max = this.data1.value / 2;
                 }
             }
-             if (this.data1.value < this.data1.min || this.data1.min === null) {
+            if (this.data1.value < this.data1.min || this.data1.min === null) {
                 if (this.data1.value >= 0) {
                     this.data1.min = this.data1.value / 2;
                 } else {
                     this.data1.min = this.data1.value * 2;
                 }
             }
-             if (this.data1.targetValue < this.data1.min && this.data1.targetValue !== null) {
+            if (this.data1.targetValue < this.data1.min && this.data1.targetValue !== null) {
                 this.data1.min = this.data1.targetValue;
             }
-             if (this.data1.targetValue > this.data1.max && this.data1.targetValue !== null) {
+            if (this.data1.targetValue > this.data1.max && this.data1.targetValue !== null) {
                 this.data1.max = this.data1.targetValue;
             }
 
-             if (this.data1.min > this.highlightValue && this.highlight) {
+            if (this.data1.min > this.highlightValue && this.highlight) {
                 this.data1.min = this.highlightValue;
             }
 
             // to handle extreme cases where min is greater than max
-             if (this.data1.min >= this.data1.max) {
+            if (this.data1.min >= this.data1.max) {
                 this.data1.max = this.data1.min + 10;
             }
 
-             if (this.data1.Less > this.data1.max || this.data1.Less < this.data1.min
+            if (this.data1.Less > this.data1.max || this.data1.Less < this.data1.min
                 || this.data1.Less > this.data1.targetValue) {
                 this.data1.Less = this.settings.Less = null;
             }
-             if (this.data1.Greater > this.data1.max || this.data1.Greater < this.data1.min
+            if (this.data1.Greater > this.data1.max || this.data1.Greater < this.data1.min
                 || this.data1.Greater < this.data1.targetValue) {
                 this.data1.Greater = this.settings.Greater = null;
             }
-             this.settings.minValue = this.data1.min;
-             this.settings.maxValue = this.data1.max;
+            this.settings.minValue = this.data1.min;
+            this.settings.maxValue = this.data1.max;
 
-             if (this.settings.showZones) {
+            if (this.settings.showZones) {
                 const range12Max: number = Math.max(this.settings.range1, this.settings.range2);
                 const range123Max: number = Math.max(this.settings.range1, this.settings.range2, this.settings.range3);
                 this.settings.range1 = this.settings.range1 === null ? null
@@ -490,45 +492,45 @@ module powerbi.extensibility.visual {
                     range123Max : this.settings.range4 > this.data1.max ? null : this.settings.range4;
             }
 
-             this.getFormatter(options);
+            this.getFormatter(options);
 
-             const viewport: IViewport = options.viewport;
-             const height: number = viewport.height;
-             const width: number = viewport.width;
-             const visualheight: number = (height > 155 ? height - 5 : 150);
-             const measureTextProperties: TextProperties = {
+            const viewport: IViewport = options.viewport;
+            const height: number = viewport.height;
+            const width: number = viewport.width;
+            const visualheight: number = (height > 155 ? height - 5 : 150);
+            const measureTextProperties: TextProperties = {
                 text: 'ss',
                 fontFamily: 'Segoe UI',
                 fontSize: `${this.settings.labelFontSize}px`
 
             };
-             let labelHeight: number = 0;
-             labelHeight = textMeasurementService.measureSvgTextHeight(measureTextProperties);
+            let labelHeight: number = 0;
+            labelHeight = textMeasurementService.measureSvgTextHeight(measureTextProperties);
 
-             this.svg.attr({
+            this.svg.attr({
                 height: visualheight,
                 width: width
             });
 
-             this.div.style({
+            this.div.style({
                 height: `${height}px`,
                 width: `${width}px`
             });
 
-             let check: boolean;
-             if (!this.isTarget && this.settings.tarValue === null) {
+            let check: boolean;
+            if (!this.isTarget && this.settings.tarValue === null) {
                 check = false;
             } else {
                 check = true;
             }
 
-             if (this.settings.labelPos.toString() === 'in' || !this.settings.showLabels) {
+            if (this.settings.labelPos.toString() === 'in' || !this.settings.showLabels) {
                 this.draw(width, visualheight, check);
             } else {
                 this.draw(width, visualheight - labelHeight + 15, check);
             }
 
-             this.renderTooltip();
+            this.renderTooltip();
         }
         private getFormattedData(value: number, displayUnits: number, precision: number, format: string): string {
             let formattedData: string;
