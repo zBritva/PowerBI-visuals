@@ -236,10 +236,11 @@ module powerbi.extensibility.visual {
                 max: null,
                 drawTickBar: null
             };
-            let tempAvailable : boolean;
-            tempAvailable = false;
-            if (dataView && dataView.categorical) {
-                for (let iCatValue : number = 0; iCatValue < dataView.categorical.values.length; iCatValue++) {
+            let tempAvailable : boolean = false;
+            // tslint:disable-next-line:no-any
+            const dataViewCat: any = dataView.categorical;
+            if (dataView && dataViewCat) {
+                for (let iCatValue : number = 0; iCatValue < dataViewCat.values.length; iCatValue++) {
                     if (options.dataViews[0].categorical.values[iCatValue].source.roles[`Temperature`]) {
                         tempAvailable = true;
                     }
@@ -581,24 +582,31 @@ module powerbi.extensibility.visual {
             // tslint:disable-next-line:no-any
             const low : any[] = [];
             for (let lowVal : number = 0; lowVal < 4; lowVal++) {
-                if (lowVal === 0) {
+                switch (lowVal) {
+                    case 0:
                     if (this.data.min !== null) {
                         low.push(this.data.min);
                     }
-                } else if (lowVal === 1) {
-                    if (this.range.range1 !== null) {
+                    break;
+                    case 1:
+                if (this.range.range1 !== null) {
                         low.push(this.range.range1);
                     }
-                } else if (lowVal === 2) {
+                break;
+
+                case 2:
                     if (this.range.range2 !== null) {
                         low.push(this.range.range2);
                     }
-                } else if (lowVal === 3) {
+                    break;
+                case 3:
                     if (this.range.range3 !== null) {
                         low.push(this.range.range3);
                     }
-                }
-            }
+                    break;
+                default:
+                break;
+            }}
 
             return low;
         }
@@ -606,14 +614,25 @@ module powerbi.extensibility.visual {
             // tslint:disable-next-line:no-any
             const high : any[] = [];
             for (let highVal : number = 0; highVal < 4; highVal++) {
-                if (highVal === 0) {
+                switch (highVal) {
+                    case 0:
                     if (this.range.range1 !== null) { high.push(this.range.range1); }
-                } else if (highVal === 1) {
+                    break;
+
+                 case 1 :
                     if (this.range.range2 !== null) { high.push(this.range.range2); }
-                } else if (highVal === 2) {
+                    break;
+
+                case 2:
                     if (this.range.range3 !== null) { high.push(this.range.range3); }
-                } else if (highVal === 3) {
+                    break;
+
+                case 3:
                     if (this.data.max !== null) { high.push(this.data.max); }
+                    break;
+
+                default:
+                    break;
                 }
             }
 
