@@ -143,17 +143,19 @@ module powerbi.extensibility.visual {
             if (dataView && dataView.categorical) {
                 let index: number;
                 for (iCount = 0; iCount < categoriesLength; iCount++) {
-                    index = dataView.metadata.columns[iCount].index;
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Values')) {
+                    index = dataView.categorical.values[iCount].source.index;
+                    // tslint:disable-next-line:no-any
+                    const dataViewSourceRole: any = dataView.categorical.values[iCount].source.roles;
+                    if (dataViewSourceRole.hasOwnProperty('Values')) {
                         data.value = <number>dataValues[index];
                     }
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('TargetValue')) {
+                    if (dataViewSourceRole.hasOwnProperty('TargetValue')) {
                         data.targetValue = <number>dataValues[index];
                     }
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Min')) {
+                    if (dataViewSourceRole.hasOwnProperty('Min')) {
                         data.minValue = <number>dataValues[index];
                     }
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Max')) {
+                    if (dataViewSourceRole.hasOwnProperty('Max')) {
                         data.maxValue = <number>dataValues[index];
                     }
                 }
@@ -184,7 +186,6 @@ module powerbi.extensibility.visual {
                 };
             }
         }
-
         public getSettings(objects: DataViewObjects): void {
             if (typeof this.settings === `undefined` || (JSON.stringify(objects) !== JSON.stringify(this.prevDataViewObjects))) {
                 let animationTime: number = getValue<number>(objects, 'config', 'animationTime', null);
@@ -367,26 +368,31 @@ module powerbi.extensibility.visual {
             this.isMin = false;
             this.isMax = false;
             this.isTarget = false;
-
-            this.highlight = options.dataViews[0].categorical.values[0].highlights ? true : false;
+             // tslint:disable-next-line:no-any
+            const dataViewOptions: any = options.dataViews[0];
+            // tslint:disable-next-line:no-any
+            const dataViewOptionsCatValues: any = dataViewOptions.categorical.values;
+            this.highlight = dataViewOptionsCatValues[0].highlights ? true : false;
             if (this.highlight) {
-                this.highlightValue = options.dataViews[0].categorical.values[0].highlights[0] === null ? 0
-                : <number>options.dataViews[0].categorical.values[0].highlights[0];
+                this.highlightValue = dataViewOptionsCatValues[0].highlights[0] === null ? 0
+                : <number>dataViewOptionsCatValues[0].highlights[0];
                 if (this.isTarget) {
-                    this.highlightTarget = <number>options.dataViews[0].categorical.values[1].highlights[0];
+                    this.highlightTarget = <number>dataViewOptionsCatValues[1].highlights[0];
                 }
             }
-            for (let i: number = 0; i < options.dataViews[0].metadata.columns.length; i++) {
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('Values')) {
+            for (let iCatValue: number = 0; iCatValue < dataViewOptionsCatValues.length; iCatValue++) {
+                 // tslint:disable-next-line:no-any
+                 const dataViewRole: any = dataViewOptionsCatValues[iCatValue].source.roles;
+                 if (dataViewRole.hasOwnProperty('Values')) {
                     this.isActual = true;
                 }
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('TargetValue')) {
+                 if (dataViewRole.hasOwnProperty('TargetValue')) {
                     this.isTarget = true;
                 }
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('Min')) {
+                 if (dataViewRole.hasOwnProperty('Min')) {
                     this.isMin = true;
                 }
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('Max')) {
+                 if (dataViewRole.hasOwnProperty('Max')) {
                     this.isMax = true;
                 }
             }
@@ -526,7 +532,6 @@ module powerbi.extensibility.visual {
 
             this.renderTooltip();
         }
-
         private getFormattedData(value: number, displayUnits: number, precision: number, format: string): string {
             let formattedData: string;
             let formatterVal: number = displayUnits;
