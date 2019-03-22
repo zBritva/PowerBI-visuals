@@ -1,11 +1,11 @@
 {
   "name": "maq-visuals-utils-chartutils",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "ChartUtils",
   "main": "lib/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MAQPoojaM/PowerBI-visuals/tree/Pooja/VennPackage/documents/Published/Venn%20Diagram/maq-visuals-utils-chartutils-1.0.6/ChartUtils"
+    "url": "git+https://github.com/maqsoftware/PowerBI-visuals/tree/master/packages/maq-visuals-utils-chartutils"
   },
   "keywords": [
     "powerbi-visuals-utils"
@@ -13,9 +13,9 @@
   "author": "MAQSoftware",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/MAQPoojaM/PowerBI-visuals/tree/Pooja/VennPackage/documents/Published/Venn%20Diagram/maq-visuals-utils-chartutils-1.0.6/ChartUtils/issues"
+    "url": "https://github.com/maqsoftware/PowerBI-visuals/tree/master/packages/maq-visuals-utils-chartutils#issues"
   },
-  "homepage": "https://github.com/MAQPoojaM/PowerBI-visuals/tree/Pooja/VennPackage/documents/Published/Venn%20Diagram/maq-visuals-utils-chartutils-1.0.6/ChartUtils#readme",
+  "homepage": "https://github.com/maqsoftware/PowerBI-visuals/tree/master/packages/maq-visuals-utils-chartutils#readme",
   "files": [
     "lib"
   ],
