@@ -279,7 +279,6 @@ module powerbi.extensibility.visual {
             });
         }
 
-
         public pointToPixel(pt: number): string {
             const pxPtRatio: number = 4 / 3;
             const pixelString: string = 'px';
@@ -597,7 +596,10 @@ module powerbi.extensibility.visual {
             switch (textSettings.direction) {
                 case 'vertical-lr':
                     textRotationVal = 180 + textRotationVal;
-                    writingMode = 'vertical-rl';
+                    writingMode = 'tb-rl';
+                    break;
+                case 'vertical-rl':
+                    writingMode = 'tb-rl';
                     break;
                 case 'horizontal-bt':
                     textRotationVal = 180 + textRotationVal;
@@ -828,8 +830,7 @@ module powerbi.extensibility.visual {
             this.finalTextContainer = d3.select('.tw_finalText').append('div').classed('tw_pers', true);
 
             // Text Ordering
-            let colonText: string;
-            colonText = ' : ';
+            const colonText: string = ' : ';
             if (textValStatic !== '' && this.staticTextSettings.showColon) {
                 if (this.staticTextSettings.textPosition === 'suffix') {
 
@@ -1378,10 +1379,9 @@ module powerbi.extensibility.visual {
                 }
                 d3.select('.tw_pers').style('transform', transformedVal);
             }
-                 
         //Below Two lines are to handle height issue of div in edge
-            let span_height = $('.dynamicText').height();
-            $('.tw_value.tw_finalText').height(span_height+2); 
+            const spanHeight: number = $('.dynamicText').height();
+            $('.tw_value.tw_finalText').height(spanHeight + 2);
         }
 
         private getTexts(text: string, fontStyleClass: string, textDecoration: string, textFontSize: number,
