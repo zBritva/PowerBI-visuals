@@ -1,7 +1,12 @@
 {
-    "dataRoles": [
+    "dataRoles": [ 
         {
-            "displayName": "Measure Data",
+            "displayName": "Header",
+            "name": "header",
+            "kind": "Measure"
+        },
+        {
+            "displayName": "Body",
             "name": "measure",
             "kind": "Measure"
         }
@@ -11,6 +16,9 @@
             "conditions": [
                 {
                     "measure": {
+                        "max": 1
+                    },
+                    "header": {
                         "max": 1
                     }
                 }

@@ -8,7 +8,12 @@
         {
             "name": "Value",
             "kind": "Measure",
-            "displayName": "Value"
+            "displayName": "Value",
+            "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
         }
     ],
     "objects": {
@@ -117,7 +122,6 @@
                                 "value": "None",
                                 "displayName": "None"
                             }
-                            
                         ]
                     }
                 },
@@ -208,6 +212,15 @@
                 }
             }
         }
+    },
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        },
+        "roles": [
+            "tooltips"
+        ]
     },
     "dataViewMappings": [
         {

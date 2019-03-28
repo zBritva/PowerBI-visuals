@@ -195,6 +195,11 @@
             "displayName": "Animation",
             "description": "Change the animation style and duration",
             "properties": {
+                "show": {
+                    "type": {
+                        "bool": true
+                    }
+                },
                 "duration": {
                     "displayName": "Duration (seconds)",
                     "description": "Set the duration of current slide between 2 to 10 seconds",
@@ -271,7 +276,7 @@
             "properties": {
                 "fontSize": {
                     "displayName": "Size",
-                    "description": "Font size from 8 to 14 can be selected",
+                    "description": "Font size from 8 to 25 can be selected",
                     "type": {
                         "formatting": {
                             "fontSize": true
@@ -417,7 +422,7 @@
             "properties": {
                 "fontSize": {
                     "displayName": "Size",
-                    "description": "Font size from 8 to 14 can be selected",
+                    "description": "Font size from 8 to 25 can be selected",
                     "type": {
                         "formatting": {
                             "fontSize": true
@@ -642,7 +647,7 @@
                     "displayName": "Positive threshold (%)",
                     "description": "Positive threshold in percentage",
                     "type": {
-                            "numeric": true
+                        "numeric": true
                     }
                 },
                 "negativeThresholdIndicatorColor": {
@@ -660,7 +665,7 @@
                     "displayName": "Negative threshold (%)",
                     "description": "Negative threshold in percentage",
                     "type": {
-                            "numeric": true
+                        "numeric": true
                     }
                 },
                 "neutralThresholdIndicatorColor": {

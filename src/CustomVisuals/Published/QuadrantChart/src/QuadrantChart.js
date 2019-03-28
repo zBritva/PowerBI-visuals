@@ -15,8 +15,15 @@ function getLegendEnable() {
 function setLegendEnable(iCounter, total) {
     legendsEnable[iCounter] = total;
 }
-function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFormatter, textMeasurementService) {
-  
+function MAQDrawChart(DataStyle, settings, nodeData, seriesData, assignData, valueFormatter, textMeasurementService) {
+ var series = [];
+ var dataLength = seriesData.length;
+ for (var i = 0; i <dataLength ; i++) {
+     if (seriesData[i].data.scaleX[0] !== null && seriesData[i].data.scaleY[0] !== null ) {
+        series.push(seriesData[i]);
+     } 
+ }
+
     //data binding
     var dataView = DataStyle;
     //format options
@@ -4082,15 +4089,16 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                     oGrpBubbleChart = MAQ.createSVGElement(chartConfigOptions.svgNS, 'g', oAttr);
                     oGrpELE.appendChild(oGrpBubbleChart);
                     oBubblePlotOptions.bubbles.push(oGrpBubbleChart);
+                    
                     if (oBubblePlotOptions.color[iSeriesCounter]) {
                         oBubbleAttr.fill = oBubblePlotOptions.color[iSeriesCounter];
                         oBubbleAttr.stroke = oBubblePlotOptions.color[iSeriesCounter];
-                    } else {
+                    } else {                   
                         oBubbleAttr.fill = oBubblePlotOptions.color[iSeriesCounter % oBubblePlotOptions.color.length];
                         oBubbleAttr.stroke = oBubblePlotOptions.color[iSeriesCounter % oBubblePlotOptions.color.length];
                     }
-                    oBubbleAttr.class = oSeries[iSeriesCounter].name;
 
+                    oBubbleAttr.class = oSeries[iSeriesCounter].name;
                     oDataArray = oSeries[iSeriesCounter].data;
                     iLength = oDataArray.scaleX.length;
                     iXcord = 0;
@@ -4145,9 +4153,10 @@ function MAQDrawChart(DataStyle, settings, nodeData, series, assignData, valueFo
                             }
                         }
                     }
-                }
+                
                 MAQ.animateElement(oGrpELE, 'opacity', 1, 1000);
             }
+        }
         };
 
         /*
