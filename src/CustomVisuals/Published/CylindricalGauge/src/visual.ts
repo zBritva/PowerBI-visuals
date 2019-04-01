@@ -133,7 +133,7 @@ module powerbi.extensibility.visual {
         //All the variable will be populated with the value we have passed
         public static converter1(dataView: DataView): IProgressIndicatorValues {
             const categoriesLength: number = dataView.categorical.values.length;
-            const dataValues : number[] = [0, 0, 0, 0];
+            const dataValues: number[] = [0, 0, 0, 0];
             let iCount: number;
             for (iCount = 0; iCount < categoriesLength; iCount++) {
                 const index: number = dataView.categorical.values[iCount].source.index;
@@ -143,17 +143,19 @@ module powerbi.extensibility.visual {
             if (dataView && dataView.categorical) {
                 let index: number;
                 for (iCount = 0; iCount < categoriesLength; iCount++) {
-                    index = dataView.metadata.columns[iCount].index;
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Values')) {
+                    index = dataView.categorical.values[iCount].source.index;
+                    // tslint:disable-next-line:no-any
+                    const dataViewSourceRole: any = dataView.categorical.values[iCount].source.roles;
+                    if (dataViewSourceRole.hasOwnProperty('Values')) {
                         data.value = <number>dataValues[index];
                     }
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('TargetValue')) {
+                    if (dataViewSourceRole.hasOwnProperty('TargetValue')) {
                         data.targetValue = <number>dataValues[index];
                     }
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Min')) {
+                    if (dataViewSourceRole.hasOwnProperty('Min')) {
                         data.minValue = <number>dataValues[index];
                     }
-                    if (dataView.metadata.columns[iCount].roles.hasOwnProperty('Max')) {
+                    if (dataViewSourceRole.hasOwnProperty('Max')) {
                         data.maxValue = <number>dataValues[index];
                     }
                 }
@@ -184,7 +186,6 @@ module powerbi.extensibility.visual {
                 };
             }
         }
-
         public getSettings(objects: DataViewObjects): void {
             if (typeof this.settings === `undefined` || (JSON.stringify(objects) !== JSON.stringify(this.prevDataViewObjects))) {
                 let animationTime: number = getValue<number>(objects, 'config', 'animationTime', null);
@@ -367,33 +368,38 @@ module powerbi.extensibility.visual {
             this.isMin = false;
             this.isMax = false;
             this.isTarget = false;
-
-            this.highlight = options.dataViews[0].categorical.values[0].highlights ? true : false;
+            // tslint:disable-next-line:no-any
+            const dataViewOptions: any = options.dataViews[0];
+            if (!options.dataViews || 0 === options.dataViews.length) {
+                return;
+            }
+            // tslint:disable-next-line:no-any
+            const dataViewOptionsCatValues: any = dataViewOptions.categorical.values;
+            this.highlight = dataViewOptionsCatValues[0].highlights ? true : false;
             if (this.highlight) {
-                this.highlightValue = options.dataViews[0].categorical.values[0].highlights[0] === null ? 0
-                : <number>options.dataViews[0].categorical.values[0].highlights[0];
+                this.highlightValue = dataViewOptionsCatValues[0].highlights[0] === null ? 0
+                    : <number>dataViewOptionsCatValues[0].highlights[0];
                 if (this.isTarget) {
-                    this.highlightTarget = <number>options.dataViews[0].categorical.values[1].highlights[0];
+                    this.highlightTarget = <number>dataViewOptionsCatValues[1].highlights[0];
                 }
             }
-            for (let i: number = 0; i < options.dataViews[0].metadata.columns.length; i++) {
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('Values')) {
+            for (let iCatValue: number = 0; iCatValue < dataViewOptionsCatValues.length; iCatValue++) {
+                // tslint:disable-next-line:no-any
+                const dataViewRole: any = dataViewOptionsCatValues[iCatValue].source.roles;
+                if (dataViewRole.hasOwnProperty('Values')) {
                     this.isActual = true;
                 }
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('TargetValue')) {
+                if (dataViewRole.hasOwnProperty('TargetValue')) {
                     this.isTarget = true;
                 }
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('Min')) {
+                if (dataViewRole.hasOwnProperty('Min')) {
                     this.isMin = true;
                 }
-                if (options.dataViews[0].metadata.columns[i].roles.hasOwnProperty('Max')) {
+                if (dataViewRole.hasOwnProperty('Max')) {
                     this.isMax = true;
                 }
             }
 
-            if (!options.dataViews || 0 === options.dataViews.length) {
-                return;
-            }
             if (!this.isActual) {
                 const message: string = 'Please add "Actual Value" field';
                 this.rootElement
@@ -426,6 +432,9 @@ module powerbi.extensibility.visual {
             // to handle invalid datatypes
             if (typeof (this.data1.value) === 'string' || typeof (this.data1.value) === 'object') {
                 this.data1.value = 0;
+            }
+            if (typeof (this.data1.targetValue) === 'string' || typeof (this.data1.targetValue) === 'object') {
+                this.data1.targetValue = 0;
             }
             // to handle value greater than max value
             if (this.data1.value > this.data1.max || this.data1.max === null) {
@@ -474,16 +483,16 @@ module powerbi.extensibility.visual {
                 const range123Max: number = Math.max(this.settings.range1, this.settings.range2, this.settings.range3);
                 this.settings.range1 = this.settings.range1 === null ? null
                     : this.settings.range1 < this.data1.min ? null
-                    : this.settings.range1 > this.data1.max ? null : this.settings.range1;
+                        : this.settings.range1 > this.data1.max ? null : this.settings.range1;
                 this.settings.range2 = this.settings.range2 === null ? null
                     : this.settings.range2 < this.settings.range1 ? this.settings.range1
-                    : this.settings.range2 > this.data1.max ? null : this.settings.range2;
+                        : this.settings.range2 > this.data1.max ? null : this.settings.range2;
                 this.settings.range3 = this.settings.range3 === null ? null
                     : this.settings.range3 < range12Max ? range12Max
-                    : this.settings.range3 > this.data1.max ? null : this.settings.range3;
+                        : this.settings.range3 > this.data1.max ? null : this.settings.range3;
                 this.settings.range4 = this.settings.range4 === null ? null
                     : this.settings.range4 < range123Max ?
-                    range123Max : this.settings.range4 > this.data1.max ? null : this.settings.range4;
+                        range123Max : this.settings.range4 > this.data1.max ? null : this.settings.range4;
             }
 
             this.getFormatter(options);
@@ -526,7 +535,6 @@ module powerbi.extensibility.visual {
 
             this.renderTooltip();
         }
-
         private getFormattedData(value: number, displayUnits: number, precision: number, format: string): string {
             let formattedData: string;
             let formatterVal: number = displayUnits;
@@ -575,13 +583,13 @@ module powerbi.extensibility.visual {
             if (this.isMin) {
                 this.toolTipInfo.push({
                     displayName: 'Min Value',
-                    value: (this.data.minValue).toString()
+                    value: (this.data.minValue === null) ? '(Blank)' : (this.data.minValue).toString()
                 });
             }
             if (this.isMax) {
                 this.toolTipInfo.push({
                     displayName: 'Max Value',
-                    value: (this.data.maxValue).toString()
+                    value: (this.data.maxValue === null) ? '(Blank)' : (this.data.minValue).toString()
                 });
             }
 
@@ -648,8 +656,8 @@ module powerbi.extensibility.visual {
             this.backCircle
                 .attr({
                     cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                        width / 2 + this.margins.big / 2 + this.margins.small / 2
+                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: rectHeight,
                     rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                     ry: 20
@@ -662,8 +670,8 @@ module powerbi.extensibility.visual {
             this.topCircle
                 .attr({
                     cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                        width / 2 + this.margins.big / 2 + this.margins.small / 2
+                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: this.margins.bottom,
                     rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                     ry: 20
@@ -677,7 +685,7 @@ module powerbi.extensibility.visual {
             this.backRect
                 .attr({
                     x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5
-                                                                : this.margins.small / 2 : this.margins.small,
+                        : this.margins.small / 2 : this.margins.small,
                     y: 27,
                     width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small,
                     height: rectHeight - 19
@@ -708,15 +716,15 @@ module powerbi.extensibility.visual {
             const yPos: number = rectHeight - percentage;
             // tslint:disable-next-line:no-any
             const yscale: any = d3.scale.linear()
-                     .domain([this.data1.min, this.data1.max])
-                     .range([rectHeight, this.margins.bottom]);
+                .domain([this.data1.min, this.data1.max])
+                .range([rectHeight, this.margins.bottom]);
 
             this.gradient.attr('id', 'gradient')
-                                    .attr('x1', '100%')
-                                    .attr('y1', '0%')
-                                    .attr('x2', '100%')
-                                    .attr('y2', '100%')
-                                    .attr('spreadMethod', 'pad');
+                .attr('x1', '100%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '100%')
+                .attr('spreadMethod', 'pad');
             this.gradient.append('stop').attr('offset', '0%').attr('stop-color', this.settings.rectFill2).attr('stop-opacity', 1);
             this.gradient.append('stop').attr('offset', '100%').attr('stop-color', this.settings.rectFill1).attr('stop-opacity', 1);
 
@@ -727,14 +735,14 @@ module powerbi.extensibility.visual {
                 .style('fill', 'url(#gradient)')
                 .attr({
                     x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5
-                                                                : this.margins.small / 2 : this.margins.small,
+                        : this.margins.small / 2 : this.margins.small,
                     width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small
                 })
                 .transition()
-                    .duration(animationTime)
-                    .attr('height', percentage - 5 < 0 ? 0 : percentage - 5)
-                    .attr('y', yscale(this.data1.value) + 5)
-                    .style('fill', 'url(#gradient)');
+                .duration(animationTime)
+                .attr('height', percentage - 5 < 0 ? 0 : percentage - 5)
+                .attr('y', yscale(this.data1.value) + 5)
+                .style('fill', 'url(#gradient)');
 
             //animation for cylinder
             if (this.highlight) {
@@ -745,20 +753,20 @@ module powerbi.extensibility.visual {
                     .style('fill-opacity', 0.9)
                     .attr({
                         x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5
-                                                                : this.margins.small / 2 : this.margins.small,
+                            : this.margins.small / 2 : this.margins.small,
                         width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small
                     })
                     .transition()
-                        .duration(animationTime)
-                        .attr('height', yscale(this.highlightValue) > yscale(yscale.domain()[0]) ? 0 :
-                         yscale(yscale.domain()[0]) - yscale(this.highlightValue))
-                        .attr('y', yscale(this.highlightValue))
-                        .style('fill', 'url(#gradient)');
+                    .duration(animationTime)
+                    .attr('height', yscale(this.highlightValue) > yscale(yscale.domain()[0]) ? 0 :
+                        yscale(yscale.domain()[0]) - yscale(this.highlightValue))
+                    .attr('y', yscale(this.highlightValue))
+                    .style('fill', 'url(#gradient)');
                 this.highlightCircle
                     .attr({
                         cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                            width / 2 + this.margins.big / 2 + this.margins.small / 2
+                            : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                         cy: yscale(this.data1.min),
                         rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                         ry: 20
@@ -768,8 +776,8 @@ module powerbi.extensibility.visual {
                     })
                     // rising the fluid
                     .transition()
-                        .duration(animationTime)
-                        .attr('cy', yscale(this.highlightValue));
+                    .duration(animationTime)
+                    .attr('cy', yscale(this.highlightValue));
                 this.fillRect2
                     .style('fill-opacity', 0.5);
             } else {
@@ -808,11 +816,11 @@ module powerbi.extensibility.visual {
                 zonesRect.attr('height', 0)
                     .attr({
                         x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5
-                                                                : this.margins.small / 2 : this.margins.small,
+                            : this.margins.small / 2 : this.margins.small,
                         y: yscale,
                         // tslint:disable-next-line:typedef
                         height: (d): number => (yscale(yscale.domain()[0]) - yscale(d) < 0 ? 0
-                                                : (yscale(yscale.domain()[0]) - yscale(d))),
+                            : (yscale(yscale.domain()[0]) - yscale(d))),
                         width: this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big : width - 2 * this.margins.small
                     })
                     // tslint:disable-next-line:typedef
@@ -820,67 +828,67 @@ module powerbi.extensibility.visual {
 
                 if (this.settings.range2) {
                     this.zone1.attr({
-                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                        width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 :
-                                                                        width / 2,
-                            cy: yscale(zoneValues[3]),
-                            rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 :
-                             width / 2 - this.margins.small,
-                            ry: 20
-                        }).style({
-                            fill: zoneValues[3] < this.data1.min ? 'none' : colors[2]
-                        });
+                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
+                            width / 2 + this.margins.big / 2 + this.margins.small / 2
+                            : width / 2 - this.margins.big / 2 - this.margins.small / 2 :
+                            width / 2,
+                        cy: yscale(zoneValues[3]),
+                        rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 :
+                            width / 2 - this.margins.small,
+                        ry: 20
+                    }).style({
+                        fill: zoneValues[3] < this.data1.min ? 'none' : colors[2]
+                    });
                 }
 
                 if (this.settings.range3) {
                     this.zone2.attr({
-                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                    width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                    : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
-                            cy: yscale(zoneValues[2] || zoneValues[3]),
-                            rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2
+                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
+                            width / 2 + this.margins.big / 2 + this.margins.small / 2
+                            : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                        cy: yscale(zoneValues[2] || zoneValues[3]),
+                        rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2
                             : width / 2 - this.margins.small,
-                            ry: 20
-                        }).style({
-                            fill: (zoneValues[3] < this.data1.min && zoneValues[2] < this.data1.min)
-                                ? 'none' : colors[1]
-                        });
+                        ry: 20
+                    }).style({
+                        fill: (zoneValues[3] < this.data1.min && zoneValues[2] < this.data1.min)
+                            ? 'none' : colors[1]
+                    });
                 }
 
                 if (this.settings.range4) {
                     this.zone3.attr({
-                            cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                    width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                    : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
-                            cy: yscale(zoneValues[1] || zoneValues[2] || zoneValues[3]),
-                            rx:
+                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
+                            width / 2 + this.margins.big / 2 + this.margins.small / 2
+                            : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                        cy: yscale(zoneValues[1] || zoneValues[2] || zoneValues[3]),
+                        rx:
                             this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
-                            ry: 20
-                        }).style({
-                            fill: (zoneValues[3] < this.data1.min  && zoneValues[2] < this.data1.min && zoneValues[1] < this.data1.min)
-                                ? 'none' : colors[0]
-                        });
+                        ry: 20
+                    }).style({
+                        fill: (zoneValues[3] < this.data1.min && zoneValues[2] < this.data1.min && zoneValues[1] < this.data1.min)
+                            ? 'none' : colors[0]
+                    });
                 }
 
                 this.zone4.attr({
-                        cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                    width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                    : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
-                        cy: yscale(zoneValues[0] || zoneValues[1] || zoneValues[2] || zoneValues[3]),
-                        rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
-                        ry: 20
-                    }).style({
-                        fill: (zoneValues[3] < this.data1.min && zoneValues[2] < this.data1.min
-                            && zoneValues[1] < this.data1.min && zoneValues[0] < this.data1.min)
-                            ? 'none' : this.settings.borderColor
-                    });
+                    cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
+                        width / 2 + this.margins.big / 2 + this.margins.small / 2
+                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                    cy: yscale(zoneValues[0] || zoneValues[1] || zoneValues[2] || zoneValues[3]),
+                    rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
+                    ry: 20
+                }).style({
+                    fill: (zoneValues[3] < this.data1.min && zoneValues[2] < this.data1.min
+                        && zoneValues[1] < this.data1.min && zoneValues[0] < this.data1.min)
+                        ? 'none' : this.settings.borderColor
+                });
             }
 
             this.fillCircle.attr({
                 cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                    width / 2 + this.margins.big / 2 + this.margins.small / 2
+                    : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                 cy: yscale(this.data1.min),
                 rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                 ry: 20
@@ -892,15 +900,15 @@ module powerbi.extensibility.visual {
             if ((check)) {
                 this.targetCircle.attr({
                     cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                        width / 2 + this.margins.big / 2 + this.margins.small / 2
+                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: yscale(this.highlight ? this.highlightTarget : this.data1.targetValue) + 5,
                     rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                     ry: 20
                 }).style({
                     fill: 'transparent',
                     'stroke-width':
-                    this.highlight ? this.highlightTarget >= this.data1.min && this.highlightTarget <= this.data1.max ? 1 : 0 : 1,
+                        this.highlight ? this.highlightTarget >= this.data1.min && this.highlightTarget <= this.data1.max ? 1 : 0 : 1,
                     stroke: targetFill
                 });
             } else {
@@ -911,8 +919,8 @@ module powerbi.extensibility.visual {
             if (this.data1.targetRange === true && this.data1.Less) {
                 this.lessCircle.attr({
                     cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                        width / 2 + this.margins.big / 2 + this.margins.small / 2
+                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: yscale(this.data1.Less) + 5,
                     rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                     ry: 20
@@ -927,44 +935,44 @@ module powerbi.extensibility.visual {
                 this.lessCircle.style('stroke', 'transparent');
             }
 
-           //target range circle which is greater than targetcircle
+            //target range circle which is greater than targetcircle
 
             if (this.data1.targetRange === true && this.data1.Greater) {
                 this.greaterCircle.attr({
                     cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                        width / 2 + this.margins.big / 2 + this.margins.small / 2
+                        : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                     cy: yscale(this.data1.Greater) + 5,
                     rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                     ry: 20
                 })
-                .style({
-                    fill: 'transparent',
-                    'stroke-width': 1,
-                    stroke: greaterFill,
-                    'stroke-dasharray': '0 4',
-                    'stroke-linecap': 'round'
-                });
+                    .style({
+                        fill: 'transparent',
+                        'stroke-width': 1,
+                        stroke: greaterFill,
+                        'stroke-dasharray': '0 4',
+                        'stroke-linecap': 'round'
+                    });
             } else {
                 this.greaterCircle.style('stroke', 'transparent');
             }
 
             this.bottomCircle.attr({
                 cx: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                                width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                    width / 2 + this.margins.big / 2 + this.margins.small / 2
+                    : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                 cy: yscale(this.data1.value),
                 rx: this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 : width / 2 - this.margins.small,
                 ry: 20
             })
-            .style({
-                fill: circleFill2,
-                'stroke-width': 2,
-                stroke: this.shadeColor(circleFill2, 15)
-            })
-            // rising the fluid
-            .attr('cy', rectHeight)
-            .transition()
+                .style({
+                    fill: circleFill2,
+                    'stroke-width': 2,
+                    stroke: this.shadeColor(circleFill2, 15)
+                })
+                // rising the fluid
+                .attr('cy', rectHeight)
+                .transition()
                 .duration(animationTime)
                 .attr('cy', percentage)
                 .attr('cy', yscale(this.data1.value) + 5);
@@ -972,23 +980,25 @@ module powerbi.extensibility.visual {
             if (this.settings.showZones) {
                 if (this.highlight) {
                     this.highlightCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
-                : width / 2 - this.margins.small - 5);
+                        : width / 2 - this.margins.small - 5);
                 }
                 this.fillCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
-                : width / 2 - this.margins.small - 5);
+                    : width / 2 - this.margins.small - 5);
                 this.bottomCircle.attr('rx', this.data1.drawTickBar ? width / 2 - this.margins.small - this.margins.big / 2 - 5
-                 : width / 2 - this.margins.small - 5);
+                    : width / 2 - this.margins.small - 5);
                 this.fillRect1.attr({
                     x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5 + 5
-                                                                : this.margins.small / 2 + 5 : this.margins.small + 5,
+                        : this.margins.small / 2 + 5 : this.margins.small + 5,
                     width
-                    : this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big - 10 : width - 2 * this.margins.small - 10
+                        : this.data1.drawTickBar ? width - 2 * this.margins.small
+                        - this.margins.big - 10 : width - 2 * this.margins.small - 10
                 });
                 this.fillRect2.attr({
                     x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ? this.margins.big + this.margins.small * 1.5 + 5
-                                                                : this.margins.small / 2  + 5 : this.margins.small + 5,
+                        : this.margins.small / 2 + 5 : this.margins.small + 5,
                     width
-                    : this.data1.drawTickBar ? width - 2 * this.margins.small - this.margins.big - 10 : width - 2 * this.margins.small - 10
+                        : this.data1.drawTickBar ? width - 2 * this.margins.small
+                         - this.margins.big - 10 : width - 2 * this.margins.small - 10
                 });
             }
         }
@@ -1069,7 +1079,7 @@ module powerbi.extensibility.visual {
                 .tickFormat(this.tickValueFormatter.format);
 
             const translation: number = this.settings.scalePosition === 'left' ?
-                                        this.margins.big + this.margins.small : width - this.margins.big - this.margins.small;
+                this.margins.big + this.margins.small : width - this.margins.big - this.margins.small;
             const transformPos: string = `${'translate('}${translation}${', 2)'}`;
             this.tempMarkings
                 .attr('transform', transformPos)
@@ -1089,21 +1099,21 @@ module powerbi.extensibility.visual {
             }
             if (this.data1.value) {
                 this.axisMarking
-                .attr({
-                    stroke: this.settings.rectFill1,
-                    'stroke-width' : 3,
-                    x1: this.settings.scalePosition === 'left' ?
+                    .attr({
+                        stroke: this.settings.rectFill1,
+                        'stroke-width': 3,
+                        x1: this.settings.scalePosition === 'left' ?
                             this.margins.big + this.margins.small : width - this.margins.big - this.margins.small,
-                    y1: y(this.data1.min) + 2,
-                    x2: this.settings.scalePosition === 'left' ?
+                        y1: y(this.data1.min) + 2,
+                        x2: this.settings.scalePosition === 'left' ?
                             this.margins.big + this.margins.small : width - this.margins.big - this.margins.small,
-                    y2: y(this.data1.min) + 2
-                })
-                .transition().duration(animationTime)
-                .attr({
-                    y1: this.highlight ? y(this.highlightValue) : y(this.data1.value) + 2,
-                    y2: y(this.data1.min) + 2
-                });
+                        y2: y(this.data1.min) + 2
+                    })
+                    .transition().duration(animationTime)
+                    .attr({
+                        y1: this.highlight ? y(this.highlightValue) : y(this.data1.value) + 2,
+                        y2: y(this.data1.min) + 2
+                    });
             }
             //tooltip information adding
             const tooptipFormatter: utils.formatting.IValueFormatter = ValueFormatter.create({
@@ -1121,7 +1131,7 @@ module powerbi.extensibility.visual {
             const domPositonTick1: any = ticks[0].getBoundingClientRect();
             // tslint:disable-next-line:no-any
             const domPositonTick2: any = ticks[1].getBoundingClientRect();
-            const overlap : boolean = !(domPositonTick1.right < domPositonTick2.left ||
+            const overlap: boolean = !(domPositonTick1.right < domPositonTick2.left ||
                 domPositonTick1.left > domPositonTick2.right ||
                 domPositonTick1.bottom < domPositonTick2.top ||
                 domPositonTick1.top > domPositonTick2.bottom);
@@ -1132,7 +1142,7 @@ module powerbi.extensibility.visual {
         }
 
         private drawText(width: number, height: number, radius: number): void {
-           // const fill: string = this.settings.fillColor;
+            // const fill: string = this.settings.fillColor;
             const min: number = this.data1.min;
             const max: number = this.data1.max;
             const value: number = this.data1.value > max ? max : this.data1.value;
@@ -1163,8 +1173,8 @@ module powerbi.extensibility.visual {
                 d3.select('.labeltext')
                     .attr({
                         x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                    width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                    : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                            width / 2 + this.margins.big / 2 + this.margins.small / 2
+                            : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                         y: yPos,
                         dy: '.35em'
                     });
@@ -1173,8 +1183,8 @@ module powerbi.extensibility.visual {
                     d3.select('.labeltext')
                         .attr({
                             x: this.data1.drawTickBar ? this.settings.scalePosition === 'left' ?
-                                                    width / 2 + this.margins.big / 2 + this.margins.small / 2
-                                                    : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
+                                width / 2 + this.margins.big / 2 + this.margins.small / 2
+                                : width / 2 - this.margins.big / 2 - this.margins.small / 2 : width / 2,
                             y: height,
                             dy: '.45em'
 
@@ -1215,84 +1225,86 @@ module powerbi.extensibility.visual {
             objectName = options.objectName;
 
             let props: { [propertyName: string]: DataViewPropertyValue; };
-            switch (objectName) {
-                case 'config':
-                    props = {};
-                    props.rectFill1 = this.settings.rectFill1;
-                    props.rectFill2 = this.settings.rectFill2;
-                    props.circleFill1 = this.settings.circleFill1;
-                    props.circleFill2 = this.settings.circleFill2;
-                    props.animationTime = this.settings.animationTime;
-                    props.border = this.settings.borderColor;
-                    if (!this.isMin) {
-                        props.min = this.settings.minValue;
-                    }
-                    if (!this.isMax) {
-                        props.max = this.settings.maxValue;
-                    }
-                    if (!this.isTarget) {
-                        props.target = this.settings.tarValue;
-                    }
-                    props.targetColor = this.settings.targetColor;
-                    props.targetRange = this.settings.targetRange;
-                    if (this.settings.targetRange) {
-                        props.Greater = this.settings.Greater;
-                        props.GreaterColor = this.settings.GreaterColor;
-                        props.Less = this.settings.Less;
-                        props.LessColor = this.settings.LessColor;
-                    }
-                    props.tickBar = this.settings.tickBar;
-                    if (this.settings.tickBar) {
-                        props.tickColor = this.settings.tickColor;
-                        props.scalePos = this.settings.scalePosition;
-                        props.tickFontFamily = this.settings.tickFontFamily;
-                        props.fontSize = this.settings.tickFontSize;
-                        props.displayUnits = this.settings.tickDisplayUnits;
-                        props.decimalValue = this.settings.tickDecimalPlaces;
-                    }
-                    objectEnum.push({
-                        objectName: objectName,
-                        properties: props,
-                        selector: null
-                    });
-                    break;
-                case 'colorSelector':
-                    objectEnum.push({
-                        objectName: objectName,
-                        properties: {
-                            show: this.settings.showZones,
-                            range1: this.settings.range1,
-                            Zone1: this.settings.Zone1,
-                            range2: this.settings.range2,
-                            Zone2: this.settings.Zone2,
-                            range3: this.settings.range3,
-                            Zone3: this.settings.Zone3,
-                            range4: this.settings.range4,
-                            Zone4: this.settings.Zone4
-                        },
-                        selector: null
-                    });
-                    break;
-                case 'labels':
-                    objectEnum.push({
-                        objectName: objectName,
-                        properties: {
-                            show: this.settings.showLabels,
-                            labelPosition: this.settings.labelPos,
-                            fontFamily: this.settings.labelFontFamily,
-                            fontSize: this.settings.labelFontSize,
-                            dataColor: this.settings.dataColor,
-                            displayUnits: this.settings.labelDisplayUnits,
-                            decimalValue: this.settings.labelDecimalPlaces
-                        },
-                        selector: null
-                    });
-                    break;
-                default:
-                    break;
-            }
+            if (this.settings !== undefined) {
+                switch (objectName) {
+                    case 'config':
+                        props = {};
+                        props.rectFill1 = this.settings.rectFill1;
+                        props.rectFill2 = this.settings.rectFill2;
+                        props.circleFill1 = this.settings.circleFill1;
+                        props.circleFill2 = this.settings.circleFill2;
+                        props.animationTime = this.settings.animationTime;
+                        props.border = this.settings.borderColor;
+                        if (!this.isMin) {
+                            props.min = this.settings.minValue;
+                        }
+                        if (!this.isMax) {
+                            props.max = this.settings.maxValue;
+                        }
+                        if (!this.isTarget) {
+                            props.target = this.settings.tarValue;
+                        }
+                        props.targetColor = this.settings.targetColor;
+                        props.targetRange = this.settings.targetRange;
+                        if (this.settings.targetRange) {
+                            props.Greater = this.settings.Greater;
+                            props.GreaterColor = this.settings.GreaterColor;
+                            props.Less = this.settings.Less;
+                            props.LessColor = this.settings.LessColor;
+                        }
+                        props.tickBar = this.settings.tickBar;
+                        if (this.settings.tickBar) {
+                            props.tickColor = this.settings.tickColor;
+                            props.scalePos = this.settings.scalePosition;
+                            props.tickFontFamily = this.settings.tickFontFamily;
+                            props.fontSize = this.settings.tickFontSize;
+                            props.displayUnits = this.settings.tickDisplayUnits;
+                            props.decimalValue = this.settings.tickDecimalPlaces;
+                        }
+                        objectEnum.push({
+                            objectName: objectName,
+                            properties: props,
+                            selector: null
+                        });
+                        break;
+                    case 'colorSelector':
+                        objectEnum.push({
+                            objectName: objectName,
+                            properties: {
+                                show: this.settings.showZones,
+                                range1: this.settings.range1,
+                                Zone1: this.settings.Zone1,
+                                range2: this.settings.range2,
+                                Zone2: this.settings.Zone2,
+                                range3: this.settings.range3,
+                                Zone3: this.settings.Zone3,
+                                range4: this.settings.range4,
+                                Zone4: this.settings.Zone4
+                            },
+                            selector: null
+                        });
+                        break;
+                    case 'labels':
+                        objectEnum.push({
+                            objectName: objectName,
+                            properties: {
+                                show: this.settings.showLabels,
+                                labelPosition: this.settings.labelPos,
+                                fontFamily: this.settings.labelFontFamily,
+                                fontSize: this.settings.labelFontSize,
+                                dataColor: this.settings.dataColor,
+                                displayUnits: this.settings.labelDisplayUnits,
+                                decimalValue: this.settings.labelDecimalPlaces
+                            },
+                            selector: null
+                        });
+                        break;
+                    default:
+                        break;
+                }
 
-            return objectEnum;
+                return objectEnum;
+            }
         }
     }
 }
