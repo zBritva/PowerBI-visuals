@@ -517,6 +517,9 @@ module powerbi.extensibility.visual {
           tooltipString = '';
           for (let iterator: number = 0; iterator < tooltipDataIndex.length; iterator++) {
             // tslint:disable-next-line:no-any
+           if (iterator === 0) {
+              tooltipString = tooltipString.concat('\n');
+             }
             const dv : any = dataViewCategories[tooltipDataIndex[iterator]];
             tooltipString = tooltipString.concat(toolTipDataColumnName[iterator]);
             tooltipString = tooltipString.concat(' : ');
