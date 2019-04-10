@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "d3": "^3.5.5",
+    "powerbi-models": "^1.1.0",
     "powerbi-visuals-utils-chartutils": "^0.3.0",
-    "powerbi-visuals-utils-formattingutils": "^0.4.0"
+    "powerbi-visuals-utils-formattingutils": "^0.4.0",
+    "powerbi-visuals-utils-interactivityutils": "^4.2.0"
   }
 }
