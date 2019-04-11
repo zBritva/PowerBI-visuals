@@ -104,12 +104,12 @@ module powerbi.extensibility.visual {
         private static iWidthOfTiles: number;
         // stores the position of text
         private static iNameAlignment: string;
-        // stores the limits for height and weight in vertical stacking
+        // stores the limits for height and width in vertical stacking
         private static iMaxDynamicWidthVertical: number = 291;
         private static iMaxDynamicHeightVertical: number = 690;
         private static iMinDynamicWidthVertical: number = 290;
         private static iMinDynamicHeightVertical: number = 320;
-        // stores the limits for height and weight in horizontal stacking
+        // stores the limits for height and width in horizontal stacking
         private static iMaxDynamicWidthHorizontal: number;
         private static iMaxDynamicHeightHorizontal: number = 80;
         private static iMinDynamicWidthHorizontal: number = 1140;
@@ -176,6 +176,7 @@ module powerbi.extensibility.visual {
         */
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
+
             const kpiName: string = 'kpiName';
             const kpiCurrentValue: string = 'kpiCurrentValue';
             const kpiLastValue: string = 'kpiLastValue';
@@ -184,15 +185,7 @@ module powerbi.extensibility.visual {
             const kpiNegativeThresholdValue: string = 'kpiNegativeThresholdValue';
             KPITicker.dynamicWidth = options.viewport.width;
             KPITicker.dynamicHeight = options.viewport.height;
-            if (KPITicker.dynamicWidth < KPITicker.iMinDynamicWidthHorizontal) {
-                KPITicker.dynamicWidth = KPITicker.iMinDynamicWidthHorizontal;
-            }
-            if (KPITicker.dynamicHeight > KPITicker.iMaxDynamicHeightVertical) {
-                KPITicker.dynamicHeight = KPITicker.iMaxDynamicHeightVertical;
-            }
-            if (KPITicker.dynamicHeight < KPITicker.iMinDynamicHeightVertical) {
-                KPITicker.dynamicHeight = KPITicker.iMinDynamicHeightVertical;
-            }
+
             //clear interval and timeout when update is called
             if (KPITicker.iInterval !== -1) {
                 window.clearTimeout(KPITicker.iInterval);
@@ -291,7 +284,6 @@ module powerbi.extensibility.visual {
             const categoriesLength: number = KPITicker.oDataView.categorical.categories.length;
             const valuesLength: number = KPITicker.oDataView.categorical.values.length;
             const cLength: number = KPITicker.oDataView.metadata.columns.length;
-
             let iRow: number;
             let iColumn: number;
             let kIterator: number = 0;
@@ -471,6 +463,7 @@ module powerbi.extensibility.visual {
                 KPITicker.iWidthOfTiles = KPITicker.getValue(KPITicker.oDataView, 'responsive', 'widthOfTiles', 290);
                 // Height of tiles when responsive is OFF
                 KPITicker.iHeightOfTiles = KPITicker.getValue(KPITicker.oDataView, 'responsive', 'heightOfTiles', 80);
+
                 if (KPITicker.iVerticalStack) { // set min/max heigth and width in vertical stacking
                     if (KPITicker.iWidthOfTiles > KPITicker.iMaxWidthOfTilesVertical) {
                         KPITicker.iWidthOfTiles = KPITicker.iMaxWidthOfTilesVertical;
@@ -532,8 +525,11 @@ module powerbi.extensibility.visual {
                         width: `${KPITicker.dynamicWidth - KPITicker.iMarginForScroll * 2}px`
                     });
                 }
+
             } else {
+
                 if (KPITicker.iVerticalStack) {
+
                     $('#wrapper').css({
                         height: `${(KPITicker.iHeightOfTiles * KPITicker.iNumberOfKPI)}px`,
                         width: `${KPITicker.iWidthOfTiles}px`
@@ -572,20 +568,24 @@ module powerbi.extensibility.visual {
                             clearTimeout(KPITicker.iInterval);
                             KPITicker.addNextData();
                         });
+
                     if (KPITicker.iResponsive) { // if responsive is turned on change the top,left of arrows according to the stacking
                         if (KPITicker.iHorizontalStack) {
+
                             $('.slideArrows').css({
                                 top: `${(KPITicker.iMaxDynamicHeightHorizontal
                                     + KPITicker.iMarginForScroll) / 2}px`
                             });
                             $('#prev').css('margin-top', `${KPITicker.iMarginForTop + KPITicker.iMarginForLeft}px`);
                         } else {
+
                             $('.slideArrows').css({ top: `${(KPITicker.dynamicHeight / 2) - KPITicker.iMarginForTop}px` });
                             $('#prev').css('margin-top', `${KPITicker.iMarginForTop + KPITicker.iMarginForLeft}px`);
                             $('#next').css('left', `${KPITicker.iMaxDynamicWidthVertical + KPITicker.iMarginForCarousel}px`);
                         }
                     } else {
                         if (KPITicker.iHorizontalStack) {
+
                             $('.slideArrows').css({ top: `${(KPITicker.iHeightOfTiles / 2) + KPITicker.iMarginForTop}px` });
                             $('#prev').css('margin-top', `${KPITicker.iMarginForTop + KPITicker.iMarginForLeft}px`);
                             $('#next').css('left', `${(KPITicker.iWidthOfTiles * KPITicker.iNumberOfKPI)
@@ -641,7 +641,7 @@ module powerbi.extensibility.visual {
             //the number of data is equal to the number of containers.
 
             if (!(KPITicker.iNumberOfKPI === KPITicker.oData.length) && (KPITicker.iShowAnimation === true)) {
-                KPITicker.iInterval = setTimeout(KPITicker.addNextData, KPITicker.iDuration);
+                KPITicker.iInterval = window.setTimeout(KPITicker.addNextData, KPITicker.iDuration);
             }
         }
         /*
@@ -671,6 +671,7 @@ module powerbi.extensibility.visual {
         */
         // tslint:disable-next-line:cyclomatic-complexity
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
+
             let oObjectName: string;
             oObjectName = options.objectName;
             let oObjectEnumeration: VisualObjectInstance[];
@@ -995,6 +996,7 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         // tslint:disable-next-line:cyclomatic-complexity
         private static appendData(oDataView: DataView, sClassNames: string, iIndicator: number, iIndex: number, sDivIdName: string): void {
+
             // tslint:disable-next-line:no-any
             let sValueDisplayed: any;
             let iCurrentValue: number;
@@ -1370,6 +1372,7 @@ module powerbi.extensibility.visual {
                         KPITicker.displayVal = 10;
                     }
                 }
+
                 // Apply formatting according to the display unit and decimal places
                 const formatter: IValueFormatter = ValueFormatter.create({
                     format: KPITicker.oDataView.categorical.values[KPITicker.iIndexOfCurrentValue].source.format ?
@@ -1472,7 +1475,9 @@ module powerbi.extensibility.visual {
             const className: string = '.tliName';
             const tliName: string = 'tliName';
             // populate name if KPI Name column is selected
+
             if (KPITicker.iResponsive) {
+
                 if (KPITicker.iVerticalStack) {
                     if (KPITicker.iIndexOfName !== -1) {
                         d3.select(sDivIdName).append('div').classed('tliName', true)
@@ -1609,6 +1614,7 @@ module powerbi.extensibility.visual {
                     $(`#${sWrapperName}`).hide().fadeIn(KPITicker.iFadeInDuration);
                 }
             } else { // assign height and width according to the format pane
+
                 if (KPITicker.iAnimationStyle !== 'fade') {
                     if (KPITicker.iVerticalStack) {
                         $('<div>').attr('id', sWrapperName).appendTo('#wrapper')
@@ -1618,14 +1624,15 @@ module powerbi.extensibility.visual {
                             });
                         if (KPITicker.iHorizontalScroll) {
                             $(`#${sWrapperName}`)
-                            .style('padding-top', '6px')
-                            .css('left', `${KPITicker.iWidthOfTiles}px`);
+                                .css('padding-top', '6px')
+                                .css('left', `${KPITicker.iWidthOfTiles}px`);
                         } else {
                             $(`#${sWrapperName}`)
-                            .style('padding-top', '6px')
-                            .css('top', `${KPITicker.iHeightOfTiles * KPITicker.iNumberOfKPI}px`);
+                                .css('padding-top', '6px')
+                                .css('top', `${KPITicker.iHeightOfTiles * KPITicker.iNumberOfKPI}px`);
                         }
                     } else {
+
                         $('<div>').attr('id', sWrapperName).appendTo('#wrapper')
                             .css({
                                 height: KPITicker.iHeightOfTiles,
@@ -1640,13 +1647,13 @@ module powerbi.extensibility.visual {
                     }
                 } else {
                     if (KPITicker.iVerticalStack) {
-                        $('<div>').attr('id', sWrapperName).style('padding-top', '6px').appendTo('#wrapper')
+                        $('<div>').attr('id', sWrapperName).css('padding-top', '6px').appendTo('#wrapper')
                             .css({
                                 height: (KPITicker.iHeightOfTiles * KPITicker.iNumberOfKPI)
                                 , width: KPITicker.iWidthOfTiles
                             });
                     } else {
-                        $('<div>').attr('id', sWrapperName).style('padding-top', '6px').appendTo('#wrapper')
+                        $('<div>').attr('id', sWrapperName).css('padding-top', '6px').appendTo('#wrapper')
                             .css({
                                 height: KPITicker.iHeightOfTiles,
                                 width: (KPITicker.iWidthOfTiles * KPITicker.iNumberOfKPI) + KPITicker.iBorderOfContainer
@@ -1665,6 +1672,7 @@ module powerbi.extensibility.visual {
             }
             // append div to the wrapper just created on the basis of which wrapper id was created and the number of containers
             for (iIndex = iStartPoint; iIndex <= iEndPoint; iIndex++) {
+
                 sWrapperDivName = `container${iIndex}`;
                 if (KPITicker.iVerticalStack) {
                     if (KPITicker.iResponsive) {
@@ -1675,8 +1683,12 @@ module powerbi.extensibility.visual {
                             })
                             .addClass('containers');
                     } else {
+                        //
                         $('<div>').attr('id', sWrapperDivName).appendTo(`#${sWrapperName}`)
-                            .css({ height: (KPITicker.iHeightOfTiles), width: KPITicker.iWidthOfTiles })
+                            .css({
+                                height: (KPITicker.iHeightOfTiles),
+                                width: KPITicker.iWidthOfTiles
+                            })
                             .addClass('containers');
                     }
                 } else {
@@ -1852,7 +1864,7 @@ module powerbi.extensibility.visual {
                 KPITicker.iDelay = 3 * (KPITicker.iDuration / 10);
             }
             if (KPITicker.iShowAnimation === true) {
-                KPITicker.iInterval = setTimeout(KPITicker.addNextData, KPITicker.iDuration);
+                KPITicker.iInterval = window.setTimeout(KPITicker.addNextData, KPITicker.iDuration);
             }
         }
         /*
@@ -1917,20 +1929,20 @@ module powerbi.extensibility.visual {
                             },
                                 // tslint:disable-next-line:typedef
                                                       KPITicker.iDelay, function () {
-                                    KPITicker.iTimeout = setTimeout(function (): void {
+                                    KPITicker.iTimeout = window.setTimeout(function (): void {
                                         $(sWrapperTop).remove();
                                         clearTimeout(KPITicker.iTimeout);
-                                    },                              KPITicker.iDelay);
+                                    },                                     KPITicker.iDelay);
                                 });
                         } else {
                             $(sWrapperTop).animate({ top: `-=${KPITicker.dynamicHeight}px` }, KPITicker.iDelay).dequeue();
 
                             // tslint:disable-next-line:typedef
                             $(sWrapperBottom).animate({ top: `-=${KPITicker.dynamicHeight}px` }, KPITicker.iDelay, function () {
-                                KPITicker.iTimeout = setTimeout(function (): void {
+                                KPITicker.iTimeout = window.setTimeout(function (): void {
                                     $(sWrapperTop).remove();
                                     clearTimeout(KPITicker.iTimeout);
-                                },                              KPITicker.iDelay);
+                                },                                     KPITicker.iDelay);
                             });
                         }
                     } else {
@@ -1946,10 +1958,10 @@ module powerbi.extensibility.visual {
                             },
                                 // tslint:disable-next-line:typedef
                                                       KPITicker.iDelay, function () {
-                                    KPITicker.iTimeout = setTimeout(function (): void {
+                                    KPITicker.iTimeout = window.setTimeout(function (): void {
                                         $(sWrapperTop).remove();
                                         clearTimeout(KPITicker.iTimeout);
-                                    },                              KPITicker.iDelay);
+                                    },                                     KPITicker.iDelay);
                                 });
                         } else {
                             $(sWrapperTop).animate({ top: `-=${KPITicker.iMinHeightOfTilesHorizontal}px` }, KPITicker.iDelay).dequeue();
@@ -1958,10 +1970,10 @@ module powerbi.extensibility.visual {
                             $(sWrapperBottom).animate({ top: `-=${KPITicker.iMinHeightOfTilesHorizontal}px` }
                                 // tslint:disable-next-line:typedef
                                 ,                     KPITicker.iDelay, function () {
-                                    KPITicker.iTimeout = setTimeout(function (): void {
+                                    KPITicker.iTimeout = window.setTimeout(function (): void {
                                         $(sWrapperTop).remove();
                                         clearTimeout(KPITicker.iTimeout);
-                                    },                              KPITicker.iDelay);
+                                    },                                     KPITicker.iDelay);
                                 });
                         }
                     }
@@ -1985,10 +1997,10 @@ module powerbi.extensibility.visual {
                             },
                                 // tslint:disable-next-line:typedef
                                                       KPITicker.iDelay, function () {
-                                    KPITicker.iTimeout = setTimeout(function (): void {
+                                    KPITicker.iTimeout = window.setTimeout(function (): void {
                                         $(sWrapperTop).remove();
                                         clearTimeout(KPITicker.iTimeout);
-                                    },                              KPITicker.iDelay);
+                                    },                                     KPITicker.iDelay);
                                 });
                         } else {
                             $(sWrapperTop).animate({ top: `-=${KPITicker.iHeightOfTiles * KPITicker.iNumberOfKPI}px` }
@@ -1998,10 +2010,10 @@ module powerbi.extensibility.visual {
                             $(sWrapperBottom).animate({ top: `-=${KPITicker.iHeightOfTiles * KPITicker.iNumberOfKPI}px` },
                                 // tslint:disable-next-line:typedef
                                                       KPITicker.iDelay, function () {
-                                    KPITicker.iTimeout = setTimeout(function (): void {
+                                    KPITicker.iTimeout = window.setTimeout(function (): void {
                                         $(sWrapperTop).remove();
                                         clearTimeout(KPITicker.iTimeout);
-                                    },                              KPITicker.iDelay);
+                                    },                                     KPITicker.iDelay);
                                 });
                         }
                     } else {
@@ -2017,20 +2029,20 @@ module powerbi.extensibility.visual {
                             },
                                 // tslint:disable-next-line:typedef
                                                       KPITicker.iDelay, function () {
-                                    KPITicker.iTimeout = setTimeout(function (): void {
+                                    KPITicker.iTimeout = window.setTimeout(function (): void {
                                         $(sWrapperTop).remove();
                                         clearTimeout(KPITicker.iTimeout);
-                                    },                              KPITicker.iDelay);
+                                    },                                     KPITicker.iDelay);
                                 });
                         } else {
                             $(sWrapperTop).animate({ top: `-=${KPITicker.iHeightOfTiles}px` }, KPITicker.iDelay).dequeue();
 
                             // tslint:disable-next-line:typedef
                             $(sWrapperBottom).animate({ top: `-=${KPITicker.iHeightOfTiles}px` }, KPITicker.iDelay, function () {
-                                KPITicker.iTimeout = setTimeout(function (): void {
+                                KPITicker.iTimeout = window.setTimeout(function (): void {
                                     $(sWrapperTop).remove();
                                     clearTimeout(KPITicker.iTimeout);
-                                },                              KPITicker.iDelay);
+                                },                                     KPITicker.iDelay);
                             });
                         }
                     }
