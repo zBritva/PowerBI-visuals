@@ -236,11 +236,12 @@ module powerbi.extensibility.visual {
                 max: null,
                 drawTickBar: null
             };
-            let tempAvailable : boolean;
-            tempAvailable = false;
-            if (dataView && dataView.categorical) {
-                for (let i : number = 0; i < dataView.metadata.columns.length; i++) {
-                    if (options.dataViews[0].metadata.columns[i].roles[`Temperature`]) {
+            let tempAvailable : boolean = false;
+            // tslint:disable-next-line:no-any
+            const dataViewCat: any = dataView.categorical;
+            if (dataView && dataViewCat) {
+                for (let iCatValue : number = 0; iCatValue < dataViewCat.values.length; iCatValue++) {
+                    if (options.dataViews[0].categorical.values[iCatValue].source.roles[`Temperature`]) {
                         tempAvailable = true;
                     }
                 }
@@ -580,40 +581,58 @@ module powerbi.extensibility.visual {
         private getLowValueForLegend(): number[] {
             // tslint:disable-next-line:no-any
             const low : any[] = [];
-            for (let k : number = 0; k < 4; k++) {
-                if (k === 0) {
+            for (let lowVal : number = 0; lowVal < 4; lowVal++) {
+                switch (lowVal) {
+                    case 0:
                     if (this.data.min !== null) {
                         low.push(this.data.min);
                     }
-                } else if (k === 1) {
-                    if (this.range.range1 !== null) {
+                    break;
+                    case 1:
+                if (this.range.range1 !== null) {
                         low.push(this.range.range1);
                     }
-                } else if (k === 2) {
+                break;
+
+                case 2:
                     if (this.range.range2 !== null) {
                         low.push(this.range.range2);
                     }
-                } else if (k === 3) {
+                    break;
+                case 3:
                     if (this.range.range3 !== null) {
                         low.push(this.range.range3);
                     }
-                }
-            }
+                    break;
+                default:
+                break;
+            }}
 
             return low;
         }
         private getHighValueForLegend(): number[] {
             // tslint:disable-next-line:no-any
             const high : any[] = [];
-            for (let k : number = 0; k < 4; k++) {
-                if (k === 0) {
+            for (let highVal : number = 0; highVal < 4; highVal++) {
+                switch (highVal) {
+                    case 0:
                     if (this.range.range1 !== null) { high.push(this.range.range1); }
-                } else if (k === 1) {
+                    break;
+
+                 case 1 :
                     if (this.range.range2 !== null) { high.push(this.range.range2); }
-                } else if (k === 2) {
+                    break;
+
+                case 2:
                     if (this.range.range3 !== null) { high.push(this.range.range3); }
-                } else if (k === 3) {
+                    break;
+
+                case 3:
                     if (this.data.max !== null) { high.push(this.data.max); }
+                    break;
+
+                default:
+                    break;
                 }
             }
 

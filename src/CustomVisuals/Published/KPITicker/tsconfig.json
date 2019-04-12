@@ -5,7 +5,11 @@
     "experimentalDecorators": true,
     "target": "ES5",
     "sourceMap": true,
-    "out": "./.tmp/build/visual.js"
+    "out": "./.tmp/build/visual.js",
+    "lib": [
+      "es2015",
+      "dom"
+    ]
   },
   "files": [
     "node_modules/powerbi-models/dist/models-noexports.d.ts",
