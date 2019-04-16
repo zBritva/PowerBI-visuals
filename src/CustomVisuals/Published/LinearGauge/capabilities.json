@@ -321,15 +321,15 @@
                          "enumeration":[
                              {
                                  "value": "solid",
-                                 "displayName": "solid"
+                                 "displayName": "Solid"
                              },
                              {
                                 "value": "dotted",
-                                 "displayName": "dotted"
+                                 "displayName": "Dotted"
                              },
                              {
                                 "value": "dashed",
-                                 "displayName": "dashed"
+                                 "displayName": "Dashed"
                              }
                          ]
                      }
@@ -770,14 +770,18 @@
         "general": {
             "displayName": "General",
             "properties": {
-                "show": {
-                    "displayName": "Show",
-                    "type": {
-                        "bool": true
-                    }
-                },
                 "ActualFillColor": {
                     "displayName": "Lesser than target color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "ActualFillColorEqual": {
+                    "displayName": "Equal to target color",
                     "type": {
                         "fill": {
                             "solid": {
@@ -797,7 +801,7 @@
                     }
                 },
                 "ComparisonFillColor": {
-                    "displayName": "Comparison color",
+                    "displayName": "Background color",
                     "type": {
                         "fill": {
                             "solid": {
