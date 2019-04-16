@@ -1,7 +1,8 @@
 {
   "name": "visual",
   "dependencies": {
-    "@types/d3": "^5.0.0",
+    "@types/d3": "^3.5.36",
+    "@types/jquery": "^3.3.29",
     "d3": "^3.5.5",
     "globalize": "^0.1.1",
     "jquery": "^3.3.1",
@@ -9,7 +10,7 @@
     "powerbi-models": "^1.0.8",
     "powerbi-visuals-utils-chartutils": "1.5.1",
     "powerbi-visuals-utils-dataviewutils": "1.2.0",
-    "powerbi-visuals-utils-formattingutils": "^3.0.1",
+    "powerbi-visuals-utils-formattingutils": "^3.1.0",
     "powerbi-visuals-utils-interactivityutils": "^3.2.0",
     "powerbi-visuals-utils-svgutils": "^1.1.0",
     "powerbi-visuals-utils-tooltiputils": "^1.0.1",
