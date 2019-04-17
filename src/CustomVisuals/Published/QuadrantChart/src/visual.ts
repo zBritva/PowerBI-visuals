@@ -123,7 +123,7 @@ module powerbi.extensibility.visual {
             // tslint:disable-next-line:no-any
             const svg: any = this.svg = this.rootElement.append('div').classed('container', true);
             svg.attr('id', 'container');
-            const oElement: JQuery = $('div');
+            const oElement = document.getElementsByTagName('div')[0];
             this.legend = createLegend(oElement, options.host && false, this.interactivityService, true);
             this.rootElement.select('.legend').style('top', 0);
             this.rootElement.select('.clearCatcher').remove();
