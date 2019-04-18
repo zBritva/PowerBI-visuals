@@ -43,22 +43,22 @@ module powerbi.extensibility.visual {
   let eventGroupFlag: boolean;
   let legendHeight: number;
   let calendarHeight: number;
-  let highlightedLegend : string = '';
+  let highlightedLegend: string = '';
   const textAdjustmentValue: number = 20;
-  const heightAdjustmentvalue : number = 25;
-  const minLengthWeekChangeSameYear : number = 15;
-  const maxLengthWeekChangeSameYear : number = 20;
-  const minLengthWeekChangeNextyear : number = 24;
-  const maxLengthWeekChangeNextyear : number = 27;
-  const daysInWeek : number = 7;
-  const daysInDecember : number = 31;
-  const comaLiteral : string = ',';
-  const spaceLiteral : string = ' ';
-  const dashLiteral : string = '-';
-  const regex : RegExp = new RegExp(/[&\/\\#,+()$~%.'":*?<>{}]/g);
+  const heightAdjustmentvalue: number = 25;
+  const minLengthWeekChangeSameYear: number = 15;
+  const maxLengthWeekChangeSameYear: number = 20;
+  const minLengthWeekChangeNextyear: number = 24;
+  const maxLengthWeekChangeNextyear: number = 27;
+  const daysInWeek: number = 7;
+  const daysInDecember: number = 31;
+  const comaLiteral: string = ',';
+  const spaceLiteral: string = ' ';
+  const dashLiteral: string = '-';
+  const regex: RegExp = new RegExp(/[&\/\\#,+()$~%.'":*?<>{}]/g);
   const spaceRegex: RegExp = new RegExp(/\s/g);
   // tslint:disable-next-line:no-any
-  const monthNum : any = {
+  const monthNum: any = {
     January: '1',
     February: '2',
     March: '3',
@@ -73,19 +73,19 @@ module powerbi.extensibility.visual {
     December: '12'
   };
   // tslint:disable-next-line:no-any
-  const monthName : any = {
-    1 : 'January',
-    2 : 'February',
-    3 : 'March',
-    4 : 'April',
-    5 : 'May',
-    6 : 'June',
-    7 : 'July',
-    8 : 'August',
-    9 : 'September',
-    10 : 'October',
-    11 : 'November',
-    12 : 'December'
+  const monthName: any = {
+    1: 'January',
+    2: 'February',
+    3: 'March',
+    4: 'April',
+    5: 'May',
+    6: 'June',
+    7: 'July',
+    8: 'August',
+    9: 'September',
+    10: 'October',
+    11: 'November',
+    12: 'December'
   };
 
   // tslint:disable-next-line:interface-name
@@ -194,7 +194,7 @@ module powerbi.extensibility.visual {
     const categoriesLength: number = dataViewCategories.length;
     for (let iterator: number = 0; iterator < categoriesLength; iterator++) {
       if (dataViewCategories[iterator].source.roles.StartDate
-       && dataViewCategories[iterator].source.type.dateTime) {
+        && dataViewCategories[iterator].source.type.dateTime) {
         isStartDateFormat = true;
       }
       if (dataViewCategories[iterator].source.roles.events
@@ -210,7 +210,9 @@ module powerbi.extensibility.visual {
 
     return false;
   }
-
+  /**
+   * Declaration of the main class
+   */
   export class Visual implements IVisual {
     private settings: VisualSettings;
     private textNode: Text;
@@ -223,8 +225,8 @@ module powerbi.extensibility.visual {
     private legendObjectProperties: DataViewObject;
     private selectionManager: ISelectionManager;
     //used for persisting Calendar View
-    public  calendarView: string = 'month';
-    public  persistedDate: string = '';
+    public calendarView: string = 'month';
+    public persistedDate: string = '';
 
     /**
      * Persist data stored in the variable calendarView.
@@ -322,7 +324,6 @@ module powerbi.extensibility.visual {
      */
     // tslint:disable-next-line:cyclomatic-complexity
     public update(options: VisualUpdateOptions): void {
-
       this.settings = Visual.parseSettings(options && options.dataViews && options.dataViews[0]);
       const thisObj: this = this;
       // tslint:disable-next-line:no-any
@@ -360,8 +361,8 @@ module powerbi.extensibility.visual {
       // tslint:disable-next-line:no-any
       const dataViewCategories: any[] = dataViews.categorical.categories;
 
-      const viewPortHeight : number = options.viewport.height;
-      const viewPortWidth : number = options.viewport.width;
+      const viewPortHeight: number = options.viewport.height;
+      const viewPortWidth: number = options.viewport.width;
 
       colorsPersistObject = {};
       const colorsPersistedArray: string = this.settings.caption.captionValue;
@@ -386,14 +387,14 @@ module powerbi.extensibility.visual {
       const isMandatoryDataPresent: boolean = MandatoryDataPresent(options);
       if (!isMandatoryDataPresent) {
         d3.select('.fieldMessage').text(`'Start Date' and 'Event' are required fields`);
-        d3.select('.fieldMessage').style('padding-top', `${(viewPortHeight / 2) - textAdjustmentValue}px` );
+        d3.select('.fieldMessage').style('padding-top', `${(viewPortHeight / 2) - textAdjustmentValue}px`);
       }
 
       //If mandatory field values are entered, and data is not in correct format
       const isMandatoryDataFormat: boolean = MandatoryDataFormat(options);
       if (!isMandatoryDataFormat && isMandatoryDataPresent) {
         d3.select('.fieldMessage').text(`'Start date' should be in 'datetime' format & 'Events' should be in 'text' format.`);
-        d3.select('.fieldMessage').style('padding-top', `${(viewPortHeight / 2) - textAdjustmentValue}px` );
+        d3.select('.fieldMessage').style('padding-top', `${(viewPortHeight / 2) - textAdjustmentValue}px`);
         // Initialized the 'dataViewCategories' to null so that calendar is not rendered
         dataViewCategories[0] = null;
       }
@@ -440,7 +441,7 @@ module powerbi.extensibility.visual {
 
       for (let index: number = 0; index < startDateLength; index++) {
         startDateArray.push(dataViewCategories[startDateIndex].values[index]
-           ? new Date(dataViewCategories[startDateIndex].values[index]) : null);
+          ? new Date(dataViewCategories[startDateIndex].values[index]) : null);
         if (endDateIndex !== null) {
           endDateArray.push(dataViewCategories[endDateIndex].values[index] !== null
             ? (new Date(dataViewCategories[endDateIndex].values[index])) : null);
@@ -490,7 +491,7 @@ module powerbi.extensibility.visual {
             const label: string = eventColumn.values[index].toString();
             const catPresent: boolean = label in colorsPersistObject;
             const defaultColor: string = catPresent ? colorsPersistObject[label] :
-            this.host.colorPalette.getColor(eventColumn.values[index].toString()).value;
+              this.host.colorPalette.getColor(eventColumn.values[index].toString()).value;
             colorsPersistObject[label] = getCategoricalObjectValue<Fill>(eventColumn, index, 'colorSelector', 'fillColor', {
               solid: {
                 color: defaultColor
@@ -517,29 +518,30 @@ module powerbi.extensibility.visual {
           tooltipString = '';
           for (let iterator: number = 0; iterator < tooltipDataIndex.length; iterator++) {
             // tslint:disable-next-line:no-any
-           if (iterator === 0) {
+            if (iterator === 0) {
               tooltipString = tooltipString.concat('\n');
-             }
-            const dv : any = dataViewCategories[tooltipDataIndex[iterator]];
+            }
+            // tslint:disable-next-line:no-any
+            const dv: any = dataViewCategories[tooltipDataIndex[iterator]];
             tooltipString = tooltipString.concat(toolTipDataColumnName[iterator]);
             tooltipString = tooltipString.concat(' : ');
             if (dv.source.type.dateTime) {
-            if (<string>dv.values[index] !== null) {
-              tooltipString = tooltipString.concat (
-              this.getFormattedValue(dv.source.format,
-                                     new Date(dv.values[index])));
+              if (<string>dv.values[index] !== null) {
+                tooltipString = tooltipString.concat(
+                  this.getFormattedValue(dv.source.format,
+                                         new Date(dv.values[index])));
+              } else {
+                tooltipString = tooltipString.concat('Data Unavailable');
+              }
             } else {
-              tooltipString = tooltipString.concat('Data Unavailable');
+              if (<string>dv.values[index] !== null) {
+                tooltipString = tooltipString.concat(
+                  this.getFormattedValue(dv.source.format,
+                                         (dv.values[index])));
+              } else {
+                tooltipString = tooltipString.concat('Data Unavailable');
+              }
             }
-          } else {
-            if (<string>dv.values[index] !== null) {
-              tooltipString = tooltipString.concat (
-              this.getFormattedValue(dv.source.format,
-                                     (dv.values[index])));
-            } else {
-              tooltipString = tooltipString.concat('Data Unavailable');
-            }
-          }
             tooltipString = tooltipString.concat('\n');
           }
           tooltipData.push(tooltipString);
@@ -580,11 +582,11 @@ module powerbi.extensibility.visual {
         this.createLegend(options);
         legendHeight = this.legend.getMargins().height;
       } else if (this.settings.legend.show === false) {
-          d3.select('#legendGroup').selectAll('g').remove();
-          d3.select('.legendTitle').remove();
-          d3.select('#dashboard').style('margin-top', '0');
-          legendHeight = null;
-        }
+        d3.select('#legendGroup').selectAll('g').remove();
+        d3.select('.legendTitle').remove();
+        d3.select('#dashboard').style('margin-top', '0');
+        legendHeight = null;
+      }
 
       if (legendHeight === null) {
         calendarHeight = options.viewport.height;
@@ -675,9 +677,9 @@ module powerbi.extensibility.visual {
       /*If a view that is persisted is turned off, show default view.*/
       const persistedView: string = this.retrieveView();
       if ((persistedView === '' || persistedView === null) ||
-          (persistedView === 'agendaWeek' && !this.settings.buttons.week) ||
-          (persistedView === 'agendaDay' && !this.settings.buttons.day) ||
-          (persistedView === 'listMonth' && !this.settings.buttons.list)) {
+        (persistedView === 'agendaWeek' && !this.settings.buttons.week) ||
+        (persistedView === 'agendaDay' && !this.settings.buttons.day) ||
+        (persistedView === 'listMonth' && !this.settings.buttons.list)) {
         this.calendarView = 'month';
         this.persistView();
       }
@@ -696,12 +698,12 @@ module powerbi.extensibility.visual {
       properties[`captionValue`] = JSON.stringify(colorsPersistObject);
       let caption1: VisualObjectInstancesToPersist;
       caption1 = {
-          replace: [
-              {
-                  objectName: 'caption',
-                  selector: null,
-                  properties: properties
-              }]
+        replace: [
+          {
+            objectName: 'caption',
+            selector: null,
+            properties: properties
+          }]
       };
       this.host.persistProperties(caption1);
 
@@ -728,40 +730,39 @@ module powerbi.extensibility.visual {
       const selectionManager: ISelectionManager = this.selectionManager;
       // tslint:disable-next-line:no-any
       legends.on('click', function (d: any): void {
-        if ( d.tooltip !== highlightedLegend || (highlightedLegend === null) || highlightedLegend === '') {
-        const selectedLegend: string = d.tooltip;
-        highlightedLegend = d.tooltip;
-        const dataArrayLength : number = dataArray.length;
-        for (let iterator: number = 0; iterator < dataArrayLength; iterator++) {
-          if (selectedLegend === dataArray[iterator]) {
-            selectedSelectionId.push(selectionIdArray[iterator]);
+        if (d.tooltip !== highlightedLegend || (highlightedLegend === null) || highlightedLegend === '') {
+          const selectedLegend: string = d.tooltip;
+          highlightedLegend = d.tooltip;
+          const dataArrayLength: number = dataArray.length;
+          for (let iterator: number = 0; iterator < dataArrayLength; iterator++) {
+            if (selectedLegend === dataArray[iterator]) {
+              selectedSelectionId.push(selectionIdArray[iterator]);
+            }
           }
-        }
-        // tslint:disable-next-line:no-any
-        selectionManager.select(selectedSelectionId).then((ids: any[]) => {
-          let className: string = (d.tooltip).replace(spaceRegex, '');
-          className = (className).replace(regex, '');
-          d3.selectAll('.event').style('opacity', ids.length > 0 ? 0.5 : 1);
-          d3.selectAll(`.${className}`).style('opacity', 1);
           // tslint:disable-next-line:no-any
-          let selectedEvent: any;
-          selectedEvent = d3.selectAll('.fc-day-grid-event fc-h-event fc-event fc-start fc-end fc-draggable');
-          legends.attr({
-            'fill-opacity': ids.length > 0 ? 0.5 : 1
-          });
+          selectionManager.select(selectedSelectionId).then((ids: any[]) => {
+            const className: string = currentThis.EncodeData(d.tooltip);
+            d3.selectAll('.event').style('opacity', ids.length > 0 ? 0.5 : 1);
+            d3.selectAll(`.${className}`).style('opacity', 1);
+            // tslint:disable-next-line:no-any
+            let selectedEvent: any;
+            selectedEvent = d3.selectAll('.fc-day-grid-event fc-h-event fc-event fc-start fc-end fc-draggable');
+            legends.attr({
+              'fill-opacity': ids.length > 0 ? 0.5 : 1
+            });
 
-          d3.select(this).attr({
-            'fill-opacity': 1
+            d3.select(this).attr({
+              'fill-opacity': 1
+            });
+            selectedSelectionId = [];
           });
-          selectedSelectionId = [];
-        });
-        (<Event>d3.event).stopPropagation();
-      } else if (d.tooltip !== highlightedLegend) {
+          (<Event>d3.event).stopPropagation();
+        } else if (d.tooltip !== highlightedLegend) {
           d3.selectAll('.event').style('opacity', 1);
           d3.selectAll('.legendItem').attr('fill-opacity', 1);
           highlightedLegend = '';
-      }
-    });
+        }
+      });
       d3.select('html').on('click', function (): void {
         selectionManager.clear();
         d3.selectAll('.event').style('opacity', 1);
@@ -779,7 +780,7 @@ module powerbi.extensibility.visual {
     // tslint:disable-next-line:no-any
     public createLegend(options: any): void {
       // tslint:disable-next-line:no-any
-      const dataViewCategories: any []  = options.dataViews[0].categorical.categories;
+      const dataViewCategories: any[] = options.dataViews[0].categorical.categories;
       const categoriesLength: number = dataViewCategories.length;
       let startDateIndex: number;
       let eventIndex: number = null;
@@ -830,7 +831,7 @@ module powerbi.extensibility.visual {
         labelColor: this.settings.legend.labelColor
       };
 
-      const colorLegendLength : number = colorLegend.length;
+      const colorLegendLength: number = colorLegend.length;
       for (let legendIterator: number = 0; legendIterator < colorLegendLength; legendIterator++) {
         legendData.dataPoints.push({
           label: colorLegend[legendIterator].keyName,
@@ -882,15 +883,15 @@ module powerbi.extensibility.visual {
 
     // tslint:disable-next-line:no-any
     public getDatawithDescription(options: any, startDateArray: any[], endDateArray: any[], eventArray: string[],
-                                  // tslint:disable-next-line:no-any
+      // tslint:disable-next-line:no-any
                                   eventColors: string[], workHours: any[], descriptionArray: string[], eventGroupArray: string[],
                                   startWeekDay: number): void {
-      const thisObj:  this = this;
-      const today : Date = new Date();
+      const thisObj: this = this;
+      const today: Date = new Date();
       // tslint:disable-next-line:max-line-length
-      const todayString : string = monthName[(today.getMonth() + 1)] + spaceLiteral + today.getDate() + comaLiteral + spaceLiteral + today.getFullYear();
-      const persistedDate : string =  this.retrieveDate();
-      let showCalendarDate : string;
+      const todayString: string = monthName[(today.getMonth() + 1)] + spaceLiteral + today.getDate() + comaLiteral + spaceLiteral + today.getFullYear();
+      const persistedDate: string = this.retrieveDate();
+      let showCalendarDate: string;
       if (persistedDate === null || persistedDate === '') {
         showCalendarDate = todayString;
         thisObj.persistedDate = showCalendarDate;
@@ -898,12 +899,11 @@ module powerbi.extensibility.visual {
       } else {
         showCalendarDate = this.retrieveDate();
         thisObj.persistedDate = showCalendarDate;
-        thisObj.persistDate();
       }
       let index: number = 0;
       // tslint:disable-next-line:no-any
       const jsonObj: any = [];
-      const eventArrayLength : number = eventArray.length;
+      const eventArrayLength: number = eventArray.length;
 
       for (index = 0; index < eventArrayLength; index++) {
 
@@ -958,7 +958,7 @@ module powerbi.extensibility.visual {
         firstDay: startWeekDay,
         height: calendarHeight,
         handleWindowResize: true,
-        defaultDate : new Date(showCalendarDate),
+        defaultDate: new Date(showCalendarDate),
         defaultView: this.retrieveView(),
         allDaySlot: false,
         isRTL: this.settings.calendarSettings.rtl,
@@ -980,14 +980,12 @@ module powerbi.extensibility.visual {
         eventBorderColor: this.settings.events.borderColor,
 
         // tslint:disable-next-line:no-any
-        eventRender: function (event : any, element : any): void {
+        eventRender: function (event: any, element: any): void {
           let className: string;
           if (eventGroupFlag) {
-            className = (event.group).replace(spaceRegex, '');
-            className = (className).replace(regex, '');
+            className = thisObj.EncodeData(event.group);
           } else {
-            className = (event.title).replace(spaceRegex, '');
-            className = (className).replace(regex, '');
+            className = thisObj.EncodeData(event.title);
           }
           element.attr('title', `${event.title} : ${event.description}`);
           element.addClass(className);
@@ -1015,51 +1013,51 @@ module powerbi.extensibility.visual {
         thisObj.persistView();
       });
 
-      d3.select('.fc-prev-button').on('click', function () : void {
-        const activeView    : string = d3.select('.fc-state-active').text();
-        const displayedDate : string = d3.select('.fc-center').text();
+      d3.select('.fc-prev-button').on('click', function (): void {
+        const activeView: string = d3.select('.fc-state-active').text();
+        const displayedDate: string = d3.select('.fc-center').text();
         if (activeView === 'month' || activeView === 'list') {
-          const formattedDate : string = thisObj.getFormattedMonthDate(displayedDate);
+          const formattedDate: string = thisObj.getFormattedMonthDate(displayedDate);
           thisObj.persistedDate = formattedDate;
           thisObj.persistDate();
         } else
-        if (activeView === 'day' ) {
-          thisObj.persistedDate = displayedDate;
-          thisObj.persistDate();
-        } else if (activeView === 'week') {
-          const formattedDate : string = thisObj.getFormattedWeekDate(displayedDate);
-          thisObj.persistedDate = formattedDate;
-          thisObj.persistDate();
-        }
+          if (activeView === 'day') {
+            thisObj.persistedDate = displayedDate;
+            thisObj.persistDate();
+          } else if (activeView === 'week') {
+            const formattedDate: string = thisObj.getFormattedWeekDate(displayedDate);
+            thisObj.persistedDate = formattedDate;
+            thisObj.persistDate();
+          }
       });
 
-      d3.select('.fc-next-button').on('click', function () : void {
-        const activeView    : string = d3.select('.fc-state-active').text();
-        const displayedDate : string = d3.select('.fc-center').text();
+      d3.select('.fc-next-button').on('click', function (): void {
+        const activeView: string = d3.select('.fc-state-active').text();
+        const displayedDate: string = d3.select('.fc-center').text();
 
         if (activeView === 'month' || activeView === 'list') {
-          const formattedDate : string = thisObj.getFormattedMonthDate(displayedDate);
+          const formattedDate: string = thisObj.getFormattedMonthDate(displayedDate);
           thisObj.persistedDate = formattedDate;
           thisObj.persistDate();
         } else
-        if (activeView === 'day' ) {
-          thisObj.persistedDate = displayedDate;
-          thisObj.persistDate();
-        } else if (activeView === 'week') {
-          const formattedDate : string = thisObj.getFormattedWeekDate(displayedDate);
-          thisObj.persistedDate = formattedDate;
-          thisObj.persistDate();
-        }
+          if (activeView === 'day') {
+            thisObj.persistedDate = displayedDate;
+            thisObj.persistDate();
+          } else if (activeView === 'week') {
+            const formattedDate: string = thisObj.getFormattedWeekDate(displayedDate);
+            thisObj.persistedDate = formattedDate;
+            thisObj.persistDate();
+          }
       });
 
-      d3.select('.fc-today-button').on('click', function () : void {
+      d3.select('.fc-today-button').on('click', function (): void {
         thisObj.persistedDate = todayString;
         thisObj.persistDate();
       });
     }
 
     // tslint:disable-next-line:no-any
-    public persist(view: string) : any {
+    public persist(view: string): any {
       this.calendarView = view;
       this.persistView();
     }
@@ -1069,7 +1067,7 @@ module powerbi.extensibility.visual {
      * @data{string}         : data to be formatted
      * @data{string}         : formatted data
      */
-    public removeSpecialCharacter(data : string) : string {
+    public removeSpecialCharacter(data: string): string {
       data = data.replace(regex, '');
       data = data.trim();
 
@@ -1080,37 +1078,37 @@ module powerbi.extensibility.visual {
      * Method to format weekDateString
      * @WeekDateRange{string}         : options
      */
-    public getFormattedWeekDate(weekDateRange : string) : string {
+    public getFormattedWeekDate(weekDateRange: string): string {
 
-      const monthDate : string = weekDateRange.split('–')[0];
+      const monthDate: string = weekDateRange.split('–')[0];
 
-      let month : string = monthDate.split(spaceLiteral)[0];
+      let month: string = monthDate.split(spaceLiteral)[0];
       month = this.removeSpecialCharacter(month);
 
-      let date : string = monthDate.split(spaceLiteral)[1];
+      let date: string = monthDate.split(spaceLiteral)[1];
       date = this.removeSpecialCharacter(date);
 
-      const weekDateRangeLength : number = weekDateRange.length;
-      let year : string;
+      const weekDateRangeLength: number = weekDateRange.length;
+      let year: string;
       // case: jan 1 - 7, 2001 ----> length = 15
-      if (weekDateRangeLength >= minLengthWeekChangeSameYear &&  weekDateRangeLength <= maxLengthWeekChangeSameYear) {
-         year = weekDateRange.split(',')[1];
+      if (weekDateRangeLength >= minLengthWeekChangeSameYear && weekDateRangeLength <= maxLengthWeekChangeSameYear) {
+        year = weekDateRange.split(',')[1];
       }
 
-      if ((weekDateRangeLength >= minLengthWeekChangeNextyear &&  weekDateRangeLength <= maxLengthWeekChangeNextyear)) {
-         year  = weekDateRange.split(',')[2];
+      if ((weekDateRangeLength >= minLengthWeekChangeNextyear && weekDateRangeLength <= maxLengthWeekChangeNextyear)) {
+        year = weekDateRange.split(',')[2];
       }
 
-      if ((weekDateRangeLength >= minLengthWeekChangeNextyear &&  weekDateRangeLength <= maxLengthWeekChangeNextyear)
-            && ((month === 'Dec') || (month === 'December')
-            && ( (Number(date) + daysInWeek) > daysInDecember ))
-        ) {
-        year  = weekDateRange.split(' ')[2];
-     }
+      if ((weekDateRangeLength >= minLengthWeekChangeNextyear && weekDateRangeLength <= maxLengthWeekChangeNextyear)
+        && ((month === 'Dec') || (month === 'December')
+          && ((Number(date) + daysInWeek) > daysInDecember))
+      ) {
+        year = weekDateRange.split(' ')[2];
+      }
 
       year = this.removeSpecialCharacter(year);
 
-      const formattedString : string = month + spaceLiteral + date + comaLiteral + spaceLiteral + year;
+      const formattedString: string = month + spaceLiteral + date + comaLiteral + spaceLiteral + year;
 
       return formattedString;
     }
@@ -1119,15 +1117,28 @@ module powerbi.extensibility.visual {
      * Method to format weekDateString
      * @WeekDateRange{string}               : options
      */
-    public getFormattedMonthDate(monthYear : string) : string {
-      const year : string = monthYear.split(' ')[1];
-      const month : string = monthYear.split(' ')[0];
-      const monthNumber : string = monthNum[month].toString();
-      const date : string =  '1' ; // default date if user selects month and list view.
+    public getFormattedMonthDate(monthYear: string): string {
+      const year: string = monthYear.split(' ')[1];
+      const month: string = monthYear.split(' ')[0];
+      const monthNumber: string = monthNum[month].toString();
+      const date: string = '1'; // default date if user selects month and list view.
       //const formattedDate : string = date + dashLiteral + month + dashLiteral + year;
-      const formattedDate: string = month.substring(0, 3 ) + spaceLiteral + date +  comaLiteral + spaceLiteral  + year;
+      const formattedDate: string = month.substring(0, 3) + spaceLiteral + date + comaLiteral + spaceLiteral + year;
 
       return formattedDate;
+    }
+    /**
+     * Method to encode the variables
+     */
+    public EncodeData(value: string): string {
+      if (value === '') {
+        return value.replace('', 'sp');
+      }
+      if (value === null) {
+        return value.replace('', 'blank');
+      }
+
+      return value.replace(/[^A-Z0-9]/ig, 'sp');
     }
 
     /**
@@ -1145,12 +1156,12 @@ module powerbi.extensibility.visual {
      */
     // tslint:disable-next-line
     public getData(options: any, startDateArray: any[], endDateArray: any[], eventArray: string[], eventColors: string[], workHours: any[], eventGroupArray: string[], startWeekDay: number): void {
-      const thisObj:  this = this;
-      const today : Date = new Date();
+      const thisObj: this = this;
+      const today: Date = new Date();
       // tslint:disable-next-line:max-line-length
-      const todayString : string = monthName[(today.getMonth() + 1)] + spaceLiteral + today.getDate() + comaLiteral + spaceLiteral + today.getFullYear();
-      const persistedDate : string =  this.retrieveDate();
-      let showCalendarDate : string;
+      const todayString: string = monthName[(today.getMonth() + 1)] + spaceLiteral + today.getDate() + comaLiteral + spaceLiteral + today.getFullYear();
+      const persistedDate: string = this.retrieveDate();
+      let showCalendarDate: string;
       if (persistedDate === null || persistedDate === '') {
         showCalendarDate = todayString;
         thisObj.persistedDate = showCalendarDate;
@@ -1158,13 +1169,12 @@ module powerbi.extensibility.visual {
       } else {
         showCalendarDate = this.retrieveDate();
         thisObj.persistedDate = showCalendarDate;
-        thisObj.persistDate();
       }
       let index: number = 0;
       // tslint:disable-next-line:no-any
       const jsonObj: any = [];
       // Creates JSON object for events
-      const eventArrayLength : number = eventArray.length;
+      const eventArrayLength: number = eventArray.length;
       for (index = 0; index < eventArrayLength; index++) {
         jsonObj.push({
           title: eventArray[index],
@@ -1211,7 +1221,7 @@ module powerbi.extensibility.visual {
         firstDay: startWeekDay,
         height: calendarHeight,
         handleWindowResize: true,
-        defaultDate : new Date(showCalendarDate),
+        defaultDate: new Date(showCalendarDate),
         defaultView: this.retrieveView(),
         allDaySlot: false,
         isRTL: this.settings.calendarSettings.rtl,
@@ -1232,14 +1242,12 @@ module powerbi.extensibility.visual {
         eventBorderColor: this.settings.events.borderColor,
 
         // tslint:disable-next-line:no-any
-        eventRender: function (event : any, element : any): void {
+        eventRender: function (event: any, element: any): void {
           let className: string;
           if (eventGroupFlag) {
-            className = (event.group).replace(spaceRegex, '');
-            className = (className).replace(regex, '');
+            className = thisObj.EncodeData(event.group);
           } else {
-            className = (event.title).replace(spaceRegex, '');
-            className = (className).replace(regex, '');
+            className = thisObj.EncodeData(event.title);
           }
           element.attr('title', `${event.title}`);
           element.addClass(className);
@@ -1264,43 +1272,43 @@ module powerbi.extensibility.visual {
         thisObj.persistView();
       });
 
-      d3.select('.fc-prev-button').on('click', function () : void {
-        const activeView    : string = d3.select('.fc-state-active').text();
-        const displayedDate : string = d3.select('.fc-center').text();
+      d3.select('.fc-prev-button').on('click', function (): void {
+        const activeView: string = d3.select('.fc-state-active').text();
+        const displayedDate: string = d3.select('.fc-center').text();
         if (activeView === 'month' || activeView === 'list') {
-          const formattedDate : string = thisObj.getFormattedMonthDate(displayedDate);
+          const formattedDate: string = thisObj.getFormattedMonthDate(displayedDate);
           thisObj.persistedDate = formattedDate;
           thisObj.persistDate();
         } else
-        if (activeView === 'day' ) {
-          thisObj.persistedDate = displayedDate;
-          thisObj.persistDate();
-        } else if (activeView === 'week') {
-          const formattedDate : string = thisObj.getFormattedWeekDate(displayedDate);
-          thisObj.persistedDate = formattedDate;
-          thisObj.persistDate();
-        }
+          if (activeView === 'day') {
+            thisObj.persistedDate = displayedDate;
+            thisObj.persistDate();
+          } else if (activeView === 'week') {
+            const formattedDate: string = thisObj.getFormattedWeekDate(displayedDate);
+            thisObj.persistedDate = formattedDate;
+            thisObj.persistDate();
+          }
       });
 
-      d3.select('.fc-next-button').on('click', function () : void {
-        const activeView    : string = d3.select('.fc-state-active').text();
-        const displayedDate : string = d3.select('.fc-center').text();
+      d3.select('.fc-next-button').on('click', function (): void {
+        const activeView: string = d3.select('.fc-state-active').text();
+        const displayedDate: string = d3.select('.fc-center').text();
         if (activeView === 'month' || activeView === 'list') {
-          const formattedDate : string = thisObj.getFormattedMonthDate(displayedDate);
+          const formattedDate: string = thisObj.getFormattedMonthDate(displayedDate);
           thisObj.persistedDate = formattedDate;
           thisObj.persistDate();
         } else
-        if (activeView === 'day' ) {
-          thisObj.persistedDate = displayedDate;
-          thisObj.persistDate();
-        } else if (activeView === 'week') {
-          const formattedDate : string = thisObj.getFormattedWeekDate(displayedDate);
-          thisObj.persistedDate = formattedDate;
-          thisObj.persistDate();
-        }
+          if (activeView === 'day') {
+            thisObj.persistedDate = displayedDate;
+            thisObj.persistDate();
+          } else if (activeView === 'week') {
+            const formattedDate: string = thisObj.getFormattedWeekDate(displayedDate);
+            thisObj.persistedDate = formattedDate;
+            thisObj.persistDate();
+          }
       });
 
-      d3.select('.fc-today-button').on('click', function () : void {
+      d3.select('.fc-today-button').on('click', function (): void {
         thisObj.persistedDate = todayString;
         thisObj.persistDate();
       });

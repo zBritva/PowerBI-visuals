@@ -1,7 +1,9 @@
 {
   "name": "visual",
   "dependencies": {
+    "@types/d3": "^3.5.36",
     "@types/fullcalendar": "^3.8.0",
+    "@types/jquery": "^3.3.29",
     "@types/js-base64": "^2.3.1",
     "angular2-moment": "^1.9.0",
     "base-64": "^0.1.0",
@@ -14,6 +16,7 @@
     "powerbi-visuals-utils-colorutils": "^1.2.0",
     "powerbi-visuals-utils-dataviewutils": "^1.2.0",
     "powerbi-visuals-utils-formattingutils": "^3.1.0",
+    "powerbi-visuals-utils-interactivityutils": "^4.2.0",
     "powerbi-visuals-utils-svgutils": "^1.1.0",
     "powerbi-visuals-utils-tooltiputils": "^1.0.1",
     "powerbi-visuals-utils-typeutils": "^1.1.0",
