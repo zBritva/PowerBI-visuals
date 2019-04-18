@@ -117,10 +117,6 @@
                             {
                                 "value": "Left",
                                 "displayName": "Left"
-                            },
-                            {
-                                "value": "None",
-                                "displayName": "None"
                             }
                         ]
                     }

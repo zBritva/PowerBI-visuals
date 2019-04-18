@@ -135,7 +135,9 @@ module powerbi.extensibility.visual {
 
         return defaultValue;
     }
-
+    /**
+     * export class BrickChart implements IVisual
+     */
     export class BrickChart implements IVisual {
         private tooltipServiceWrapper: ITooltipServiceWrapper;
 
@@ -337,7 +339,7 @@ module powerbi.extensibility.visual {
                     if (Date.parse(legends[iCounter]) && (formatter.format(legends[iCounter]) !== 'dddd MMMM %d yyyy')) {
                         data.dataPoints.push(
                             {
-                                label: legends[iCounter],
+                                label: legends[iCounter] === '' ? '(Blank)' : legends[iCounter],
                                 value: values[iCounter],
                                 color: getCategoricalObjectValue<Fill>(
                                     category, iCounter, 'colorSelector', 'fill', defaultColor).solid.color,
@@ -347,7 +349,7 @@ module powerbi.extensibility.visual {
                             });
                     } else {
                         data.dataPoints.push({
-                            label: legends[iCounter],
+                            label: legends[iCounter] === '' ? '(Blank)' : legends[iCounter],
                             value: values[iCounter],
                             color: getCategoricalObjectValue<Fill>(category, iCounter, 'colorSelector', 'fill', defaultColor).solid.color,
                             selector: host.createSelectionIdBuilder().withCategory(
@@ -707,9 +709,20 @@ module powerbi.extensibility.visual {
             let format: string;
             format = '0';
             let formatter: IValueFormatter;
-            if (this.data.dataPoints.length === 0 || dataView.categorical.categories.length === 0) {
+            if (this.data.dataPoints.length === 0 &&  dataView.categorical.categories === undefined) {
                 d3.selectAll('.legend #legendGroup').selectAll('*').style('visibility', 'hidden');
-                const message: string = 'Please add the required field';
+                const message: string = 'Please insert data in Category field';
+                this.root
+                    .append('div')
+                    .classed('bc_ErrorMessage', true)
+                    .text(message)
+                    .attr('title', message);
+
+                return;
+            }
+            if (this.data.dataPoints.length === 0 && dataView.categorical.values === undefined) {
+                d3.selectAll('.legend #legendGroup').selectAll('*').style('visibility', 'hidden');
+                const message: string = 'Please insert data in Value field';
                 this.root
                     .append('div')
                     .classed('bc_ErrorMessage', true)
@@ -1086,17 +1099,28 @@ module powerbi.extensibility.visual {
                 $(document).on('click.load', '.navArrow', function (): void {
                     THIS.addLegendSelection();
                 });
-
-                this.rootElement.on('click', () => this.selectionManager.clear().then(
-                    () => {
-                        // tslint:disable-next-line:no-any
-                        const rect: any = this.root.selectAll('.linearSVG');
-                        rect.attr('fill-opacity', 1)
-                            .attr('opacity', 1);
-                        this.root.selectAll('.legendItem').attr('fill-opacity', 1);
-                    }
-                ));
+                d3.select('html').on('click', function (): void {
+                    THIS.selectionManager.clear();
+                    // tslint:disable-next-line:no-any
+                    const rect: any = THIS.root.selectAll('.linearSVG');
+                    rect.attr('fill-opacity', 1)
+                        .attr('opacity', 1);
+                    THIS.root.selectAll('.legendItem').attr('fill-opacity', 1);
+                     });
             }
+            this.svg.on('contextmenu', () => {
+                const mouseEvent: MouseEvent = d3.event as MouseEvent;
+                const eventTarget: EventTarget = mouseEvent.target;
+                // tslint:disable-next-line:no-any
+                const dataPoint : any = d3.select(eventTarget).datum();
+                if (dataPoint !== undefined) {
+                    this.selectionManager.showContextMenu(dataPoint ? dataPoint.selector : {}, {
+                        x: mouseEvent.clientX,
+                        y: mouseEvent.clientY
+                    });
+                    mouseEvent.preventDefault();
+                }
+            });
         }
 
         private addLegendSelection(): void {
@@ -1152,6 +1176,12 @@ module powerbi.extensibility.visual {
             selectionManager = this.selectionManager;
             // tslint:disable-next-line:no-any
             bricks.on('click', function (d: any): void {
+                // tslint:disable-next-line:no-any
+                let legends: any;
+                legends = THIS.root.selectAll('.legend .legendItem');
+                legends.attr({
+                    'fill-opacity': 1
+                });
                 // tslint:disable-next-line:no-any
                 selectionManager.select(d.selector).then((ids: any[]) => {
                     const len: number = bricks[0].length - 1;
