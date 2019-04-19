@@ -1,9 +1,6 @@
 module powerbi.extensibility.visual {
-
-    import ISelectionId = powerbi.visuals.ISelectionId;
     import IColorPalette = powerbi.extensibility.IColorPalette;
     import ValueFormatter = powerbi.extensibility.utils.formatting.valueFormatter;
-    import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
     const legendValues: {} = {};
     const legendValuesTorender: {} = {};
     import ILegend = powerbi.extensibility.utils.chart.legend.ILegend;
@@ -14,17 +11,27 @@ module powerbi.extensibility.visual {
     import LegendPosition = powerbi.extensibility.utils.chart.legend.LegendPosition;
     import legendIcon = powerbi.extensibility.utils.chart.legend.LegendIcon;
     import textMeasurementService = powerbi.extensibility.utils.formatting.textMeasurementService;
+    import appendClearCatcher = powerbi.extensibility.utils.interactivity.appendClearCatcher;
+    import IInteractivityService = powerbi.extensibility.utils.interactivity.IInteractivityService;
+    import createInteractivityService = powerbi.extensibility.utils.interactivity.createInteractivityService;
+    import IInteractiveBehavior = powerbi.extensibility.utils.interactivity.IInteractiveBehavior;
+    import ISelectionHandler = powerbi.extensibility.utils.interactivity.ISelectionHandler;
+    import SelectableDataPoint = powerbi.extensibility.utils.interactivity.SelectableDataPoint;
+
     // tslint:disable-next-line:no-any
     let series: any[] = [];
+    // tslint:disable-next-line:no-any
+    let THIS : any ;
     interface IQuadrantChartViewModel {
         legendData: LegendData;
         dataPoints: IQuadrantChartDataPoint[];
     }
 
-    interface IQuadrantChartDataPoint {
+    interface IQuadrantChartDataPoint extends SelectableDataPoint {
         category: string;
         color: string;
-        selectionId: powerbi.visuals.ISelectionId;
+        // tslint:disable-next-line:no-any
+        identity: any;
     }
 
     // tslint:disable-next-line:no-any
@@ -73,7 +80,8 @@ module powerbi.extensibility.visual {
                 quadrantChartDataPoints.push({
                     category: series[iIterator].name,
                     color: getCategoricalObjectValue<Fill>(category, iIterator, 'legendColors', 'legendColor', defaultColor).solid.color,
-                    selectionId: host.createSelectionIdBuilder().withCategory(category, iIterator).createSelectionId()
+                    identity: host.createSelectionIdBuilder().withCategory(category, iIterator).createSelectionId(),
+                    selected: false
                 });
             }
         }
@@ -88,47 +96,37 @@ module powerbi.extensibility.visual {
         // tslint:disable-next-line:no-any
         private bubbleChartWithAxis: any;
         public host: IVisualHost;
-        private viewport: IViewport;
         private svg: d3.Selection<SVGElement>;
         // tslint:disable-next-line:no-any
         private settings: any;
         // tslint:disable-next-line:no-any
         public dataView: any;
         private quadrantChartPoints: IQuadrantChartDataPoint[];
-        private selectionManager: ISelectionManager;
         // workaround temp variable because the PBI SDK doesn't correctly identify style changes. See getSettings method.
         private prevDataViewObjects: {} = {};
+        private selectionManager: ISelectionManager;
         private legend: ILegend;
         private legendObjectProperties: DataViewObject;
         public groupLegends: d3.Selection<SVGElement>;
         // tslint:disable-next-line:no-any
-        private legendData: any;
         private currentViewport: IViewport;
         // tslint:disable-next-line:no-any
         private rootElement: any;
-        // objects to handle selections
-        private bubbleSelection: d3.selection.Update<IQuadrantChartDataPoint>;
-        private legendSelection: d3.selection.Update<IQuadrantChartDataPoint>;
+        private interactivityService: IInteractivityService;
+        private behavior: QuadrantBehavior;
         constructor(options: VisualConstructorOptions) {
             this.host = options.host;
             this.selectionManager = options.host.createSelectionManager();
-            // function to sync selections on bookmarks
-            this.selectionManager.registerOnSelectCallback(() => {
-                this.bubbleSelection = this.rootElement.selectAll('svg .MAQCharts-plotArea circle');
-                this.legendSelection = this.rootElement.selectAll('.legendItem');
-                this.syncSelectionState(
-                    this.bubbleSelection,
-                    this.legendSelection,
-                    this.selectionManager.getSelectionIds() as ISelectionId[]
-                );
-            });
+            this.interactivityService = createInteractivityService(options.host);
+            this.behavior = new QuadrantBehavior();
             this.rootElement = d3.select(options.element);
             // tslint:disable-next-line:no-any
             const svg: any = this.svg = this.rootElement.append('div').classed('container', true);
             svg.attr('id', 'container');
-            const oElement: JQuery = $('div');
-            this.legend = createLegend(oElement, false, null, true);
+            const oElement = document.getElementsByTagName('div')[0];
+            this.legend = createLegend(oElement, options.host && false, this.interactivityService, true);
             this.rootElement.select('.legend').style('top', 0);
+            this.rootElement.select('.clearCatcher').remove();
         }
 
         // tslint:disable-next-line:no-any
@@ -165,7 +163,7 @@ module powerbi.extensibility.visual {
         }
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
-
+            THIS = this;
             this.currentViewport = {
                 height: Math.max(0, options.viewport.height),
                 width: Math.max(0, options.viewport.width)
@@ -217,6 +215,7 @@ module powerbi.extensibility.visual {
                 return;
             } else {
                 this.rootElement.selectAll('.legend #legendGroup').selectAll('*').style('visibility', 'visible');
+                $('#container').removeAttr('style');
             }
             let legendNumbers: number = 0;
             // if the whole column is null
@@ -469,7 +468,6 @@ module powerbi.extensibility.visual {
 
                 }
             }
-            const THIS: this = this;
             // data binding: end
             const viewModel: IQuadrantChartViewModel = visualTransform(options, this.host, THIS);
 
@@ -489,6 +487,7 @@ module powerbi.extensibility.visual {
             this.quadrantChartPoints = viewModel.dataPoints;
             const settingsChanged: boolean = this.getSettings(this.dataView.metadata.objects);
             // workaround because of sdk bug that doesn't notify when only style has changed
+            this.interactivityService.applySelectionStateToData(this.quadrantChartPoints);
             this.renderLegend(viewModel);
             if (!this.bubbleChartWithAxis || settingsChanged
                 // tslint:disable-next-line:no-bitwise
@@ -497,168 +496,37 @@ module powerbi.extensibility.visual {
                 this.bubbleChartWithAxis =
                     MAQDrawChart(this.dataView, this.settings, viewModel, series, assignData, ValueFormatter, textMeasurementService);
             }
-
-            this.addBubbleSelection(this.selectionManager, viewModel);
-
-            this.addLegendSelection();
-            $('#legendGroup').on('click.load', '.navArrow', function (): void {
-                THIS.addLegendSelection();
-            });
-
-            this.rootElement
-                .on('click',
-                    () => this.selectionManager.clear().then(() => this.rootElement.selectAll('.legendItem').attr('opacity', 1),
-                                                             this.rootElement.selectAll('svg .MAQCharts-plotArea circle')
-                            .attr('opacity', 1)));
-
-            this.bubbleSelection = this.rootElement.selectAll('svg .MAQCharts-plotArea circle');
-            this.legendSelection = this.rootElement.selectAll('.legendItem');
-            this.syncSelectionState(
-                this.bubbleSelection,
-                this.legendSelection,
-                this.selectionManager.getSelectionIds() as ISelectionId[]
-            );
-
-        }
-
-        // tslint:disable-next-line:no-any
-        private addBubbleSelection(selectionManager: any, viewModel: any): void {
-            // tslint:disable-next-line:variable-name
-            const THIS: this = this;
-            const bubbles: d3.selection.Update<{}> = this.svg.selectAll('svg .MAQCharts-plotArea circle').data(viewModel.dataPoints);
-            // tslint:disable-next-line:no-any
-            bubbles.on('click', function (d: any): void {
+            this.addSelection(this.quadrantChartPoints);
+            this.svg.on('contextmenu', () => {
+                const mouseEvent: MouseEvent = d3.event as MouseEvent;
+                const eventTarget: EventTarget = mouseEvent.target;
                 // tslint:disable-next-line:no-any
-                selectionManager.select(d.selectionId).then((ids: any[]) => {
-                    this.bubbleSelection = bubbles;
-                    this.legendSelection = THIS.rootElement.selectAll('.legendItem');
-                    THIS.syncSelectionState(
-                        this.bubbleSelection,
-                        this.legendSelection,
-                        ids
-                    );
-                    d3.select(this).attr({
-                        opacity: 1
+                const dataPoint : any = d3.select(eventTarget).datum();
+                if (dataPoint !== undefined) {
+                    this.selectionManager.showContextMenu(dataPoint ? dataPoint.identity : {}, {
+                        x: mouseEvent.clientX,
+                        y: mouseEvent.clientY
                     });
-                });
-                (<Event>d3.event).stopPropagation();
-            });
-        }
-
-        private addLegendSelection(): void {
-            // tslint:disable-next-line:variable-name
-            const THIS: this = this;
-            // tslint:disable-next-line:no-any
-            const legends: any = this.rootElement.selectAll('.legendItem');
-            const selectionManager: ISelectionManager = this.selectionManager;
-            // tslint:disable-next-line:no-any
-            legends.on('click', function (d: any): void {
-                // tslint:disable-next-line:no-any
-                selectionManager.select(d.identity).then((ids: any[]) => {
-                    this.bubbleSelection = THIS.rootElement.selectAll('svg .MAQCharts-plotArea circle');
-                    this.legendSelection = legends;
-                    THIS.syncSelectionState(
-                        this.bubbleSelection,
-                        this.legendSelection,
-                        ids
-                    );
-
-                    d3.select(this).attr({
-                        opacity: 1
-                    });
-                });
-                (<Event>d3.event).stopPropagation();
-            });
-        }
-
-        // method to update visuals based on given selection & Ids
-        private syncSelectionState(
-            selection1: d3.Selection<IQuadrantChartDataPoint>,
-            selection2: d3.Selection<IQuadrantChartDataPoint>,
-            // tslint:disable-next-line:no-any
-            selectionIds: any[]
-        ): void {
-            if (!selection1 || !selection2 || !selectionIds) {
-                return;
-            }
-
-            if (!selectionIds.length) {
-                selection1.attr('opacity', 1);
-                selection2.attr('opacity', 1);
-
-                return;
-            }
-
-            // tslint:disable-next-line:no-any
-            function CompareIds(data: any, type: number): number {
-                switch (type) {
-                    case 1:
-                        {
-                            if (selectionIds.length > 0) {
-                                if (data.selectionId.key === selectionIds[0].key) {
-                                    return 1;
-                                } else {
-                                    return 0.5;
-                                }
-                            } else {
-                                return 1;
-                            }
-                        }
-                    case 2:
-                        {
-                            if (selectionIds.length > 0) {
-                                if (data.identity.key === selectionIds[0].key) {
-                                    return 1;
-                                } else {
-                                    return 0.5;
-                                }
-                            } else {
-                                return 1;
-                            }
-                        }
-                    default:
+                    mouseEvent.preventDefault();
                 }
-            }
-
-            const self: this = this;
-            // tslint:disable-next-line:no-any
-
-            selection1.each(function (barDataPoint: IQuadrantChartDataPoint): void {
-                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
-
-                d3.select(this).attr(
-                    'opacity',
-                    // tslint:disable-next-line:no-any
-                    (e: any) => {
-                        return CompareIds(e, 1);
-                    }
-                );
             });
 
-            selection2.each(function (barDataPoint: IQuadrantChartDataPoint): void {
-                const isSelected: boolean = self.isSelectionIdInArray(selectionIds, barDataPoint.selectionId);
-
-                d3.select(this).attr(
-                    'opacity',
-                    // tslint:disable-next-line:no-any
-                    (e: any) => {
-                        return CompareIds(e, 2);
-                    }
-                );
-            });
         }
-
-        // method to return boolean based on presence of value in array
-        private isSelectionIdInArray(selectionIds: ISelectionId[], selectionId: ISelectionId): boolean {
-            if (!selectionIds || !selectionId) {
-                return false;
-            }
-
-            return selectionIds.some((currentSelectionId: ISelectionId) => {
-                return currentSelectionId.includes(selectionId);
-            });
+        // tslint:disable-next-line:no-any
+        private addSelection(dataPoints: any): void {
+            const behaviorOptions: IQuadrantBehaviorOptions = {
+                clearCatcher: d3.selectAll('svg').data(dataPoints),
+                bubbleSelection: d3.selectAll('svg .MAQCharts-plotArea circle').data(dataPoints),
+                legendSelection: d3.selectAll('.legendItem'),
+                interactivityService: this.interactivityService
+            };
+            this.interactivityService.bind(
+                this.quadrantChartPoints,
+                this.behavior,
+                behaviorOptions,
+                {
+                });
         }
-
         private renderLegend(viewModel: IQuadrantChartViewModel): void {
 
             if (!viewModel || !viewModel.legendData) {
@@ -694,6 +562,11 @@ module powerbi.extensibility.visual {
             }
             this.legend.drawLegend(legendDataTorender, _.clone(this.currentViewport));
             powerbi.extensibility.utils.chart.legend.positionChartArea(this.svg, this.legend);
+            // tslint:disable-next-line:no-any
+            $('.legend #legendGroup').on('click.load', '.navArrow', function (): any {
+                THIS.addSelection(THIS.quadrantChartPoints);
+              });
+
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
@@ -712,7 +585,7 @@ module powerbi.extensibility.visual {
                                     }
                                 }
                             },
-                            selector: quadrantChartPoint.selectionId.getSelector()
+                            selector: quadrantChartPoint.identity.getSelector()
                         });
                     }
                     break;
@@ -853,6 +726,45 @@ module powerbi.extensibility.visual {
             this.prevDataViewObjects = objects;
 
             return settingsChanged;
+        }
+    }
+    interface IQuadrantBehaviorOptions {
+        // tslint:disable-next-line:no-any
+        clearCatcher: any;
+        // tslint:disable-next-line:no-any
+        bubbleSelection: any;
+        // tslint:disable-next-line:no-any
+        legendSelection: any;
+        interactivityService: IInteractivityService;
+    }
+    class QuadrantBehavior implements IInteractiveBehavior {
+        private options: IQuadrantBehaviorOptions;
+        public bindEvents(options: IQuadrantBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            this.options = options;
+            // tslint:disable-next-line:no-any
+            const clearCatcher: any = options.clearCatcher;
+            const interactivityService: IInteractivityService = options.interactivityService;
+            options.bubbleSelection.on('click', (d: SelectableDataPoint) => {
+                selectionHandler.handleSelection(d, false);
+                (<Event>d3.event).stopPropagation();
+            });
+            clearCatcher.on('click', () => {
+                selectionHandler.handleClearSelection();
+            });
+            options.legendSelection.on('click', (d: SelectableDataPoint) => {
+                selectionHandler.handleSelection(d, false);
+                (<Event>d3.event).stopPropagation();
+            });
+            this.renderSelection(interactivityService.hasSelection());
+        }
+        // tslint:disable-next-line:no-any
+        public renderSelection(hasSelection: boolean): any {
+            this.options.bubbleSelection.style('opacity', (d: SelectableDataPoint) => {
+                return (hasSelection && !d.selected) ? 0.5 : 1;
+            });
+            this.options.legendSelection.style('opacity', (d: SelectableDataPoint) => {
+                return (hasSelection && !d.selected) ? 0.5 : 1;
+            });
         }
     }
 }
