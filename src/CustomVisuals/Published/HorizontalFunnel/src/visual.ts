@@ -258,7 +258,9 @@ module powerbi.extensibility.visual {
 
         return defaultValue;
     }
-
+    /**
+     *  It is used to present the visual on screen
+     */
     export class HorizontalFunnel implements IVisual {
         private static minOpacity: number = 0.3;
         private static maxOpacity: number = 1;
@@ -962,7 +964,7 @@ module powerbi.extensibility.visual {
             }
             if (!dataView.categorical.categories || 1 === showDefaultText) {
                 let message: string;
-                message = 'Please select "Series" and "Primary Measure" values';
+                message = 'Please select both "Series" and "Primary Measure" values';
                 parentDiv
                     .append('div')
                     .text(message)
@@ -1110,8 +1112,9 @@ module powerbi.extensibility.visual {
                 availableWidth = (parentWidth - width) / (1.8 * catLength);
                 let primaryColumn: string;
                 primaryColumn = TextMeasurementService.getTailoredTextOrDefault(textProperties, availableWidth);
-
-                if (availableWidth < 60 || height < 100) {
+                const maxWidth: number = 60;
+                const maxHeight: number = 100;
+                if (availableWidth < maxWidth || height < maxHeight) {
                     element
                         .append('div')
                         .style({
@@ -1163,13 +1166,14 @@ module powerbi.extensibility.visual {
                     };
 
                     let secondaryColumn: string;
+                    const catFactor: number = 1.8;
                     secondaryColumn = TextMeasurementService.getTailoredTextOrDefault(
-                        textProperties, (parentWidth - width) / (1.8 * catLength));
+                        textProperties, (parentWidth - width) / (catFactor * catLength));
                     element
                         .append('div')
                         .style({
                             color: color,
-                            width: `${(parentWidth - width) / (1.8 * catLength)}px`,
+                            width: `${(parentWidth - width) / (catFactor * catLength)}px`,
                             'font-size': `${fontsize}px`,
                             visibility: 'hidden'
                         })
@@ -1179,7 +1183,7 @@ module powerbi.extensibility.visual {
                     textSize = parseInt(fontsize.toString(), 10);
                     //check whether text fits or append ellipses
                     length = ((textSize * (this.viewModel.secondaryColumn.length)) / ((parentWidth - width) / (1.8 * catLength))) * 100;
-                    if ((((parentWidth - width) / (1.8 * catLength)) < 60) || (height < 100)) {
+                    if ((((parentWidth - width) / (catFactor * catLength)) < maxWidth) || (height < maxHeight)) {
                         element.append('div')
                             .style({
                                 overflow: 'hidden',
@@ -1188,14 +1192,13 @@ module powerbi.extensibility.visual {
                                 color: color,
                                 width: `${(parentWidth - width) / (1.8 * catLength)}px`,
                                 'padding-right': '10px',
-                                //'padding-left': '3px',
                                 'margin-top': '5px',
                                 'margin-left': '0',
                                 'word-break': 'keep-all',
                                 'white-space': 'normal'
                             })
                             .attr({ title: this.viewModel.secondaryColumn })
-                            .text(this.trimString(secondaryColumn, ((parentWidth - width) / (1.8 * catLength)) / textSize))
+                            .text(this.trimString(secondaryColumn, ((parentWidth - width) / (catFactor * catLength)) / textSize))
                             .classed('hf_yaxis2', true);
                     } else {
                         element.append('div')
@@ -1204,7 +1207,7 @@ module powerbi.extensibility.visual {
                                 position: 'absolute',
                                 'font-size': `${fontsize}px`,
                                 color: color,
-                                width: `${(parentWidth - width) / (1.8 * catLength)}px`,
+                                width: `${(parentWidth - width) / (catFactor * catLength)}px`,
                                 'padding-right': '10px',
                                 'margin-left': '0',
                                 'margin-top': '5px',
@@ -1216,16 +1219,16 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
-
             for (let i: number = 0; i < (2 * catLength - 1); i++) {
                 if (!showLegendProp.show) {
                     let constantMultiplier: number = 1;
+                    const xDisplacement: number = 10;
                     if (catLength > 0) {
                         constantMultiplier = 4 / (5 * catLength - 1); // dividing the available space into equal parts
                     }
-                    width = (parentWidth - 10) * constantMultiplier; // remove 10 from total width as 10 is x displacement
+                    width = (parentWidth - xDisplacement) * constantMultiplier; // remove 10 from total width as 10 is x displacement
                     if (!showConnectorsProp.show) {
-                        width = (parentWidth - 10) / catLength;
+                        width = (parentWidth - xDisplacement) / catLength;
                     }
                 }
                 element = this.root.select('.hf_parentdiv')
@@ -1307,7 +1310,11 @@ module powerbi.extensibility.visual {
                 }
             }
             for (let i: number = 0; i < this.viewModel.categories.length; i++) {
-                if (this.viewModel.values[i].values[0] === null || this.viewModel.values[i].values[0] === 0) {
+                    const maxLabelValue1: number = 1000000000000;
+                    const maxLabelValue2: number = 1000000000;
+                    const maxLabelValue3: number = 1000000;
+                    const maxLabelValue4: number = 1000;
+                    if (this.viewModel.values[i].values[0] === null || this.viewModel.values[i].values[0] === 0) {
                     percentageVal.push(-1);
                 } else {
                     if (ymax - this.viewModel.values[i].values[0] > 0) {
@@ -1316,14 +1323,14 @@ module powerbi.extensibility.visual {
                         percentageVal.push(0);
                     }
                 }
-                legendvalue = this.root.select(`.hf_legend_item${legendpos}`);
-                if (this.viewModel.categories[i].value !== null) {
+                    legendvalue = this.root.select(`.hf_legend_item${legendpos}`);
+                    if (this.viewModel.categories[i].value !== null && this.viewModel.categories[i].value !== '' ) {
                     title = dataPoints[i].toolTipInfo[0].value;
                     legendvalue.attr({ title: title }).text(title);
                 } else {
                     legendvalue.attr({ title: '(Blank)' }).text('(Blank)');
                 }
-                if (this.viewModel.values[i].values[0] !== null) {
+                    if (this.viewModel.values[i].values[0] !== null) {
                     title = String(dataPoints[i].toolTipInfo[1].value);
                     precisionValue = precisionValue;
                     if (displayunitValue === 0) {    //auto option selected then
@@ -1333,14 +1340,14 @@ module powerbi.extensibility.visual {
                                 maxLabel = this.viewModel.values[j].values[0];
                             }
                         }
-                        if (maxLabel > 1000000000000) {
-                            displayunitValue = 1000000000000;
-                        } else if (maxLabel > 1000000000) {
-                            displayunitValue = 1000000000;
-                        } else if (maxLabel > 1000000) {
-                            displayunitValue = 1000000;
-                        } else if (maxLabel > 1000) {
-                            displayunitValue = 1000;
+                        if (maxLabel > maxLabelValue1) {
+                            displayunitValue = maxLabelValue1;
+                        } else if (maxLabel > maxLabelValue2) {
+                            displayunitValue = maxLabelValue2;
+                        } else if (maxLabel > maxLabelValue3) {
+                            displayunitValue = maxLabelValue3;
+                        } else if (maxLabel > maxLabelValue4) {
+                            displayunitValue = maxLabelValue4;
                         } else {
                             displayunitValue = 1;
                         }
@@ -1379,7 +1386,7 @@ module powerbi.extensibility.visual {
                         })
                         .text(this.trimString(title, width / 10));
                 }
-                if (this.viewModel.values[i].values.length > 1) {
+                    if (this.viewModel.values[i].values.length > 1) {
                     let sKMBValueY2AxisTooltip: string;
                     if (this.viewModel.values[i].values[1] !== null) {
                         //let PM = [];
@@ -1390,14 +1397,14 @@ module powerbi.extensibility.visual {
                                     maxLabel = this.viewModel.values[j].values[1];
                                 }
                             }
-                            if (maxLabel > 1000000000000) {
-                                displayunitValue2 = 1000000000000;
-                            } else if (maxLabel > 1000000000) {
-                                displayunitValue2 = 1000000000;
-                            } else if (maxLabel > 1000000) {
-                                displayunitValue2 = 1000000;
-                            } else if (maxLabel > 1000) {
-                                displayunitValue2 = 1000;
+                            if (maxLabel > maxLabelValue1) {
+                                displayunitValue2 = maxLabelValue1;
+                            } else if (maxLabel > maxLabelValue2) {
+                                displayunitValue2 = maxLabelValue2;
+                            } else if (maxLabel > maxLabelValue3) {
+                                displayunitValue2 = maxLabelValue3;
+                            } else if (maxLabel > maxLabelValue4) {
+                                displayunitValue2 = maxLabelValue4;
                             } else {
                                 displayunitValue2 = 1;
                             }
@@ -1439,7 +1446,7 @@ module powerbi.extensibility.visual {
                     }
 
                 }
-                legendpos += 2;
+                    legendpos += 2;
             }
 
             for (let i: number = 0; i < (2 * catLength - 1); i++) {
@@ -1565,6 +1572,19 @@ module powerbi.extensibility.visual {
             });
 
             this.syncSelectionState(selection, this.selectionManager.getSelectionIds() as ISelectionId[]);
+            d3.selectAll('.hf_parentdiv').on('contextmenu', () => {
+                const mouseEvent: MouseEvent = d3.event as MouseEvent;
+                const eventTarget: EventTarget = mouseEvent.target;
+                // tslint:disable-next-line:no-any
+                const dataPoint : any = d3.select(eventTarget).datum();
+                if (dataPoint !== undefined) {
+                    this.selectionManager.showContextMenu(dataPoint.identity , {
+                        x: mouseEvent.clientX,
+                        y: mouseEvent.clientY
+                    });
+                    mouseEvent.preventDefault();
+                }
+            });
         }
 
         public getDefaultLegendSettings(): IShowLegendSettings {
