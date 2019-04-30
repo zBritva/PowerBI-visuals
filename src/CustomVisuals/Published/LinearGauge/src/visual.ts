@@ -53,6 +53,7 @@ module powerbi.extensibility.visual {
     // selectionId to render visual according to selection
     let tempSelectionId: powerbi.extensibility.ISelectionId;
     tempSelectionId = null;
+
     let uniqueValuesLegend: PrimitiveValue[];
     let dataPoints: IDataPoints[];
     let staticHost: IVisualHost;
@@ -62,7 +63,7 @@ module powerbi.extensibility.visual {
     actualValue = [];
     let categoryLegend: ICategorySettings[];
     let linearDataPoint: ILinearDataPoint[];
-    let tooltip : ITooltip[];
+    let tooltip: ITooltip[];
     tooltip = [];
     let tooltipPoint: ITooltipData[];
     tooltipPoint = [];
@@ -137,6 +138,10 @@ module powerbi.extensibility.visual {
         BestValue: number;
         selectionId: powerbi.extensibility.ISelectionId;
     }
+
+    /**
+     * Gets property value for a particular object
+     */
     export class LinearGauge implements IVisual {
         private host: IVisualHost;
         private tooltipServiceWrapper: ITooltipServiceWrapper;
@@ -151,6 +156,10 @@ module powerbi.extensibility.visual {
         private actual: d3.Selection<SVGElement>;
         private percentage: d3.Selection<SVGElement>;
         private dataView: DataView;
+        private maxValueIndex: number;
+        private minValueFlag: boolean = false;
+        private minValueIndex: number;
+        private maxValueFlag: boolean = false;
         private data: ILinearGauge;
         private trendValue1: d3.Selection<SVGElement>;
         private trendValue2: d3.Selection<SVGElement>;
@@ -311,7 +320,7 @@ module powerbi.extensibility.visual {
                 let temptrendtwo: number = null;
                 let tempBest: number = null;
                 tooltipPoint = [];
-                if ( categoryFlag === 1 ) {
+                if (categoryFlag === 1) {
                     tempKey = <string>dataView.categorical.categories[0].values[step];
                     tooltipPoint.push({
                         displayName: options.dataViews[0].categorical.categories[0].source.displayName,
@@ -321,43 +330,47 @@ module powerbi.extensibility.visual {
                 for (let iterator: number = 0; iterator < dataView.categorical.values.length; iterator++) {
                     let col: DataViewMetadataColumn;
                     col = dataView.categorical.values[iterator].source;
-                    if ( col.roles[`Y`] ) {
+                    if (col.roles[`Y`]) {
                         tempActual = <number>dataView.categorical.values[iterator].values[step];
                         tooltipPoint.push({
                             displayName: col.displayName,
                             value: this.getFormattedTooltipData(col.format, tempActual)
                         });
-                    } else if ( col.roles[`TargetValue`] ) {
+                    } else if (col.roles[`TargetValue`]) {
                         tempTarget = <number>dataView.categorical.values[iterator].values[step];
                         tooltipPoint.push({
                             displayName: col.displayName,
                             value: this.getFormattedTooltipData(col.format, tempTarget)
                         });
-                    } else if ( col.roles[`MinValue`] ) {
+                    } else if (col.roles[`MinValue`]) {
+                        this.minValueIndex = iterator;
+                        this.minValueFlag = true;
                         tempMin = <number>dataView.categorical.values[iterator].values[step];
                         tooltipPoint.push({
                             displayName: col.displayName,
                             value: this.getFormattedTooltipData(col.format, tempMin)
                         });
-                    } else if ( col.roles[`MaxValue`] ) {
+                    } else if (col.roles[`MaxValue`]) {
+                        this.maxValueIndex = iterator;
+                        this.maxValueFlag = true;
                         tempMax = <number>dataView.categorical.values[iterator].values[step];
                         tooltipPoint.push({
                             displayName: col.displayName,
                             value: this.getFormattedTooltipData(col.format, tempMax)
                         });
-                    } else if ( col.roles[`QualitativeState1Value`] ) {
+                    } else if (col.roles[`QualitativeState1Value`]) {
                         temptrendOne = <number>dataView.categorical.values[iterator].values[step];
                         tooltipPoint.push({
                             displayName: col.displayName,
                             value: this.getFormattedTooltipData(col.format, temptrendOne)
                         });
-                    } else if ( col.roles[`QualitativeState2Value`] ) {
+                    } else if (col.roles[`QualitativeState2Value`]) {
                         temptrendtwo = <number>dataView.categorical.values[iterator].values[step];
                         tooltipPoint.push({
                             displayName: col.displayName,
                             value: this.getFormattedTooltipData(col.format, temptrendtwo)
                         });
-                    } else if ( col.roles[`BestValue`] ) {
+                    } else if (col.roles[`BestValue`]) {
                         tempBest = <number>dataView.categorical.values[iterator].values[step];
                         tooltipPoint.push({
                             displayName: col.displayName,
@@ -391,8 +404,8 @@ module powerbi.extensibility.visual {
                     }
                 }
                 linearDataPoint.push(dataPoint);
-                if ( tempSelectionId !== null && prevFlag === options.dataViews[0].categorical.categories[0].values.length ) {
-                    if ( linearDataPoint[step].selectionId[`key`] === tempSelectionId[`key`] ) {
+                if (tempSelectionId !== null && prevFlag === options.dataViews[0].categorical.categories[0].values.length) {
+                    if (linearDataPoint[step].selectionId[`key`] === tempSelectionId[`key`]) {
                         tooltip.push({
                             tooltipDataPoint: tooltipPoint
                         });
@@ -411,11 +424,9 @@ module powerbi.extensibility.visual {
                     tempSelectionId = selectedArray[0];
                 }
             }
-            if ( categoryFlag === 1 ) {
-                //let catColumn: DataViewCategoryColumn;
+            if (categoryFlag === 1) {
                 let categoryCol: string;
                 categoryCol = dataView.categorical.categories[0].source.displayName;
-                //catColumn = dataView.categorical.categories[0];
                 let length: number;
                 length = linearDataPoint.length;
                 for (let index: number = 0; index < length; index++) {
@@ -431,15 +442,15 @@ module powerbi.extensibility.visual {
                                 }
                             }).solid.color,
                         selectionId: staticHost.createSelectionIdBuilder()
-                                .withCategory(dataView.categorical.categories[0], index)
-                                .createSelectionId()
+                            .withCategory(dataView.categorical.categories[0], index)
+                            .createSelectionId()
                     });
                     dataPoints.push({
                         flag: index + 1,
                         key: category.toString(),
                         selector: staticHost.createSelectionIdBuilder()
-                                .withCategory(dataView.categorical.categories[0], index)
-                                .createSelectionId()
+                            .withCategory(dataView.categorical.categories[0], index)
+                            .createSelectionId()
                     });
                 }
                 uniqueValuesLegend = dataView.categorical.categories[0].values
@@ -454,7 +465,8 @@ module powerbi.extensibility.visual {
                     labelColor: $this.settings.legendTextColor,
                     fontSize: $this.settings.categoryFontSize
                 };
-                options.viewport.width = options.viewport.width - 20;
+                const cache: number = 20;
+                options.viewport.width = options.viewport.width - cache;
                 for (let index: number = 0; index < uniqueValuesLegend.length; index++) {
                     legendData.dataPoints.push({
                         label: linearDataPoint[index].key,
@@ -489,7 +501,7 @@ module powerbi.extensibility.visual {
                 }
                 this.legend.drawLegend(legendData, options.viewport);
                 legendLength = legendData.dataPoints.length;
-                options.viewport.width = options.viewport.width + 20;
+                options.viewport.width = options.viewport.width + cache;
             }
             actualValue = [];
             for (let i: number = 0; i < values.length; i++) {
@@ -501,14 +513,14 @@ module powerbi.extensibility.visual {
                 if (col.roles[`Y`]) { // we are matching the role and populating value
                     data.actualFormat = col.format;
                     for (let j: number = 0; j < linearDataPoint.length; j++) {
-                        if (  tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`] ) {
+                        if (tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`]) {
                             value = value + <number>linearDataPoint[j].actualValue;
                             selectedKey = linearDataPoint[j].key;
                             if (individualFlag === 0) {
                                 actualValue[pos] = value;
                                 pos++;
                             }
-                        } else if ( tempSelectionId === null ) {
+                        } else if (tempSelectionId === null) {
                             value = value + <number>linearDataPoint[j].actualValue;
                             if (individualFlag === 0) {
                                 actualValue[j] = value;
@@ -524,10 +536,10 @@ module powerbi.extensibility.visual {
                     data.minFlag = true;
                     value = <number>values[i].values[0];
                     for (let j: number = 0; j < linearDataPoint.length; j++) {
-                        if ( tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`] ) {
+                        if (tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`]) {
                             value = <number>linearDataPoint[j].minValue;
-                        } else if ( tempSelectionId === null && value > <number>linearDataPoint[j].minValue) {
-                                value = <number>linearDataPoint[j].minValue;
+                        } else if (tempSelectionId === null && value > <number>linearDataPoint[j].minValue) {
+                            value = <number>linearDataPoint[j].minValue;
                         }
                     }
                     data.min = value;
@@ -538,10 +550,10 @@ module powerbi.extensibility.visual {
                     data.maxFlag = true;
                     value = null;
                     for (let j: number = 0; j < linearDataPoint.length; j++) {
-                        if ( tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`] ) {
-                            value  = <number>linearDataPoint[j].maxValue;
-                        } else if ( tempSelectionId === null ) {
-                            value  = value + <number>linearDataPoint[j].maxValue;
+                        if (tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`]) {
+                            value = <number>linearDataPoint[j].maxValue;
+                        } else if (tempSelectionId === null) {
+                            value = value + <number>linearDataPoint[j].maxValue;
                         }
                     }
                     data.max = value;
@@ -553,10 +565,10 @@ module powerbi.extensibility.visual {
                     data.targetFormat = col.format;
                     value = null;
                     for (let j: number = 0; j < linearDataPoint.length; j++) {
-                        if ( tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`] ) {
-                            value  = <number>linearDataPoint[j].targetValue;
-                        } else if ( tempSelectionId === null ) {
-                            value  = value + <number>linearDataPoint[j].targetValue;
+                        if (tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`]) {
+                            value = <number>linearDataPoint[j].targetValue;
+                        } else if (tempSelectionId === null) {
+                            value = value + <number>linearDataPoint[j].targetValue;
                         }
                     }
                     data.target = value;
@@ -566,10 +578,10 @@ module powerbi.extensibility.visual {
                 if (col.roles[`QualitativeState1Value`]) {
                     value = null;
                     for (let j: number = 0; j < linearDataPoint.length; j++) {
-                        if ( tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`] ) {
-                            value  = <number>linearDataPoint[j].trendOne;
-                        } else if ( tempSelectionId === null ) {
-                            value  = value + <number>linearDataPoint[j].trendOne;
+                        if (tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`]) {
+                            value = <number>linearDataPoint[j].trendOne;
+                        } else if (tempSelectionId === null) {
+                            value = value + <number>linearDataPoint[j].trendOne;
                         }
                     }
                     data.trendValueOne = value;
@@ -580,10 +592,10 @@ module powerbi.extensibility.visual {
                 if (col.roles[`QualitativeState2Value`]) {
                     value = null;
                     for (let j: number = 0; j < linearDataPoint.length; j++) {
-                        if ( tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`] ) {
-                            value  = <number>linearDataPoint[j].trendTwo;
-                        } else if ( tempSelectionId === null ) {
-                            value  = value + <number>linearDataPoint[j].trendTwo;
+                        if (tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`]) {
+                            value = <number>linearDataPoint[j].trendTwo;
+                        } else if (tempSelectionId === null) {
+                            value = value + <number>linearDataPoint[j].trendTwo;
                         }
                     }
                     data.trendValueTwo = value;
@@ -594,10 +606,10 @@ module powerbi.extensibility.visual {
                 if (col.roles[`BestValue`]) {
                     value = null;
                     for (let j: number = 0; j < linearDataPoint.length; j++) {
-                        if ( tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`] ) {
-                            value  = <number>linearDataPoint[j].BestValue;
-                        } else if ( tempSelectionId === null ) {
-                            value  = value + <number>linearDataPoint[j].BestValue;
+                        if (tempSelectionId !== null && linearDataPoint[j].selectionId[`key`] === tempSelectionId[`key`]) {
+                            value = <number>linearDataPoint[j].BestValue;
+                        } else if (tempSelectionId === null) {
+                            value = value + <number>linearDataPoint[j].BestValue;
                         }
                     }
                     data.best = value;
@@ -611,31 +623,60 @@ module powerbi.extensibility.visual {
                 d3.selectAll('.legendItem')
                     // tslint:disable-next-line:no-any
                     .on('click', function (d: any, i: number): void {
-                        $this.selectionManager.select(d.identity).then((ids: ISelectionId[]) => {
-                            tempSelectionId = d.identity;
-                            $this.roscCallFlag = false;
-                            $this.update(options);
-                        });
+                        if (d3.select(this).classed('selected')) {
+                            $this.selectionManager.clear();
+                            if (tempSelectionId !== null) {
+                                tempSelectionId = null;
+                                $this.roscCallFlag = false;
+                                $this.update(options);
+                            }
+                            d3.selectAll('.legendItem').classed('selected', false);
+                            d3.selectAll('.legendItem').style('opacity', 1);
+                        }  else {
+                            $this.selectionManager.select(d.identity).then((ids: ISelectionId[]) => {
+                                tempSelectionId = d.identity;
+                                $this.roscCallFlag = false;
+                                $this.update(options);
+                                d3.select(this).classed('selected', true);
+                                d3.selectAll('.legendItem').style('opacity', 0.5);
+                                d3.select(this).style('opacity', 1);
+                             });
+                        }
                         (<Event>d3.event).stopPropagation();
                     });
                 $('.navArrow').click(function (): void {
                     d3.selectAll('.legendItem').style('cursor', 'pointer');
                     // tslint:disable-next-line:no-any
                     d3.selectAll('.legendItem').on('click', function (d: any, i: number): void {
+                        if (d3.select(this).classed('selected')) {
+                            $this.selectionManager.clear();
+                            if (tempSelectionId !== null) {
+                                tempSelectionId = null;
+                                $this.roscCallFlag = false;
+                                $this.update(options);
+                            }
+                            d3.selectAll('.legendItem').classed('selected', false);
+                            d3.selectAll('.legendItem').style('opacity', 1);
+                        }  else {
                         $this.selectionManager.select(d.identity).then((ids: ISelectionId[]) => {
                             tempSelectionId = d.identity;
                             $this.roscCallFlag = false;
                             $this.update(options);
+                            d3.select(this).classed('selected', true);
+                            d3.selectAll('.legendItem').style('opacity', 0.5);
+                            d3.select(this).style('opacity', 1);
                         });
+                    }
                         (<Event>d3.event).stopPropagation();
                     });
                 });
                 d3.select('html').on('click', function (): void {
                     $this.selectionManager.clear();
-                    if ( tempSelectionId !== null ) {
+                    if (tempSelectionId !== null) {
                         tempSelectionId = null;
                         $this.roscCallFlag = false;
                         $this.update(options);
+                        d3.selectAll('.legendItem').style('opacity', 1);
                     }
                 });
             }
@@ -721,7 +762,8 @@ module powerbi.extensibility.visual {
             formatter = ValueFormatter.create({
                 value: formatterVal,
                 precision: precision,
-                format: format
+                format: format,
+                cultureSelector: this.host.locale
             });
             formattedData = formatter.format(value);
 
@@ -751,13 +793,26 @@ module powerbi.extensibility.visual {
         private getFormattedTooltipData(format: string, value: number): string {
             let formattedData: string;
             let formatter: IValueFormatter;
-            if (format === '') {
+            if (format === '' || format === undefined ) {
                 format = ValueFormatter.DefaultNumericFormat;
             }
             formatter = ValueFormatter.create({
-                format: format
+                format: format,
+                cultureSelector: this.host.locale
             });
             formattedData = formatter.format(value);
+            if (format !== undefined) {
+                if (format.indexOf('.') > 0) {
+                    if (formattedData.split('.')[1].length > 2) {
+                        let dataFormatter: IValueFormatter;
+                        dataFormatter = ValueFormatter.create({
+                            format: format,
+                            value : 0
+                        });
+                        formattedData = dataFormatter.format(value);
+                    }
+                }
+            }
 
             return formattedData;
         }
@@ -767,7 +822,7 @@ module powerbi.extensibility.visual {
 
             this.colorsGlobal = [];
             if ((JSON.stringify(objects) !== JSON.stringify(this.prevDataViewObjects))) {
-
+                const colorPalette: IColorPalette = this.host.colorPalette;
                 const minValue: number = getValue<number>(objects, `TargetRange`, `MinRangeValue`, null);
                 const maxValue: number = getValue<number>(objects, `TargetRange`, `MaxRangeValue`, null);
                 const range1Val: number = getValue<number>(objects, `colorSelector`, `range1`, null);
@@ -797,12 +852,17 @@ module powerbi.extensibility.visual {
                     }).solid.color,
                     ActualFillColor: getValue<Fill>(objects, `general`, `ActualFillColor`, {
                         solid: {
-                            color: `#FF8F00 `
+                            color: `#FF8F00`
+                        }
+                    }).solid.color,
+                    ActualFillColorEqual: getValue<Fill>(objects, `general`, `ActualFillColorEqual`, {
+                        solid: {
+                            color: `#FD817E`
                         }
                     }).solid.color,
                     ActualFillColorGreater: getValue<Fill>(objects, `general`, `ActualFillColorGreater`, {
                         solid: {
-                            color: `#8AD4EB `
+                            color: `#8AD4EB`
                         }
                     }).solid.color,
                     DataColor: getValue<Fill>(objects, `labels`, `DataColor`, {
@@ -833,6 +893,8 @@ module powerbi.extensibility.visual {
                     showPercentage: getValue<number>(objects, `PercentageDatalabels`, `show`, 0) === 0 ? true :
                         getValue<number>(objects, `PercentageDatalabels`, `show`, 0),
                     showRemainingPercentage: getValue<boolean>(objects, `PercentageDatalabels`, `showRemaining`, false),
+                    title: getValue<boolean>(objects, `general`, `title`, false),
+
                     PercentageDataColor: getValue<Fill>(objects, `PercentageDatalabels`, `PercentageDataColor`, {
                         solid: {
                             color: '#000'
@@ -901,7 +963,7 @@ module powerbi.extensibility.visual {
                     scaleDisplayUnits: getValue<number>(objects, `ScaleSettings`, `displayUnits`, 0),
                     scaleDecimalPlaces: scaleDecimalPlaces,
                     legendShow: getValue<boolean>(objects, `legendSettings`, `show`, true),
-                    legendNewPosition: getValue<string>(objects, `legendSettings`, `position`, "topLeft"),
+                    legendNewPosition: getValue<string>(objects, `legendSettings`, `position`, 'topLeft'),
                     legendColor: getValue<Fill>(objects, `legendSettings`, `fill`, {
                         solid: {
                             color: '#000'
@@ -931,7 +993,7 @@ module powerbi.extensibility.visual {
                     Indicator2: getValue<Fill>(objects, `Indicator`, `Indicator2`, {
                         solid: {
                             color: 'grey'
-                        }
+                         }
                     }).solid.color,
                     categoryFontSize: getValue<number>(objects, `categorySettings`, `fontSize`, 12),
                     categoryTitle: getValue<boolean>(objects, `categorySettings`, `title`, false),
@@ -942,8 +1004,14 @@ module powerbi.extensibility.visual {
                         }
                     }).solid.color,
                     animationToggle: getValue<boolean>(objects, `animationEffect`, `show`, false),
-                    animationTime: getValue<number>(objects, `animationEffect`, `animationTime`, 0)
+                    animationTime: getValue<number>(objects, `animationEffect`, `animationTime`, 3)
                 };
+                if (this.settings.scaleFontSize > 28) {
+                    this.settings.scaleFontSize = 28;
+                }
+                if (this.settings.legendFontSize > 25 ) {
+                    this.settings.legendFontSize = 25;
+                }
             }
             this.prevDataViewObjects = objects;
             this.colorsGlobal.push(this.settings.ComparisonFillColor);
@@ -958,9 +1026,12 @@ module powerbi.extensibility.visual {
                 this.colorsGlobal.push(this.settings.area1);
             }
         }
-
+        public isInteger(x: number): boolean {
+            return x % 1 === 0;
+        }
         // tslint:disable-next-line:cyclomatic-complexity
         public update(options: VisualUpdateOptions): void {
+
             let $this: this;
             $this = this;
             $this.visualOptions = options;
@@ -1004,13 +1075,13 @@ module powerbi.extensibility.visual {
                     if (!trendLabelFlag) {
                         showTrendStatus = this.settings.showTrend;
                         trendLabelFlag = true;
-                        if (this.settings.legendNewPosition === "topLeft") {
+                        if (this.settings.legendNewPosition === 'topLeft') {
                             $('.lg_legend_tab').hide();
                         }
                     }
                     this.settings.showTrend = false;
                 } else {
-                    if ( trendLabelFlag ) {
+                    if (trendLabelFlag) {
                         this.settings.showTrend = showTrendStatus;
                         trendLabelFlag = false;
                         $('.lg_legend_tab').show();
@@ -1031,13 +1102,13 @@ module powerbi.extensibility.visual {
                     if (!trendLabelFlag) {
                         showTrendStatus = this.settings.showTrend;
                         trendLabelFlag = true;
-                        if (this.settings.legendNewPosition === "topLeft") {
+                        if (this.settings.legendNewPosition === 'topLeft') {
                             $('.lg_legend_tab').hide();
                         }
                     }
                     this.settings.showTrend = false;
                 } else {
-                    if ( trendLabelFlag ) {
+                    if (trendLabelFlag) {
                         this.settings.showTrend = showTrendStatus;
                         trendLabelFlag = false;
                         $('.lg_legend_tab').show();
@@ -1069,8 +1140,8 @@ module powerbi.extensibility.visual {
             }
             if (this.settings.animationTime > 6) {
                 this.settings.animationTime = 6;
-            } else if (this.settings.animationTime < 0) {
-                this.settings.animationTime = 0;
+            } else if (this.settings.animationTime < 1) {
+                this.settings.animationTime = 1;
             }
             // setting upperbound to rangetick width
             if (this.settings.rangeWidth > 8) {
@@ -1099,7 +1170,7 @@ module powerbi.extensibility.visual {
                     d3.selectAll('.lg_data_tab').style('margin-left', `${this.settings.fontSize / 2.0}px`);
                     d3.selectAll('.linearSVG').style('margin-left', `0px`);
                 } else if (this.settings.legendPos === 'Left' || this.settings.legendPos === 'Left center') {
-                    if (this.settings.legendNewPosition === "topLeft") {
+                    if (this.settings.legendNewPosition === 'topLeft') {
                         d3.selectAll('.lg_legend_tab').style('margin-left', `${legendHeight.width}px`);
                     }
                     d3.selectAll('.lg_imagetab').style('margin-top', `0px`);
@@ -1157,9 +1228,9 @@ module powerbi.extensibility.visual {
             if (individualFlag !== 0) {
                 legendColor[0] = categoryLegend[individualFlag - 1].color;
             } else {
-                let colorIndex : number = 0;
+                let colorIndex: number = 0;
                 for (let index: number = 0; index < categoryLegend.length; index++) {
-                    if ( tempSelectionId !== null && categoryLegend[index].key === selectedKey) {
+                    if (tempSelectionId !== null && categoryLegend[index].key === selectedKey) {
                         legendColor[colorIndex] = categoryLegend[index].color;
                         colorIndex++;
                     } else {
@@ -1182,6 +1253,7 @@ module powerbi.extensibility.visual {
             let halfMaxFormattedDataWidth: number;
             maxFormattedDataWidth = textMeasurementService.measureSvgTextWidth(textProperties);
             halfMaxFormattedDataWidth = maxFormattedDataWidth / 2;
+            const heightAdjust: number = 20;
             if (this.settings.Orientation === `Horizontal`) {
                 $('.lg_imagetab').css('left', 'auto');
                 if (categoryFlag === 0) {
@@ -1203,7 +1275,7 @@ module powerbi.extensibility.visual {
                 $('.lg_imagetab').css('right', 'auto');
                 $('.lg_imagetab').css('left', 0);
                 width = viewport.height;
-                height = viewport.width - 20;
+                height = viewport.width - heightAdjust;
                 modHeight = width / 12;
                 this.svg
                     .attr({
@@ -1212,32 +1284,32 @@ module powerbi.extensibility.visual {
                     }).style('margin-left', `${(viewport.width / 2) - (modHeight / 2)}px`);
                 this.svgLinear.attr(`transform`, `translate(5,0)`);
             }
-
+            const percentVal : number = 100;
             if (this.data.target) {
                 if (!this.settings.showRemainingPercentage) {
                     if (this.data.actual < 0 && this.data.target < 0) {
-                        percentageVal = (this.data.actual * 100) / this.data.target;
+                        percentageVal = (this.data.actual * percentVal) / this.data.target;
                         percentageVal = 200 - percentageVal;
                         percentageVal = parseFloat(Number(percentageVal).toFixed(2));
                     } else {
-                        percentageVal = (this.data.actual * 100) / this.data.target;
+                        percentageVal = (this.data.actual * percentVal) / this.data.target;
                         percentageVal = parseFloat(Number(percentageVal).toFixed(2));
                     }
                 } else {
                     if (this.data.actual < 0 && this.data.target < 0) {
-                        percentageVal = -((this.data.target - this.data.actual) / this.data.target) * 100;
+                        percentageVal = -((this.data.target - this.data.actual) / this.data.target) * percentVal;
                         if (this.data.actual > this.data.target) {
                             percentageVal = 0;
                         }
                         percentageVal = parseFloat(Number(percentageVal).toFixed(2));
                     } else {
-                        percentageVal = (this.data.actual * 100) / this.data.target;
-                        percentageVal = 100 - percentageVal < 0 ? 0 : 100 - percentageVal;
+                        percentageVal = (this.data.actual * percentVal) / this.data.target;
+                        percentageVal = percentVal - percentageVal < 0 ? 0 : percentVal - percentageVal;
                         percentageVal = parseFloat(Number(percentageVal).toFixed(2));
                     }
                 }
             } else {
-                percentageVal = 100;
+                percentageVal = percentVal;
             }
             let minRangeValue: number;
             let maxRangeValue: number;
@@ -1278,7 +1350,6 @@ module powerbi.extensibility.visual {
                 (options.viewport.width / 2.1) - 20 : options.viewport.width - 30;
             let updatedText: string;
             updatedText = textMeasurementService.getTailoredTextOrDefault(textProps, horizontalWidth);
-
             const actualTooltip: string = this.getFormattedTooltipData(this.data.actualFormat, this.data.actual);
             this.actual.text(updatedText)
                 .attr('title', actualTooltip)
@@ -1292,11 +1363,10 @@ module powerbi.extensibility.visual {
                 fontFamily: this.settings.percentagefontFamily,
                 text: `${percentageVal}%`
             };
-
             const dataWidth: number = $('.lg_data_total').width();
-
-            let updatedTextpercent: string;
-            updatedTextpercent = textMeasurementService.getTailoredTextOrDefault(textPropspercent, options.viewport.width - dataWidth - 70);
+            const viewportWidthCache : number = 70;
+            const updatedTextpercent: string =
+            textMeasurementService.getTailoredTextOrDefault(textPropspercent, options.viewport.width - dataWidth - viewportWidthCache);
 
             this.percentage.text(updatedTextpercent)
                 .attr('title', `${percentageVal}%`)
@@ -1311,44 +1381,47 @@ module powerbi.extensibility.visual {
             let className: string;
             let translateVal: string;
             let axisFunction: d3.svg.Axis;
-            if (categoryFlag === 0 && this.settings.Orientation === 'Horizontal' ) {
-                if (this.settings.legendNewPosition === "aboveMarker") {
-                    d3.selectAll('.lg_legend_tab').style('margin-top', `${((viewport.height / 2) - 38)}px`);
+            const horizontalCacheHeight : number = 38; // adjusts the height of the legend when the orientation is horizontal.
+            const verticalCacheHeight : number = 13; // adjusts the height of the legend when the orientation is vertical.
+            if (categoryFlag === 0 && this.settings.Orientation === 'Horizontal') {
+                if (this.settings.legendNewPosition === 'aboveMarker') {
+                    d3.selectAll('.lg_legend_tab').style('margin-top', `${((viewport.height / 2) - horizontalCacheHeight)}px`);
                 } else {
                     d3.selectAll('.lg_legend_tab').style('margin-top', `0px`);
                 }
-            } else if (categoryFlag === 0 && this.settings.Orientation === 'Vertical')  {
-                if (this.settings.legendNewPosition === "aboveMarker") {
-                    d3.selectAll('.lg_legend_tab').style('margin-top', `${yScale(this.data.target) - 13}px`);
+            } else if (categoryFlag === 0 && this.settings.Orientation === 'Vertical') {
+                if (this.settings.legendNewPosition === 'aboveMarker') {
+                    d3.selectAll('.lg_legend_tab').style('margin-top', `${yScale(this.data.target) - verticalCacheHeight}px`);
                 } else {
-                    d3.selectAll('.lg_legend_tab').style('margin-top', `${((viewport.height / 2))}px`);
+                    d3.selectAll('.lg_legend_tab').style('margin-top', `0px`);
                 }
             } else if (categoryFlag === 1 && this.settings.Orientation === `Horizontal`) {
                 if (this.settings.legendPos === 'Top' || this.settings.legendPos === 'Top center') {
-                    if (this.settings.legendNewPosition === "aboveMarker") {
-                        d3.selectAll('.lg_legend_tab').style('margin-top', `${(viewport.height / 2) - 38}px`);
+                    if (this.settings.legendNewPosition === 'aboveMarker') {
+                        d3.selectAll('.lg_legend_tab').style('margin-top', `${(viewport.height / 2) - horizontalCacheHeight}px`);
                     } else {
                         d3.selectAll('.lg_legend_tab').style('margin-top', `${legendHeight.height}px`);
                     }
                 } else {
-                    if (this.settings.legendNewPosition === "aboveMarker") {
-                        d3.selectAll('.lg_legend_tab').style('margin-top', `${((viewport.height / 2) - 38)}px`);
+                    if (this.settings.legendNewPosition === 'aboveMarker') {
+                        d3.selectAll('.lg_legend_tab').style('margin-top', `${((viewport.height / 2) - horizontalCacheHeight)}px`);
                     } else {
                         d3.selectAll('.lg_legend_tab').style('margin-top', `0px`);
                     }
                 }
             } else if (categoryFlag === 1 && this.settings.Orientation === `Vertical`) {
                 if (this.settings.legendPos === 'Top' || this.settings.legendPos === 'Top center') {
-                    if (this.settings.legendNewPosition === "aboveMarker") {
-                        d3.selectAll('.lg_legend_tab').style('margin-top', `${yScale(this.data.target) + legendHeight.height - 15}px`);
+                    if (this.settings.legendNewPosition === 'aboveMarker') {
+                        d3.selectAll('.lg_legend_tab').style('margin-top',
+                                                             `${yScale(this.data.target) + legendHeight.height - verticalCacheHeight}px`);
                     } else {
-                        d3.selectAll('.lg_legend_tab').style('margin-top', `${((viewport.height / 2) + legendHeight.height)}px`);
+                        d3.selectAll('.lg_legend_tab').style('margin-top', `${(1 + legendHeight.height)}px`);
                     }
                 } else {
-                    if (this.settings.legendNewPosition === "aboveMarker") {
-                        d3.selectAll('.lg_legend_tab').style('margin-top', `${yScale(this.data.target) - 15}px`);
+                    if (this.settings.legendNewPosition === 'aboveMarker') {
+                        d3.selectAll('.lg_legend_tab').style('margin-top', `${yScale(this.data.target) - verticalCacheHeight}px`);
                     } else {
-                        d3.selectAll('.lg_legend_tab').style('margin-top', `${((viewport.height / 2) - legendHeight.height)}px`);
+                        d3.selectAll('.lg_legend_tab').style('margin-top', `0px`);
                     }
                 }
             }
@@ -1380,9 +1453,8 @@ module powerbi.extensibility.visual {
                 xMaxFormattedDataWidth = textMeasurementService.measureSvgTextWidth(xTextProperties);
                 let xHalfMaxFormattedDataWidth: number;
                 xHalfMaxFormattedDataWidth = maxFormattedDataWidth / 2;
-
-                xScale.range([xHalfMaxFormattedDataWidth, viewport.width - xHalfMaxFormattedDataWidth]);
-
+                const distance: number = (xHalfMaxFormattedDataWidth * 10 / xHalfMaxFormattedDataWidth);
+                xScale.range([distance, viewport.width - distance]);
                 xAxis = d3.svg.axis().scale(xScale)
                     .tickFormat(actualFormatter.format)
                     .orient('down');
@@ -1392,61 +1464,6 @@ module powerbi.extensibility.visual {
                 maxRangeValue = (this.settings.MaxRangeValue === null
                     || this.settings.MaxRangeValue < this.data.min
                     || this.settings.MaxRangeValue > this.data.max) ? this.data.max : this.settings.MaxRangeValue;
-            } else {
-                this.trendValue1.style(`text-align`, `left`);
-                this.trendValue2.style(`text-align`, `left`);
-
-                $('.data_percentagev').hide();
-                $('.data_totalv').hide();
-                $(`.trendtext1v`).hide();
-                $(`.trendtext2v`).hide();
-                vDataLabel = d3.select('.linearSVG').append('g').classed('LG_verticalDataLabel', true);
-                let difference: number;
-                if (this.settings.labelDisplayUnits === 1) {
-                    difference = 150 + this.data.actual.toString().length * 6;
-                } else {
-                    difference = 150;
-                }
-
-                let availableWidth: number;
-                availableWidth = parseInt($('.linearSVG').css('marginLeft').toString(), 10);
-                if (this.settings.showlabel) {
-                    const textPropsv: TextProperties = {
-                        fontSize: `${this.settings.fontSize}px`,
-                        fontFamily: this.settings.fontFamily,
-                        text: actualVal
-                    };
-                    let updatedTextv: string;
-                    updatedTextv = textMeasurementService.getTailoredTextOrDefault(textPropsv, availableWidth * 0.5);
-
-                    vDataLabel.append('text')
-                        .classed('data_totalv', true)
-                        .attr(`transform`, `${`translate(`}${(modHeight - difference)}${`,`}${(svgheight - 20)} )`)
-                        .style(`fill`, this.settings.DataColor)
-                        .style(`font-family`, this.settings.fontFamily)
-                        .style(`font-size`, `${this.settings.fontSize}px`)
-                        .text(updatedTextv).attr('title', actualTooltip);
-                } else {
-                    $('.data_totalv').hide();
-                }
-                if (this.settings.showPercentage) {
-                    const textPropspercen: TextProperties = {
-                        fontSize: `${this.settings.fontSize}px`,
-                        fontFamily: this.settings.fontFamily,
-                        text: `${percentageVal.toString()}%`
-                    };
-                    let updatedTextpercen: string;
-                    updatedTextpercen = textMeasurementService.getTailoredTextOrDefault(textPropspercen, availableWidth * 0.5);
-                    vDataLabel.append('text').text(updatedTextpercen)
-                        .classed('data_percentagev', true)
-                        .attr(`transform`, `translate(${(modHeight - difference)}${`,`}${(svgheight - 50)} )`)
-                        .style(`fill`, this.settings.PercentageDataColor)
-                        .style(`font-family`, this.settings.percentagefontFamily)
-                        .style(`font-size`, `${this.settings.percentagefontSize}px`)
-                        .attr('title', updatedTextpercen);
-                } else {
-                    $('.data_percentagev').hide();
-                }
             }
 
             let colors: string[];
@@ -1462,9 +1479,11 @@ module powerbi.extensibility.visual {
             if (this.data.target !== null) {
                 if (this.data.actual > this.data.target) {
                     measureColor = this.settings.ActualFillColorGreater;
+                } else if (this.data.actual === this.data.target) {
+                    measureColor = this.settings.ActualFillColorEqual;
                 }
-            }
 
+            }
             if (this.settings.Orientation === `Horizontal`) {
                 let margin1: number;
                 let margin2: number;
@@ -1743,16 +1762,16 @@ module powerbi.extensibility.visual {
                         x2: hMarker,
                         y2: modHeight
                     });
-                markerLine.on('mouseover', function(): void {
+                markerLine.on('mouseover', function (): void {
                     d3.select('.marker').attr('stroke-width', '5');
                 });
-                markerLine.on('mouseout', function(): void {
+                markerLine.on('mouseout', function (): void {
                     d3.select('.marker').attr('stroke-width', '1');
                 });
                 /* Marker code starts here */
-                if (this.settings.legendNewPosition === "aboveMarker") {
+                if (this.settings.legendNewPosition === 'aboveMarker') {
                     let targetMarker: d3.Selection<SVGElement>;
-                    if ( categoryFlag === 1 ) {
+                    if (categoryFlag === 1) {
                         targetMarker = this.svg.append('polygon')
                             .classed('markerTriangle', true)
                             .attr({
@@ -1765,24 +1784,24 @@ module powerbi.extensibility.visual {
                             .classed('markerTriangle', true)
                             .attr({
                                 points: `${hMarker - 4},${-(8)} ${hMarker + 4},
-                                ${-(8)} ${hMarker}, ${ - 2}`
+                                ${-(8)} ${hMarker}, ${- 2}`
                             }).style('fill', 'brown')
                             .attr('stroke', 'brown')
                             .attr('stroke-width', 3);
                     }
-                    targetMarker.on('mouseover', function(): void {
+                    targetMarker.on('mouseover', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', 5);
                         d3.select('.marker').attr('stroke-width', '5');
                     });
-                    targetMarker.on('mouseout', function(): void {
+                    targetMarker.on('mouseout', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', '3');
                         d3.select('.marker').attr('stroke-width', '1');
                     });
-                    markerLine.on('mouseover', function(): void {
+                    markerLine.on('mouseover', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', 5);
                         d3.select('.marker').attr('stroke-width', '5');
                     });
-                    markerLine.on('mouseout', function(): void {
+                    markerLine.on('mouseout', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', '3');
                         d3.select('.marker').attr('stroke-width', '1');
                     });
@@ -1835,7 +1854,6 @@ module powerbi.extensibility.visual {
                 if (this.settings.showRange) {
                     let strokeColor: string;
                     strokeColor = this.settings.RangeTicksColor;
-
                     this.svgLinear
                         .append(`line`)
                         .classed(`markermin`, true)
@@ -1849,6 +1867,7 @@ module powerbi.extensibility.visual {
                         })
                         .append('title')
                         .text(minRangeValue);
+                    if (minRangeValue < maxRangeValue) {
                     this.svgLinear
                         .append(`line`)
                         .classed(`markermax`, true)
@@ -1862,9 +1881,10 @@ module powerbi.extensibility.visual {
                         })
                         .append('title')
                         .text(maxRangeValue);
+                    }
                     if (this.settings.rangeStyle === 'dotted') {
                         this.svgLinear.selectAll('.markermin, .markermax')
-                            .style('stroke-dasharray', ('1, 5'));
+                            .style('stroke-dasharray', ('1,1'));
 
                     } else if (this.settings.rangeStyle === 'dashed') {
                         this.svgLinear.selectAll('.markermin, .markermax')
@@ -2055,7 +2075,6 @@ module powerbi.extensibility.visual {
                     .attr(`x`, leftPos)
                     .attr(`y`, -yScale(yScale.domain()[0]))
                     .attr(`transform`, 'rotate(180)');
-
                 gradient = this.svgLinear.append('svg:linearGradient');
 
                 gradient.attr('id', 'gradient')
@@ -2068,7 +2087,7 @@ module powerbi.extensibility.visual {
                 gradient.append('stop').attr('offset', '0%')
                     .attr('stop-color', this.getDarkShade(measureColor, 0.5)).attr('stop-opacity', 1);
                 gradient.append('stop').attr('offset', '100%').attr('stop-color', measureColor).attr('stop-opacity', 1);
-                //Main measure
+
                 if (categoryFlag === 0) {
                     measure = this.svgLinear
                         .append(`rect`)
@@ -2139,6 +2158,67 @@ module powerbi.extensibility.visual {
                         });
                     }
                 }
+
+                this.trendValue1.style(`text-align`, `left`);
+                this.trendValue2.style(`text-align`, `left`);
+
+                $('.data_percentagev').hide();
+                $('.data_totalv').hide();
+                $(`.trendtext1v`).hide();
+                $(`.trendtext2v`).hide();
+                vDataLabel = d3.select('.linearSVG').append('g').classed('LG_verticalDataLabel', true);
+                let difference: number;
+                const diff: number = 150; // used to separate lineargauge and texts (actual and percentagevalues).
+                const actualValLength: number = 6; // increase the distance from lineargauge if the
+                if (this.settings.labelDisplayUnits === 1) {
+                    difference = diff + this.data.actual.toString().length * actualValLength;
+                } else {
+                    difference = diff;
+                }
+
+                let availableWidth: number ;
+                const adjustFactor : number = 1.55;
+                availableWidth = parseInt($('.linearSVG').css('marginLeft').toString(), 10) - measureWidth - 10;
+                const widthAdjust: number = 0.3; // used to adjust the elipses of actualvalue and percentagevalue
+                if (this.settings.showlabel) {
+                    const textPropsv: TextProperties = {
+                        fontSize: `${this.settings.fontSize}px`,
+                        fontFamily: this.settings.fontFamily,
+                        text: actualVal
+                    };
+                    let updatedTextv: string;
+                    updatedTextv = textMeasurementService.getTailoredTextOrDefault(textPropsv, availableWidth );
+                //actual data vertical
+                    vDataLabel.append('text')
+                        .classed('data_totalv', true)
+                        .attr(`transform`, `${`translate(`}${(modHeight - adjustFactor * difference)}${`,`}${(svgheight - 20)} )`)
+                        .style(`fill`, this.settings.DataColor)
+                        .style(`font-family`, this.settings.fontFamily)
+                        .style(`font-size`, `${this.settings.fontSize}px`)
+                        .text(updatedTextv)
+                        .append('title').text(actualTooltip);
+                } else {
+                    $('.data_totalv').hide();
+                }
+                if (this.settings.showPercentage) {
+                    const textPropspercen: TextProperties = {
+                        fontSize: `${this.settings.fontSize}px`,
+                        fontFamily: this.settings.fontFamily,
+                        text: `${percentageVal.toString()}%`
+                    };
+                     //percantage data vertical
+                    let updatedTextpercen: string;
+                    updatedTextpercen = textMeasurementService.getTailoredTextOrDefault(textPropspercen, availableWidth );
+                    vDataLabel.append('text').text(updatedTextpercen)
+                        .classed('data_percentagev', true)
+                        .attr(`transform`, `translate(${(modHeight - adjustFactor * difference)}${`,`}${(svgheight - 50)} )`)
+                        .style(`fill`, this.settings.PercentageDataColor)
+                        .style(`font-family`, this.settings.percentagefontFamily)
+                        .style(`font-size`, `${this.settings.percentagefontSize}px`)
+                        .append('title').text( `${percentageVal}%`);
+                } else {
+                    $('.data_percentagev').hide();
+                }
                 if (this.data.max <= this.data.min) {
                     measure.style(`display`, `none`);
                 }
@@ -2169,14 +2249,14 @@ module powerbi.extensibility.visual {
                         x2: modHeight + 3,
                         y2: vMarker
                     });
-                markerLine.on('mouseover', function(): void {
+                markerLine.on('mouseover', function (): void {
                     d3.select('.marker').attr('stroke-width', '5');
                 });
-                markerLine.on('mouseout', function(): void {
+                markerLine.on('mouseout', function (): void {
                     d3.select('.marker').attr('stroke-width', '1');
                 });
                 /* Marker Code Starts here */
-                if (this.settings.legendNewPosition === "aboveMarker") {
+                if (this.settings.legendNewPosition === 'aboveMarker') {
                     let targetMarker: d3.Selection<SVGElement>;
                     targetMarker = this.svg.append('polygon')
                         .classed('markerTriangle', true)
@@ -2185,19 +2265,19 @@ module powerbi.extensibility.visual {
                         }).style('fill', 'brown')
                         .attr('stroke', 'brown')
                         .attr('stroke-width', 3);
-                    targetMarker.on('mouseover', function(): void {
+                    targetMarker.on('mouseover', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', 5);
                         d3.select('.marker').attr('stroke-width', '5');
                     });
-                    targetMarker.on('mouseout', function(): void {
+                    targetMarker.on('mouseout', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', '3');
                         d3.select('.marker').attr('stroke-width', '1');
                     });
-                    markerLine.on('mouseover', function(): void {
+                    markerLine.on('mouseover', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', 5);
                         d3.select('.marker').attr('stroke-width', '5');
                     });
-                    markerLine.on('mouseout', function(): void {
+                    markerLine.on('mouseout', function (): void {
                         d3.select('.markerTriangle').attr('stroke-width', '3');
                         d3.select('.marker').attr('stroke-width', '1');
                     });
@@ -2232,16 +2312,17 @@ module powerbi.extensibility.visual {
                             });
                     }
                 }
-
+                let linePostion : number;
+                linePostion = Math.abs(Math.round(Math.abs(measureLeftPos) - (modHeight + 4)));
                 if (this.settings.showScale) {
                     this.svgLinear
                         .append(`line`)
                         .classed(`markerTilt`, true)
                         .style(`stroke`, `#000`)
                         .attr({
-                            x1: modHeight + 3,
+                            x1: modHeight + 3 ,
                             y1: vMarker,
-                            x2: modHeight + 10,
+                            x2: modHeight + 10 ,
                             y2: vMarker
                         });
                 }
@@ -2254,26 +2335,27 @@ module powerbi.extensibility.visual {
                         .style(`stroke`, strokeColor)
                         .style('stroke-width', `${this.settings.rangeWidth}px`)
                         .attr({
-                            x1: 3,
+                            x1: 4 ,
                             y1: vMarkerMin,
-                            x2: modHeight + 3,
+                            x2: modHeight + 4,
                             y2: vMarkerMin
                         });
-
+                    if (minRangeValue < maxRangeValue) {
                     this.svgLinear
                         .append(`line`)
                         .classed(`markermax`, true)
                         .style(`stroke`, strokeColor)
                         .style('stroke-width', `${this.settings.rangeWidth}px`)
                         .attr({
-                            x1: 3,
+                            x1: 4,
                             y1: vMarkerMax,
-                            x2: modHeight + 3,
+                            x2: modHeight + 4,
                             y2: vMarkerMax
                         });
+                    }
                     if (this.settings.rangeStyle === 'dotted') {
                         this.svgLinear.selectAll('.markermin, .markermax')
-                            .style('stroke-dasharray', ('1, 5'));
+                            .style('stroke-dasharray', ('1, 1'));
 
                     } else if (this.settings.rangeStyle === 'dashed') {
                         this.svgLinear.selectAll('.markermin, .markermax')
@@ -2307,7 +2389,7 @@ module powerbi.extensibility.visual {
                         fontSize: `${this.settings.legendFontSize}px`,
                         text: `${targetFormatter.format(this.data.target)} ${this.data.targetColName}`
                     };
-                    if (this.settings.legendNewPosition === "topLeft") {
+                    if (this.settings.legendNewPosition === 'topLeft') {
                         legendTextProperties.text = `| ${targetFormatter.format(this.data.target)} ${this.data.targetColName}`;
                     }
                     const legendHorizontalWidth: number = (this.data.trend1Exists || this.data.trend2Exists) ?
@@ -2328,53 +2410,52 @@ module powerbi.extensibility.visual {
                         }).style('color', this.settings.legendColor)
                         .attr('title', `${targetTooltip} ${this.data.targetColName}`);
                     let divWidth: number;
-                    if ( this.rootElement.select('.lg_legend_tab') ) {
+                    if (this.rootElement.select('.lg_legend_tab')) {
                         divWidth = parseFloat(d3.select('.lg_legend_tab').style('width'));
                     }
-                    if ( categoryFlag === 0 && this.settings.Orientation === 'Vertical' ) {
-                        if (this.settings.legendNewPosition === "aboveMarker") {
+                    if (categoryFlag === 0 && this.settings.Orientation === 'Vertical') {
+                        if (this.settings.legendNewPosition === 'aboveMarker') {
                             d3.selectAll('.lg_legend_tab')
-                            .style('margin-left', `${(viewport.width / 2) - (modHeight / 2) - divWidth - 10}px`);
+                                .style('margin-left', `${(viewport.width / 2) - (modHeight / 2) - divWidth - 10}px`);
                         } else {
                             d3.selectAll('.lg_legend_tab')
-                            .style('margin-left', `20px`);
+                                .style('margin-left', `20px`);
                         }
-                        //$('.lg_legend_tab').css('left', 'auto').css('bottom', viewport.height / 2 + 'px');
                     } else if (categoryFlag === 1 && this.settings.Orientation === 'Vertical') {
                         if (this.settings.legendPos === 'Left' || this.settings.legendPos === 'Left center') {
-                            if (this.settings.legendNewPosition === "aboveMarker") {
+                            if (this.settings.legendNewPosition === 'aboveMarker') {
                                 d3.selectAll('.lg_legend_tab')
-                                .style('margin-left', `${(viewport.width / 2) - (modHeight / 2) - divWidth - 10}px`);
+                                    .style('margin-left', `${(viewport.width / 2) - (modHeight / 2) - divWidth - 10}px`);
                             } else {
                                 d3.selectAll('.lg_legend_tab')
-                                .style('margin-left', `${legendHeight.width + 20}px`);
+                                    .style('margin-left', `${legendHeight.width + 20}px`);
                             }
                         } else {
-                            if (this.settings.legendNewPosition === "aboveMarker") {
+                            if (this.settings.legendNewPosition === 'aboveMarker') {
                                 d3.selectAll('.lg_legend_tab')
-                                .style('margin-left', `${(viewport.width / 2) - (modHeight / 2) - divWidth - 10}px`);
+                                    .style('margin-left', `${(viewport.width / 2) - (modHeight / 2) - divWidth - 10}px`);
                             } else {
                                 d3.selectAll('.lg_legend_tab')
-                                .style('margin-left', `20px`);
+                                    .style('margin-left', `20px`);
                             }
                         }
                     }
-                    if (categoryFlag === 0 && this.settings.Orientation === 'Horizontal' ) {
-                        if (this.settings.legendNewPosition === "aboveMarker") {
+                    if (categoryFlag === 0 && this.settings.Orientation === 'Horizontal') {
+                        if (this.settings.legendNewPosition === 'aboveMarker') {
                             d3.selectAll('.lg_legend_tab').style('margin-left', `${xScale(this.data.target) - (divWidth / 2)}px`);
                         } else {
                             d3.selectAll('.lg_legend_tab').style('margin-left', `${legendHeight.width + 20}px`);
                         }
                     } else if (categoryFlag === 1 && this.settings.Orientation === `Horizontal`) {
                         if (this.settings.legendPos === 'Left' || this.settings.legendPos === 'Left center') {
-                            if (this.settings.legendNewPosition === "aboveMarker") {
+                            if (this.settings.legendNewPosition === 'aboveMarker') {
                                 d3.selectAll('.lg_legend_tab').style('margin-left', `${xScale(this.data.target) -
                                     (divWidth / 2) + legendHeight.width}px`);
                             } else {
                                 d3.selectAll('.lg_legend_tab').style('margin-left', `${legendHeight.width + 20}px`);
                             }
                         } else {
-                            if (this.settings.legendNewPosition === "aboveMarker") {
+                            if (this.settings.legendNewPosition === 'aboveMarker') {
                                 d3.selectAll('.lg_legend_tab').style('margin-left', `${xScale(this.data.target) - (divWidth / 2)}px`);
                             } else {
                                 d3.selectAll('.lg_legend_tab').style('margin-left', `${20}px`);
@@ -2428,8 +2509,6 @@ module powerbi.extensibility.visual {
             }
 
             if (this.settings.showTrend) {
-                //$('.lg_imagetab').css('display', 'block');
-
                 let updatedText1: string;
                 let updatedText2: string;
                 const arrowColorI1: string = this.settings.Indicator1;
@@ -2468,7 +2547,6 @@ module powerbi.extensibility.visual {
                             'font-family': this.settings.trendfontFamily
                         })
                         .attr('title', `${trend1Tooltip} ${trend1ValText}`);
-
                     if (this.data.trendValueOne < 0) {
                         $('.trendvalue1arrow').css({
                             transform: 'rotate(90deg)',
@@ -2560,7 +2638,6 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
-
             if (this.settings.showScale) {
                 let markings: d3.Selection<SVGElement>;
                 markings = this.svg.append('g').classed(`${className}`, true);
@@ -2590,7 +2667,6 @@ module powerbi.extensibility.visual {
                         fill: `none`
                     });
                 }
-
                 if (this.settings.Orientation === 'Horizontal') {
                     let totalTicks: number;
                     totalTicks = d3.selectAll('.lg_xLabels g.tick text')[0].length;
@@ -2676,34 +2752,82 @@ module powerbi.extensibility.visual {
             }
             // Remove elements if width not available
             const eleWidth: number = $('.lg_data_tab').width() + $('.lg_imagetab').width() + 20;
-
             const actualTooltipVal: string = this.getFormattedTooltipData(this.data.actualFormat, this.data.actual);
             let tooltipData: ITooltipData[];
+            let minToolTipData: number;
+            let targetToolTipData: number;
+            let actualToolTipData : number;
+            let maxToolTipData: number;
+            actualToolTipData = this.data.actual;
             tooltipData = [];
-            tooltipData.push({
-                displayName: this.data.actualColName,
-                value: actualTooltipVal
-            });
+            if (this.isInteger(actualToolTipData)) {
+                tooltipData.push({
+                    displayName: this.data.actualColName,
+                    value: actualTooltipVal.toString()
+                });
+            } else {
+                tooltipData.push({
+                    displayName: this.data.actualColName,
+                    value: actualTooltipVal
+                });
+            }
             if (this.data.targetExists) {
                 const targetTooltipVal: string = this.getFormattedTooltipData(this.data.targetFormat, this.data.target);
-                tooltipData.push({
-                    displayName: this.data.targetColName,
-                    value: targetTooltipVal
-                });
+                targetToolTipData = this.data.target;
+                if (this.isInteger(targetToolTipData)) {
+                    tooltipData.push({
+                        displayName: this.data.targetColName,
+                        value: targetTooltipVal.toString()
+                    });
+                } else {
+                    tooltipData.push({
+                        displayName: this.data.targetColName,
+                        value: Number(targetTooltipVal).toFixed(2)
+                    });
+                }
             }
-            if (this.data.min && this.data.minFlag) {
-                const minTooltipVal: string = this.getFormattedTooltipData(this.data.minFormat, this.data.min);
-                tooltipData.push({
-                    displayName: this.data.minColName,
-                    value: minTooltipVal
-                });
+            if (this.data.minFlag) {
+                const minValue: number = <number>this.dataView.categorical.values[this.minValueIndex].values[0];
+                if (this.minValueFlag && this.data.min !== minValue) {
+                    this.data.min = Number(minValue);
+                }
+                if (this.data.min && this.data.minFlag) {
+                    const minTooltipVal: string = this.getFormattedTooltipData(this.data.minFormat, this.data.min);
+                    minToolTipData = this.data.min;
+                    if (this.isInteger(Number(minToolTipData))) {
+                        tooltipData.push({
+                            displayName: this.data.minColName,
+                            value: minTooltipVal.toString()
+                        });
+                    } else {
+                        tooltipData.push({
+                            displayName: this.data.minColName,
+                            value: Number(minTooltipVal).toFixed(2)
+                        });
+                    }
+                }
             }
-            if (this.data.max && this.data.maxFlag) {
-                const maxTooltipVal: string = this.getFormattedTooltipData(this.data.maxFormat, this.data.max);
-                tooltipData.push({
-                    displayName: this.data.maxColName,
-                    value: maxTooltipVal
-                });
+            if (this.data.maxFlag) {
+                const maxValue: number = <number>this.dataView.categorical.values[this.maxValueIndex].values[0];
+                if (this.maxValueFlag && this.data.max !== maxValue) {
+                    this.data.max = Number(maxValue);
+                }
+                if (this.data.max && this.data.maxFlag) {
+                    const maxTooltipVal: string = this.getFormattedTooltipData(this.data.maxFormat, this.data.max);
+                    const maxTooltip: string = maxTooltipVal.replace(',', '');
+                    maxToolTipData = this.data.min;
+                    if (this.isInteger(maxToolTipData)) {
+                        tooltipData.push({
+                            displayName: this.data.maxColName,
+                            value: maxTooltipVal.toString()
+                        });
+                    } else {
+                        tooltipData.push({
+                            displayName: this.data.maxColName,
+                            value: Number(maxTooltip).toFixed(2)
+                        });
+                    }
+                }
             }
             if (this.data.best) {
                 const bestTooltipVal: string = this.getFormattedTooltipData(this.data.bestFormat, this.data.best);
@@ -2716,14 +2840,14 @@ module powerbi.extensibility.visual {
                 this.svgLinear.selectAll('rect.range,rect.rectRange'),
                 (tooltipEvent: TooltipEventArgs<number>) => tooltipData,
                 (tooltipEvent: TooltipEventArgs<number>) => null);
-            if ( categoryFlag === 0 ) {
+            if (categoryFlag === 0) {
                 this.tooltipServiceWrapper.addTooltip(
                     this.svgLinear.selectAll('rect.measure,rect.range,rect.rectRange'),
                     (tooltipEvent: TooltipEventArgs<number>) => tooltipData,
                     (tooltipEvent: TooltipEventArgs<number>) => null);
             }
-            if ( tooltipFLag === 0 ) {
-                for ( let index: number = 0; index < linearDataPoint.length; index++ ) {
+            if (tooltipFLag === 0) {
+                for (let index: number = 0; index < linearDataPoint.length; index++) {
                     this.tooltipServiceWrapper.addTooltip(
                         this.svgLinear.selectAll(`rect#measureId${linearDataPoint.length - index - 1}`),
                         (tooltipEvent: TooltipEventArgs<number>) => tooltip[index].tooltipDataPoint,
@@ -2919,6 +3043,11 @@ module powerbi.extensibility.visual {
                             ActualFillColor: {
                                 solid: {
                                     color: this.settings.ActualFillColor
+                                }
+                            },
+                            ActualFillColorEqual: {
+                                solid: {
+                                    color: this.settings.ActualFillColorEqual
                                 }
                             },
                             ActualFillColorGreater: {
