@@ -4,12 +4,12 @@
     "displayName": "Horizontal Funnel By MAQ Software",
     "guid": "HorizontalFunnel1449177164235",
     "visualClassName": "HorizontalFunnel",
-    "version": "3.2.4",
+    "version": "3.3.1",
     "description": "Allows you to visualize customizable primary measure as colored bars.",
     "supportUrl": "https://github.com/maqsoftware/PowerBI-visuals/issues",
     "gitHubUrl": "https://github.com/maqsoftware/PowerBI-visuals/"
   },
-  "apiVersion": "2.1.0",
+  "apiVersion": "2.5.0",
   "author": {
     "name": "MAQ Software",
     "email": "support@maqsoftware.com"
@@ -24,7 +24,6 @@
     "node_modules/powerbi-visuals-utils-dataviewutils/lib/index.js",
     "node_modules/jquery/dist/jquery.min.js",
     "node_modules/d3/d3.min.js",
-    "node_modules/lodash/lodash.min.js",
     "node_modules/globalize/lib/globalize.js",
     "node_modules/globalize/lib/cultures/globalize.culture.en-US.js",
     "node_modules/powerbi-visuals-utils-typeutils/lib/index.js",
@@ -32,7 +31,8 @@
     "node_modules/powerbi-visuals-utils-formattingutils/lib/index.js",
     "node_modules/powerbi-visuals-utils-interactivityutils/lib/index.js",
     "node_modules/powerbi-visuals-utils-chartutils/lib/index.js",
-    "node_modules/powerbi-visuals-utils-colorutils/lib/index.js"
+    "node_modules/powerbi-visuals-utils-colorutils/lib/index.js",
+    "node_modules/powerbi-visuals-utils-tooltiputils/lib/index.js"
   ],
   "style": "style/visual.less",
   "capabilities": "capabilities.json",
