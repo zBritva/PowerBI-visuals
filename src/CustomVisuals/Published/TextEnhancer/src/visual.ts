@@ -538,8 +538,8 @@ module powerbi.extensibility.visual {
 
         public update(options: VisualUpdateOptions): void {
             try {
-            const textDynamic = $(".dynamicText");
             this.eventService.renderingStarted(options);
+            const textDynamic = (".dynamicText");
             this.target.selectAll(".tw_value").remove();
             const dataView: DataView = this.dataViews = options.dataViews[0];
             let valueLength: number = 0;
@@ -619,14 +619,21 @@ module powerbi.extensibility.visual {
             }
             let url;
             // To check if url field exists
-            if (dataView.categorical.categories) {
+            if (dataView.categorical.categories !== undefined) {
             for (const iterator of options.dataViews[0].categorical.categories) {
-                if (iterator.source.type[`category`]
-                    === "WebUrl") {
-                    url = (iterator.values.toString());
+                        if (iterator.source.type[`category`]
+                            === "WebUrl" && iterator.source.roles.URL) {
+                            url = (iterator.values.toString());
+                        }
+                    }
+                }  else {
+                    if (dataView.categorical.values[0].source.roles.URL) {
+                        if (dataView.categorical.values[0].source.type[`category`]
+                            === "WebUrl") {
+                            url = (dataView.categorical.values[0].values.toString());
+                        }
+                    }
                 }
-            }
-        }
             // Text Direction
             let textAlign: string = textSettings.alignment;
             let writingMode: string = textSettings.direction;
@@ -659,7 +666,7 @@ module powerbi.extensibility.visual {
             let paddingType: string = "";
             let positionName: string = "";
             let positionVal: string = "";
-            const propVal: string = d3.select(".tw_finalText").style("transform");
+            const propVal: string = this.finalTextContainer.style("transform");
             switch (textSettings.alignmentV) {
                 case "top": {
                             switch (textSettings.direction) {
@@ -772,13 +779,13 @@ module powerbi.extensibility.visual {
                                                     transformed = `${propVal}  translate(-50%, -50%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-right" : "padding-left";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "50%");
                                                 } else if (textSettings.alignment === "right") {
                                                     transformed = `${propVal}  translate(-100%, -50%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-right" : "padding-left";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "100%");
                                                 } else if (textSettings.alignment === "left") {
                                                     transformed = `${propVal}  translate(0%, -50%)`;
@@ -792,13 +799,13 @@ module powerbi.extensibility.visual {
                                                     transformed = `${propVal}  translate(50%, 50%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-left" : "padding-right";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "50%");
                                                 } else if (textSettings.alignment === "right") {
                                                     transformed = `${propVal}  translate(100%, 50%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-left" : "padding-right";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "100%");
                                                 } else if (textSettings.alignment === "left") {
                                                     transformed = `${propVal}  translate(0%, 50%)`;
@@ -844,13 +851,13 @@ module powerbi.extensibility.visual {
                                                     transformed = `${propVal}  translate(-50%, -100%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-right" : "padding-left";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "50%");
                                                 } else if (textSettings.alignment === "right") {
                                                     transformed = `${propVal}  translate(-100%, -100%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-right" : "padding-left";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "100%");
                                                 } else if (textSettings.alignment === "left") {
                                                     transformed = `${propVal}  translate(0%, -100%)`;
@@ -864,13 +871,13 @@ module powerbi.extensibility.visual {
                                                     transformed = `${propVal}  translate(50%, 100%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-left" : "padding-right";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "50%");
                                                 } else if (textSettings.alignment === "right") {
                                                     transformed = `${propVal}  translate(100%, 100%)`;
                                                     paddingType = textSettings.lineIndent >= 0 ?
                                                     "padding-left" : "padding-right";
-                                                    this.finalTextContainer = d3.select(".tw_finalText")
+                                                    this.finalTextContainer = this.finalTextContainer
                                                         .style("left", "100%");
                                                 } else if (textSettings.alignment === "left") {
                                                     transformed = `${propVal}  translate(0%, 100%)`;
@@ -884,13 +891,12 @@ module powerbi.extensibility.visual {
                 }              break;
                 default: break;
             }
-            this.finalTextContainer = d3.select(".tw_finalText")
+            this.finalTextContainer = this.finalTextContainer
                 .style("position", "relative")
                 .style("transform", transformed)
                 .style(positionName, positionVal)
                 .style(paddingType, this.getLineIndent(paddingVal));
-            this.finalTextContainer = d3.select(".tw_finalText").append("div").classed("tw_pers", true);
-
+            this.finalTextContainer = this.finalTextContainer.append("div").classed("tw_pers", true);
             // Text Ordering
             const colonText: string = " : ";
             if (textValStatic !== "" && this.staticTextSettings.showColon) {
@@ -945,12 +951,14 @@ module powerbi.extensibility.visual {
                     dynfontwgt, textTransD);
             }
 
+            const dynamicText = $(".dynamicText");
+            const twFinalText = $(".tw_finalText");
             // Text Overflow Handling
             if (textRotationVal !== 0) {
-                const textWidth: number = $(".tw_finalText").width();
-                const textWidth2: number = $(".staticText").width() + textDynamic.width() +
+                const textWidth: number = twFinalText.width();
+                const textWidth2: number = $(".staticText").width() + dynamicText.width() +
                 $(".dynamicpluscolon").width();
-                const textHeight: number = $(".tw_finalText").height();
+                const textHeight: number = twFinalText.height();
                 switch (textSettings.alignmentV) {
                     case "top": {
                         switch (textSettings.direction) {
@@ -958,11 +966,11 @@ module powerbi.extensibility.visual {
                                                         textRotationVal = textRotationVal > 0 ?
                                                         textRotationVal % 180 : (-textRotationVal) % 180;
                                                         if (textSettings.alignment !== "center") {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-top", `${((textWidth / 2)
                                                                 * Math.sin(this.toRadians(textRotationVal)))}px`);
                                                         } else {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-top", `${((textWidth2 / 2)
                                                                 * Math.sin(this.toRadians(textRotationVal)))}px`);
                                                         }
@@ -972,11 +980,11 @@ module powerbi.extensibility.visual {
                                                         textRotationVal = textRotationVal > 0 ?
                                                         textRotationVal % 180 : (-textRotationVal) % 180;
                                                         if (textSettings.alignment !== "center") {
-                                                            d3.select(".tw_finalText").style("margin-top",
+                                                            this.finalTextContainer.style("margin-top",
                                                             `${((textWidth / 2) *
                                                                 Math.sin(this.toRadians(textRotationVal)))}px`);
                                                         } else {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-top", `${((textWidth2 / 2)
                                                                 * Math.sin(this.toRadians(textRotationVal)))}px`);
                                                         }
@@ -995,11 +1003,11 @@ module powerbi.extensibility.visual {
                                                         buffer = ((360 - rotVal) / 100 * 2) * textSettings.fontSize;
                                                     }
                                                     if (textSettings.alignment === "left") {
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-left", `${((textHeight / 2)
                                                             * Math.sin(this.toRadians(textRotationVal)))}px`);
                                                     } else if (textSettings.alignment === "right") {
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-left", `${-((textHeight / 2) *
                                                             Math.sin(this.toRadians(textRotationVal)) + buffer)}px`);
                                                         }
@@ -1020,11 +1028,11 @@ module powerbi.extensibility.visual {
                                                         buffer = ((360 - rotVal) / 100 * 2) * textSettings.fontSize;
                                                     }
                                                     if (textSettings.alignment === "left") {
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-left", `${((textHeight / 2) *
                                                             Math.sin(this.toRadians(textRotationVal)))}px`);
                                                     } else if (textSettings.alignment === "right") {
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-left", `${-((textHeight / 2) *
                                                             Math.sin(this.toRadians(textRotationVal)) + buffer)}px`);
                                                         }
@@ -1064,8 +1072,8 @@ module powerbi.extensibility.visual {
                                                             const a: number = -Math.sin(this.toRadians(rotVal));
                                                             marginL = (((textHeight) * a));
                                                         }
-                                                        d3.select(".tw_finalText").style("margin-top", `${-marginT}px`);
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer.style("margin-top", `${-marginT}px`);
+                                                        this.finalTextContainer
                                                         .style("margin-left", `${marginL - buffer}px`);
                                                     }
                                                     break;
@@ -1084,8 +1092,8 @@ module powerbi.extensibility.visual {
                                                             const a: number = -Math.sin(this.toRadians(rotVal));
                                                             marginL = (((textHeight) * a));
                                                         }
-                                                        d3.select(".tw_finalText").style("margin-top", `${-marginT}px`);
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer.style("margin-top", `${-marginT}px`);
+                                                        this.finalTextContainer
                                                         .style("margin-left", `${marginL - buffer}px`);
                                                     }
                                                     break;
@@ -1103,12 +1111,12 @@ module powerbi.extensibility.visual {
                                                         let a: number = Math.sin(this.toRadians(rotVal));
                                                         a = a > 0 ? a : -a;
                                                         marginL = (((textHeight) * a)) / 2;
-                                                        d3.select(".tw_finalText").style("margin-top", `${-marginT}px`);
+                                                        this.finalTextContainer.style("margin-top", `${-marginT}px`);
                                                         if (rotVal < 180) {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${-marginL}px`);
                                                         } else {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${marginL}px`);
                                                         }
                                                     }
@@ -1144,8 +1152,8 @@ module powerbi.extensibility.visual {
                                                         const a: number = -Math.sin(this.toRadians(rotVal));
                                                         marginL = (((textHeight) * a));
                                                     }
-                                                    d3.select(".tw_finalText").style("margin-top", `${-marginT}px`);
-                                                    d3.select(".tw_finalText").style("margin-left", `${marginL}px`);
+                                                    this.finalTextContainer.style("margin-top", `${-marginT}px`);
+                                                    this.finalTextContainer.style("margin-left", `${marginL}px`);
                                                  }
                                                  break;
                                     case "right": {
@@ -1163,8 +1171,8 @@ module powerbi.extensibility.visual {
                                                         const a: number = -Math.sin(this.toRadians(rotVal));
                                                         marginL = (((textHeight) * a));
                                                     }
-                                                    d3.select(".tw_finalText").style("margin-top", `${-marginT}px`);
-                                                    d3.select(".tw_finalText")
+                                                    this.finalTextContainer.style("margin-top", `${-marginT}px`);
+                                                    this.finalTextContainer
                                                     .style("margin-left", `${(marginL - buffer)}px`);
                                                   }
                                                   break;
@@ -1183,12 +1191,12 @@ module powerbi.extensibility.visual {
                                                         let a: number = Math.sin(this.toRadians(rotVal));
                                                         a = a > 0 ? a : -a;
                                                         marginL = (((textHeight) * a)) / 2;
-                                                        d3.select(".tw_finalText").style("margin-top", `${-marginT}px`);
+                                                        this.finalTextContainer.style("margin-top", `${-marginT}px`);
                                                         if (rotVal < 180) {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${-marginL}px`);
                                                         } else {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${marginL}px`);
                                                         }
                                                     }
@@ -1215,11 +1223,11 @@ module powerbi.extensibility.visual {
                                                             buffer = ((360 - rotVal) / 100 * 2) * textSettings.fontSize;
                                                         }
                                                         if (textSettings.alignment !== "center") {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-top", `${(-((textWidth / 2) * Math.sin(
                                                                 this.toRadians(textRotationVal)) + (buffer)))}px`);
                                                         } else {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-top", `${(-((textWidth2 / 2) * Math.sin(
                                                                 this.toRadians(textRotationVal)) + (buffer)))}px`);
                                                         }
@@ -1239,11 +1247,11 @@ module powerbi.extensibility.visual {
                                                     }
 
                                                     if (textSettings.alignment !== "center") {
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-top", `${(-((textWidth / 2) *
                                                             Math.sin(this.toRadians(textRotationVal)) + (buffer)))}px`);
                                                     } else {
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-top", `${(-((textWidth2 / 2) *
                                                             Math.sin(this.toRadians(textRotationVal)) + (buffer)))}px`);
                                                     }
@@ -1280,8 +1288,8 @@ module powerbi.extensibility.visual {
                                                         const a: number = Math.sin(this.toRadians(rotVal % 180));
                                                         marginL = ((1.5 * textHeight) * a);
                                                     }
-                                                    d3.select(".tw_finalText").style("margin-top", `${-2 * marginT}px`);
-                                                    d3.select(".tw_finalText").style("margin-left", `${marginL}px`);
+                                                    this.finalTextContainer.style("margin-top", `${-2 * marginT}px`);
+                                                    this.finalTextContainer.style("margin-left", `${marginL}px`);
                                                  }
                                                  break;
                                     case "right": {
@@ -1303,8 +1311,8 @@ module powerbi.extensibility.visual {
                                                         const a: number = Math.sin(this.toRadians(rotVal % 180));
                                                         marginL = ((textHeight) * a) / 2;
                                                     }
-                                                    d3.select(".tw_finalText").style("margin-top", `${-2 * marginT}px`);
-                                                    d3.select(".tw_finalText")
+                                                    this.finalTextContainer.style("margin-top", `${-2 * marginT}px`);
+                                                    this.finalTextContainer
                                                     .style("margin-left", `${marginL - buffer}px`);
                                                   }
                                                   break;
@@ -1329,13 +1337,13 @@ module powerbi.extensibility.visual {
                                                         let a: number = Math.sin(this.toRadians(rotVal));
                                                         a = a > 0 ? a : -a;
                                                         marginL = (((textHeight) * a));
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-top", `${-2 * marginT}px`);
                                                         if (rotVal < 180) {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${-marginL}px`);
                                                         } else {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${marginL}px`);
                                                         }
                                                     }
@@ -1375,8 +1383,8 @@ module powerbi.extensibility.visual {
                                                         const a: number = Math.sin(this.toRadians(rotVal % 180));
                                                         marginL = ((1.5 * textHeight) * a);
                                                     }
-                                                    d3.select(".tw_finalText").style("margin-top", `${-2 * marginT}px`);
-                                                    d3.select(".tw_finalText").style("margin-left", `${marginL}px`);
+                                                    this.finalTextContainer.style("margin-top", `${-2 * marginT}px`);
+                                                    this.finalTextContainer.style("margin-left", `${marginL}px`);
                                                  }
                                                  break;
                                     case "right": {
@@ -1399,8 +1407,8 @@ module powerbi.extensibility.visual {
                                                         const a: number = Math.sin(this.toRadians(rotVal % 180));
                                                         marginL = ((textHeight) * a) / 2;
                                                     }
-                                                    d3.select(".tw_finalText").style("margin-top", `${-2 * marginT}px`);
-                                                    d3.select(".tw_finalText")
+                                                    this.finalTextContainer.style("margin-top", `${-2 * marginT}px`);
+                                                    this.finalTextContainer
                                                     .style("margin-left", `${marginL - buffer}px`);
                                                   }
                                                   break;
@@ -1426,13 +1434,13 @@ module powerbi.extensibility.visual {
                                                         let a: number = Math.sin(this.toRadians(rotVal));
                                                         a = a > 0 ? a : -a;
                                                         marginL = (((textHeight) * a));
-                                                        d3.select(".tw_finalText")
+                                                        this.finalTextContainer
                                                         .style("margin-top", `${-2 * marginT}px`);
                                                         if (rotVal < 180) {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${-marginL}px`);
                                                         } else {
-                                                            d3.select(".tw_finalText")
+                                                            this.finalTextContainer
                                                             .style("margin-left", `${marginL}px`);
                                                         }
                                                     }
@@ -1447,9 +1455,9 @@ module powerbi.extensibility.visual {
                 }
             }
             if (textSettings.direction === "vertical-lr" || textSettings.direction === "vertical-rl") {
-                d3.select(".tw_finalText").style("max-height", `${$("#sandbox-host").height()}px`);
+                this.finalTextContainer.style("max-height", `${$("#sandbox-host").height()}px`);
             } else if (textSettings.direction === "horizontal-tb" || textSettings.direction === "horizontal-bt") {
-                d3.select(".tw_finalText").style("max-width", `${$("#sandbox-host").width()}px`);
+                this.finalTextContainer.style("max-width", `${$("#sandbox-host").width()}px`);
             }
 
             // Applying Perpective
@@ -1471,17 +1479,30 @@ module powerbi.extensibility.visual {
                 d3.select(".tw_pers").style("transform", transformedVal);
             }
         // Below Two lines are to handle height issue of div in edge
-            const spanHeight: number = textDynamic.height();
+            const spanHeight: number = dynamicText.height();
             $(".tw_value.tw_finalText").height(spanHeight + 2);
-            textDynamic.on("click", (): void => {
+            for (const jIterator of options.dataViews[0].categorical.categories) {
+                if (jIterator.source.type[`category`]
+                    === "WebUrl" && jIterator.source.roles.URL) {
+                        dynamicText.on("click", (): void => {
+
                 this.visualHost.launchUrl(url);
             });
-
-            // To change to hand icon
-            for (const iterator of options.dataViews[0].categorical.categories) {
-                if (iterator.source.type[`category`]
-                    === "WebUrl") {
-                   d3.select(".dynamicText").classed("urlIcon", true);
+        }
+    }
+            if (dataView.categorical.categories !== undefined) {
+             for (const iterator of options.dataViews[0].categorical.categories) {
+                    if (iterator.source.type[`category`]
+                        === "WebUrl" && iterator.source.roles.URL) {
+                            dynamicText.addClass("urlIcon");
+                    }
+                }
+            }  else {
+                if (dataView.categorical.values[0].source.roles.URL) {
+                    if (dataView.categorical.values[0].source.type[`category`]
+                        === "WebUrl") {
+                            dynamicText.addClass("urlIcon");
+                    }
                 }
             }
             this.eventService.renderingFinished(options);
@@ -1702,7 +1723,7 @@ module powerbi.extensibility.visual {
 
             return textSetting;
         }
-
+        // tslint:disable: object-literal-sort-keys
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions):
         VisualObjectInstanceEnumeration {
             const textSetting: ITextSettings = this.getTextSettings(this.dataViews);
@@ -1713,21 +1734,22 @@ module powerbi.extensibility.visual {
                     objectEnumeration.push({
                         objectName,
                         properties: {
-                            alignment: textSetting.alignment,
-                            alignmentV: textSetting.alignmentV,
                             color: textSetting.color,
-                            direction: textSetting.direction,
-                            fontSize: textSetting.fontSize,
-                            letterSpacing: textSetting.letterSpacing,
-                            lineHeight: textSetting.lineHeight,
-                            lineIndent: textSetting.lineIndent,
-                            perspective: textSetting.perspective,
-                            skewX: textSetting.skewX,
-                            skewY: textSetting.skewY,
-                            textIndent: textSetting.textIndent,
-                            textRotate: textSetting.textRotate,
                             transparency: textSetting.transparency,
-                            wordSpacing: textSetting.wordSpacing
+                            fontSize: textSetting.fontSize,
+                            alignment: textSetting.alignment,
+                            textIndent: textSetting.textIndent,
+                            alignmentV: textSetting.alignmentV,
+                            lineIndent: textSetting.lineIndent,
+                            direction: textSetting.direction,
+                            lineHeight: textSetting.lineHeight,
+                            letterSpacing: textSetting.letterSpacing,
+                            wordSpacing: textSetting.wordSpacing,
+                            perspective: textSetting.perspective,
+                            textRotate: textSetting.textRotate,
+                            skewX: textSetting.skewX,
+                            skewY: textSetting.skewY
+
                         },
                         selector: null,
 
@@ -1738,20 +1760,20 @@ module powerbi.extensibility.visual {
                         objectEnumeration.push({
                             objectName,
                             properties: {
-                                // This field to keep it compatible with the older version. DO NOT DELETE.
-                                backgroundcolor: this.staticTextSettings.backgroundcolor,
-                                boldStyle: this.staticTextSettings.boldStyle,
-                                fontFamily: this.staticTextSettings.fontFamily,
-                                italicStyle: this.staticTextSettings.italicStyle,
-                                overline: this.staticTextSettings.overline,
-                                postText: this.staticTextSettings.postText,
-                                showColon: this.staticTextSettings.showColon,
-                                strikethrough: this.staticTextSettings.strikethrough,
-                                textPosition: this.staticTextSettings.textPosition,
-                                textShadow: this.staticTextSettings.textShadow,
-                                textTransform: this.staticTextSettings.textTransform,
-                                transparency: this.staticTextSettings.transparency,
-                                underline: this.staticTextSettings.underline
+                                  // This field to keep it compatible with the older version. DO NOT DELETE.
+                                  textPosition: this.staticTextSettings.textPosition,
+                                  postText: this.staticTextSettings.postText,
+                                  showColon: this.staticTextSettings.showColon,
+                                  backgroundcolor: this.staticTextSettings.backgroundcolor,
+                                  transparency: this.staticTextSettings.transparency,
+                                  textTransform: this.staticTextSettings.textTransform,
+                                  textShadow: this.staticTextSettings.textShadow,
+                                  fontFamily: this.staticTextSettings.fontFamily,
+                                  boldStyle: this.staticTextSettings.boldStyle,
+                                  italicStyle: this.staticTextSettings.italicStyle,
+                                  underline: this.staticTextSettings.underline,
+                                  overline: this.staticTextSettings.overline,
+                                  strikethrough: this.staticTextSettings.strikethrough
                             },
                             selector: null,
 
@@ -1761,21 +1783,21 @@ module powerbi.extensibility.visual {
                             objectName,
                             properties: {
                                 // This field to keep it compatible with the older version. DO NOT DELETE.
-                                backgroundcolor: this.staticTextSettings.backgroundcolor,
-                                boldStyle: this.staticTextSettings.boldStyle,
-                                fontFamily: this.staticTextSettings.fontFamily,
-                                italicStyle: this.staticTextSettings.italicStyle,
-                                overline: this.staticTextSettings.overline,
+                                textPosition: this.staticTextSettings.textPosition,
                                 postText: this.staticTextSettings.postText,
                                 showColon: this.staticTextSettings.showColon,
-                                strikethrough: this.staticTextSettings.strikethrough,
-                                textPosition: this.staticTextSettings.textPosition,
+                                backgroundcolor: this.staticTextSettings.backgroundcolor,
+                                transparency: this.staticTextSettings.transparency,
+                                textTransform: this.staticTextSettings.textTransform,
                                 textShadow: this.staticTextSettings.textShadow,
                                 textShadowBlur: this.staticTextSettings.textShadowBlur,
                                 textShadowColor: this.staticTextSettings.textShadowColor,
-                                textTransform: this.staticTextSettings.textTransform,
-                                transparency: this.staticTextSettings.transparency,
-                                underline: this.staticTextSettings.underline
+                                fontFamily: this.staticTextSettings.fontFamily,
+                                boldStyle: this.staticTextSettings.boldStyle,
+                                italicStyle: this.staticTextSettings.italicStyle,
+                                underline: this.staticTextSettings.underline,
+                                overline: this.staticTextSettings.overline,
+                                strikethrough: this.staticTextSettings.strikethrough
                             },
                             selector: null,
 
@@ -1788,15 +1810,15 @@ module powerbi.extensibility.visual {
                             objectName,
                             properties: {
                                 backgroundcolor: this.dynamicSettings.backgroundcolor,
-                                boldStyle: this.dynamicSettings.boldStyle,
-                                fontFamily: this.dynamicSettings.fontFamily,
-                                italicStyle: this.dynamicSettings.italicStyle,
-                                overline: this.dynamicSettings.overline,
-                                strikethrough: this.dynamicSettings.strikethrough,
-                                textShadow: this.dynamicSettings.textShadow,
-                                textTransform: this.dynamicSettings.textTransform,
                                 transparency: this.dynamicSettings.transparency,
-                                underline: this.dynamicSettings.underline
+                                textTransform: this.dynamicSettings.textTransform,
+                                textShadow: this.dynamicSettings.textShadow,
+                                fontFamily: this.dynamicSettings.fontFamily,
+                                boldStyle: this.dynamicSettings.boldStyle,
+                                italicStyle: this.dynamicSettings.italicStyle,
+                                underline: this.dynamicSettings.underline,
+                                overline: this.dynamicSettings.overline,
+                                strikethrough: this.dynamicSettings.strikethrough
                             },
                             selector: null,
 
@@ -1806,17 +1828,17 @@ module powerbi.extensibility.visual {
                             objectName,
                             properties: {
                                 backgroundcolor: this.dynamicSettings.backgroundcolor,
-                                boldStyle: this.dynamicSettings.boldStyle,
-                                fontFamily: this.dynamicSettings.fontFamily,
-                                italicStyle: this.dynamicSettings.italicStyle,
-                                overline: this.dynamicSettings.overline,
-                                strikethrough: this.dynamicSettings.strikethrough,
+                                transparency: this.dynamicSettings.transparency,
+                                textTransform: this.dynamicSettings.textTransform,
                                 textShadow: this.dynamicSettings.textShadow,
                                 textShadowBlur: this.dynamicSettings.textShadowBlur,
                                 textShadowColor: this.dynamicSettings.textShadowColor,
-                                textTransform: this.dynamicSettings.textTransform,
-                                transparency: this.dynamicSettings.transparency,
-                                underline: this.dynamicSettings.underline
+                                fontFamily: this.dynamicSettings.fontFamily,
+                                boldStyle: this.dynamicSettings.boldStyle,
+                                italicStyle: this.dynamicSettings.italicStyle,
+                                underline: this.dynamicSettings.underline,
+                                overline: this.dynamicSettings.overline,
+                                strikethrough: this.dynamicSettings.strikethrough
                             },
                             selector: null,
 
@@ -1828,6 +1850,7 @@ module powerbi.extensibility.visual {
 
             return objectEnumeration;
         }
+        /*tslint:enable*/
 
         private getTexts(text: string, fontStyleClass: string, textDecoration: string, textFontSize: number,
                          textFontFamily: string, backgroundcolor: string, textTrans: string, statictextShadow: string,
