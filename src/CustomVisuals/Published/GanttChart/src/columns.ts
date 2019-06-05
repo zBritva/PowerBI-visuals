@@ -24,10 +24,13 @@
  *  THE SOFTWARE.
  */
 
+// tslint:disable-next-line:no-namespace
 module powerbi.extensibility.visual {
     import converterHelper = powerbi.extensibility.utils.dataview.converterHelper;
     export type GanttCategoricalColumns = DataViewCategoryColumn & DataViewValueColumn[] & DataViewValueColumns;
-
+    /**
+     * export class GanttColumns
+     */
     export class GanttColumns<T> {
         public static getColumnSources(dataView: DataView): GanttColumns<DataViewMetadataColumn> {
             return this.getColumnSourcesT<DataViewMetadataColumn>(dataView);
@@ -39,20 +42,20 @@ module powerbi.extensibility.visual {
             let categories: DataViewCategoricalColumn[];
             categories = categorical && categorical.categories || [];
             let values: DataViewValueColumns;
-            values = categorical && categorical.values || <DataViewValueColumns>[];
+            values = categorical && categorical.values || [] as DataViewValueColumns;
 
             return categorical && _.mapValues(
                 new this<GanttCategoricalColumns>(),
                 // tslint:disable-next-line:typedef
                 (n, i) => {
                     // tslint:disable-next-line:no-any typedef
-                    let result: any = categories.filter(x => x.source.roles && x.source.roles[i])[0];
+                    let result: any = categories.filter((x) => x.source.roles && x.source.roles[i])[0];
                     if (!result) {
                         result = values.source && values.source.roles && values.source.roles[i] && values;
                     }
                     if (!result) {
                         // tslint:disable-next-line:typedef
-                        result = values.filter(x => x.source.roles && x.source.roles[i]);
+                        result = values.filter((x) => x.source.roles && x.source.roles[i]);
                         if (_.isEmpty(result)) {
                             result = undefined;
                         }
@@ -65,10 +68,9 @@ module powerbi.extensibility.visual {
         private static getColumnSourcesT<T>(dataView: DataView): GanttColumns<T> {
             let columns: DataViewMetadataColumn[];
             columns = dataView && dataView.metadata && dataView.metadata.columns;
-
             return columns && _.mapValues(
                 // tslint:disable-next-line:typedef
-                new this<T>(), (n, i) => columns.filter(x => x.roles && x.roles[i])[0]);
+                new this<T>(), (n, i) => columns.filter((x) => x.roles && x.roles[i])[0]);
         }
 
     }
