@@ -28,12 +28,32 @@ module powerbi.extensibility.visual {
     import DataViewObjects = powerbi.extensibility.utils.dataview.DataViewObjects;
     import ColorHelper = powerbi.extensibility.utils.color.ColorHelper;
     import LegendPosition = powerbi.extensibility.utils.chart.legend.LegendPosition;
+    import SelectionDataPoint = powerbi.extensibility.utils.interactivity.SelectableDataPoint;
+    import IValueFormatter = powerbi.extensibility.utils.formatting.IValueFormatter;
+    import ISelectionId = powerbi.visuals.ISelectionId;
+    import TextProperties = powerbi.extensibility.utils.formatting.TextProperties;
+    import IInteractiveBehavior = powerbi.extensibility.utils.interactivity.IInteractiveBehavior;
+    import IInteractivityService = powerbi.extensibility.utils.interactivity.IInteractivityService;
+    import IBehaviorOptions = powerbi.extensibility.utils.interactivity.IBehaviorOptions;
+    import InteractivitySelectionService = powerbi.extensibility.utils.interactivity.InteractivitySelectionService;
+    import BaseDataPoint =  powerbi.extensibility.utils.interactivity.BaseDataPoint;
+    import Selection = d3.Selection;
 
-    export type GanttDateType = 'Day' | 'Week' | 'Month' | 'Quarter' | 'Year';
-    export type GanttDataType = 'Integer' | 'Float';
-    export type GanttKPIType = 'Value' | 'Indicator' | 'Type';
-    export type GanttScrollPositionType = 'Start' | 'Today' | 'End';
+    export type GanttDateType = "Day" | "Week" | "Month" | "Quarter" | "Year";
+    export type GanttDataType = "Integer" | "Float";
+    export type GanttKPIType = "Value" | "Indicator" | "Type";
+    export type GanttScrollPositionType = "Start" | "Today" | "End";
 
+    export interface IAxisPropertiesParameter {
+    viewportIn: IViewport;
+    textProperties: TextProperties;
+    startDate: Date;
+    endDate: Date;
+    datamin: number;
+    datamax: number;
+    axisLength: number;
+    ticks: number;
+   }
     export interface IGeneralSettings {
         groupTasks: boolean;
     }
@@ -93,6 +113,92 @@ module powerbi.extensibility.visual {
 
     }
 
+    export interface ITask extends SelectionDataPoint {
+        id: number;
+        repeat: number;
+        name: string[];
+        start: Date;
+        end: Date;
+        numStart: number;
+        numEnd: number;
+        resource: string;
+        color: string;
+        KPIValues: IKPIValues[];
+        tooltipValues: ITooltipDataValues[];
+        tooltipInfo: VisualTooltipDataItem[];
+        identity: ISelectionId;
+        level: number;
+        isLeaf: boolean;
+        rowId: number;
+        parentId: number;
+        selectionId: ISelectionId;
+        expanded: boolean;
+        mapId?: number;
+    }
+
+    export interface IKPIValues {
+        name: string;
+        value: string;
+    }
+
+    export interface ITooltipDataValues {
+        name: string;
+        value: string;
+    }
+
+    export interface IGanttChartFormatters {
+        startDataFormatter: IValueFormatter;
+        endDataFormatter: IValueFormatter;
+        completionFormatter: IValueFormatter;
+        durationFormatter: IValueFormatter;
+    }
+
+    export interface IKPIConfig {
+        name: string;
+        type: string;
+        identity: {};
+    }
+
+    export interface IHierarchyArrayConfig {
+        id: number;
+        name: string[];
+        start: Date;
+        end: Date;
+        numStart: number;
+        numEnd: number;
+        resource: string;
+        color: string;
+        KPIValues: IKPIValues[];
+        tooltipValues: ITooltipDataValues[];
+        tooltipInfo: VisualTooltipDataItem[];
+        selectionId: ISelectionId;
+        level: number;
+        isLeaf: boolean;
+        rowId: number;
+        parentId: number;
+        expanded: boolean;
+    }
+
+    export interface IGanttViewModel {
+        dataView: DataView;
+        settings: IGanttSettings;
+        tasksNew: ITask[];
+        kpiData: IKPIConfig[];
+        hierarchyArray: IHierarchyArrayConfig[];
+    }
+
+    export interface ITooltipOptions {
+        opacity: number;
+        animationDuration: number;
+        offsetX: number;
+        offsetY: number;
+    }
+
+    export interface IShowData {
+        sName: string;
+        sFlag: any;
+    }
+
     export interface IKPIColumnTypeSettings {
         value: GanttKPIType;
         indicator: GanttKPIType;
@@ -112,11 +218,25 @@ module powerbi.extensibility.visual {
         width: string;
         categoryLength: number;
     }
-    export interface IsortAttributesSettings {
+
+    export interface ISortAttributesSettings {
         sortOrder: string;
         sortLevel: number;
         prevSortedColumn: number;
     }
+
+    export interface IVisualProperty {
+    width: number;
+    height: number;
+   }
+
+    export interface IGanttBehaviorOptions extends IBehaviorOptions<BaseDataPoint> {
+    behavior: IInteractiveBehavior;
+    taskSelection: Selection<SelectionDataPoint>;
+    legendSelection: Selection<SelectionDataPoint>;
+    interactivityService: IInteractivityService<SelectionDataPoint>;
+}
+
     export interface IGanttSettings {
         general: IGeneralSettings;
         barColor: IBarColor;
@@ -131,20 +251,28 @@ module powerbi.extensibility.visual {
         taskGridlines: ITaskGridLinesSettings;
         displayRatio: IDisplayRatioSettings;
         categoryCoumnsWidth: ICategoryColumnsWidthSettings;
-        sortAttributes: IsortAttributesSettings;
+        sortAttributes: ISortAttributesSettings;
         persistExpandCollapseSettings: PersistExpandCollapseSettings;
         captionValue: CaptionValues;
     }
-
+    /**
+     * export class CaptionValues
+     */
     export class CaptionValues {
-        public captionValue: string = '{}';
-      }
-
+        public captionValue: string = "{}";
+    }
+    /**
+     * PersistExpandCollapseSettings
+     */
     // tslint:disable-next-line:max-classes-per-file
     export class PersistExpandCollapseSettings {
-        public expandCollapseState: string = '{}';
+        public expandCollapseState: string = "{}";
     }
     // tslint:disable-next-line:max-classes-per-file
+    /**
+     * GanttSettings
+     */
+    // tslint:disable-next-line: max-classes-per-file
     export class GanttSettings {
         // tslint:disable-next-line:typedef
         public static get Default() {
@@ -157,45 +285,135 @@ module powerbi.extensibility.visual {
             const properties = ganttProperties;
 
             return {
-                general: this.parseGeneralSettings(objects),
                 barColor: this.parseBarColorSettings(objects, colors),
-                legend: this.parseLegendSettings(objects, colors),
-                taskLabels: this.parseTaskLabelsSettings(objects, colors),
-                columnHeader: this.parseColumnHeaderSettings(objects, colors),
-                taskResource: this.parseTaskResourceSettings(objects, colors),
-                dateType: this.parseDateTypeSettings(objects),
-                datatype: this.parseDataTypeSettings(objects),
-                scrollPosition: this.parseScrollPositionSettings(objects),
-                kpiColumnType: this.parseKPIColumnTypeSettings(objects),
-                taskGridlines: this.parseTaskGridLinesSettings(objects, colors),
-                displayRatio: this.parseDisplayRatioSettings(objects),
+                captionValue: new CaptionValues(),
                 categoryCoumnsWidth: this.parseCategoryColumnsWidthSettings(objects),
+                columnHeader: this.parseColumnHeaderSettings(objects, colors),
+                datatype: this.parseDataTypeSettings(objects),
+                dateType: this.parseDateTypeSettings(objects),
+                displayRatio: this.parseDisplayRatioSettings(objects),
+                general: this.parseGeneralSettings(objects),
+                kpiColumnType: this.parseKPIColumnTypeSettings(objects),
+                legend: this.parseLegendSettings(objects, colors),
+                persistExpandCollapseSettings: new PersistExpandCollapseSettings(),
+                scrollPosition: this.parseScrollPositionSettings(objects),
                 sortAttributes: this.parsesortAttributesSettings(objects),
-                persistExpandCollapseSettings : new PersistExpandCollapseSettings(),
-                captionValue: new CaptionValues()
+                taskGridlines: this.parseTaskGridLinesSettings(objects, colors),
+                taskLabels: this.parseTaskLabelsSettings(objects, colors),
+                taskResource: this.parseTaskResourceSettings(objects, colors)
             };
         }
+        // Default Settings
+        private static general: IGeneralSettings = {
+            groupTasks: false
+        };
 
+        private static barColor: IBarColor = {
+            defaultColor: "#5F6B6D",
+            fillColor: "#5F6B6D",
+            showall: true
+        };
+
+        private static legend: ILegendSettings = {
+            fontSize: 8,
+            labelColor: "#000",
+            position: "Right",
+            show: true,
+            showTitle: true,
+            titleText: ""
+
+        };
+
+        private static taskLabels: ITaskLabelsSettings = {
+            fill: "#000",
+            fontFamily: "Segoe UI",
+            fontSize: 11,
+            isExpanded: true,
+            isHierarchy: false,
+            show: true,
+            width: 10
+        };
+
+        private static columnHeader: IColumnHeaderSettings = {
+            columnOutline: "none",
+            fill: "#000",
+            fill2: "#fff",
+            fontFamily: "Segoe UI",
+            fontSize: 11
+        };
+
+        private static taskResource: ITaskResourceSettings = {
+            fill: "#000",
+            fontFamily: "Segoe UI",
+            fontSize: 11,
+            position: "Right",
+            show: true,
+        };
+
+        private static taskGridLines: ITaskGridLinesSettings = {
+            fill: "#808080",
+            interval: 2,
+            show: true
+        };
+
+        private static dateType: IDateTypeSettings = {
+            enableToday: true,
+            type: "Month"
+        };
+
+        private static datatype: IDataTypeSettings = {
+            type: "Integer"
+        };
+
+        private static kpiColumnType: IKPIColumnTypeSettings = {
+            indicator: "Indicator",
+            type: "Type",
+            value: "Value"
+        };
+
+        private static scrollPosition: IScrollPositionSettings = {
+            position: "Start",
+            position2: "Start"
+        };
+
+        private static displayRatio: IDisplayRatioSettings = {
+            ratio: 40
+        };
+
+        private static categoryColumnsWidth: ICategoryColumnsWidthSettings = {
+            categoryLength: 0,
+            width: ""
+        };
+        private static sortAttributes: ISortAttributesSettings = {
+            prevSortedColumn: -1,
+            sortLevel: 0,
+            sortOrder: "asc"
+        };
         private static parseCategoryColumnsWidthSettings(objects: DataViewObjects): ICategoryColumnsWidthSettings {
             // tslint:disable-next-line:typedef
             const properties = ganttProperties.categoryColumnsWidth;
             const defaultSettings: ICategoryColumnsWidthSettings = this.categoryColumnsWidth;
 
             return {
-                width: DataViewObjects.getValue<string>(objects, properties.width, defaultSettings.width),
-                categoryLength: DataViewObjects.getValue<number>(objects, properties.categoryLength, defaultSettings.categoryLength)
+                categoryLength:
+                    DataViewObjects.getValue<number>(objects,
+                         properties.categoryLength, defaultSettings.categoryLength),
+                width: DataViewObjects.getValue<string>(objects, properties.width, defaultSettings.width)
             };
 
         }
-        private static parsesortAttributesSettings(objects: DataViewObjects): IsortAttributesSettings {
+        private static parsesortAttributesSettings(objects: DataViewObjects): ISortAttributesSettings {
             // tslint:disable-next-line:typedef
             const properties = ganttProperties.sortAttributes;
-            const defaultSettings: IsortAttributesSettings = this.sortAttributes;
+            const defaultSettings: ISortAttributesSettings = this.sortAttributes;
 
             return {
-                sortOrder: DataViewObjects.getValue<string>(objects, properties.sortOrder, defaultSettings.sortOrder),
+                prevSortedColumn:
+                    DataViewObjects
+                        .getValue<number>(objects, properties.prevSortedColumn, defaultSettings.prevSortedColumn),
                 sortLevel: DataViewObjects.getValue<number>(objects, properties.sortLevel, defaultSettings.sortLevel),
-                prevSortedColumn: DataViewObjects.getValue<number>(objects, properties.prevSortedColumn, defaultSettings.prevSortedColumn)
+                sortOrder: DataViewObjects.getValue<string>(objects, properties.sortOrder, defaultSettings.sortOrder),
+
             };
 
         }
@@ -217,7 +435,8 @@ module powerbi.extensibility.visual {
             const defaultSettings: IGeneralSettings = this.general;
 
             return {
-                groupTasks: DataViewObjects.getValue<boolean>(objects, properties.groupTasks, defaultSettings.groupTasks)
+                groupTasks:
+                    DataViewObjects.getValue<boolean>(objects, properties.groupTasks, defaultSettings.groupTasks)
             };
         }
 
@@ -228,8 +447,8 @@ module powerbi.extensibility.visual {
 
             return {
                 defaultColor: DataViewObjects.getFillColor(objects, properties.defaultColor, defaultSettings.fillColor),
-                showall: DataViewObjects.getValue<boolean>(objects, properties.showall, defaultSettings.showall),
-                fillColor: DataViewObjects.getFillColor(objects, properties.fillColor, defaultSettings.fillColor)
+                fillColor: DataViewObjects.getFillColor(objects, properties.fillColor, defaultSettings.fillColor),
+                showall: DataViewObjects.getValue<boolean>(objects, properties.showall, defaultSettings.showall)
             };
         }
 
@@ -239,12 +458,13 @@ module powerbi.extensibility.visual {
             const defaultSettings: ILegendSettings = this.legend;
 
             return {
-                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show),
-                position: DataViewObjects.getValue<string>(objects, properties.position, defaultSettings.position),
-                showTitle: DataViewObjects.getValue<boolean>(objects, properties.showTitle, defaultSettings.showTitle),
-                titleText: DataViewObjects.getValue<string>(objects, properties.titleText, defaultSettings.titleText),
+                fontSize: DataViewObjects.getValue<number>(objects, properties.fontSize, defaultSettings.fontSize),
                 labelColor: DataViewObjects.getFillColor(objects, properties.labelColor, defaultSettings.labelColor),
-                fontSize: DataViewObjects.getValue<number>(objects, properties.fontSize, defaultSettings.fontSize)
+                position: DataViewObjects.getValue<string>(objects, properties.position, defaultSettings.position),
+                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show),
+                showTitle: DataViewObjects.getValue<boolean>(objects, properties.showTitle, defaultSettings.showTitle),
+                titleText: DataViewObjects.getValue<string>(objects, properties.titleText, defaultSettings.titleText)
+
             };
         }
 
@@ -254,52 +474,63 @@ module powerbi.extensibility.visual {
             const defaultSettings: ITaskLabelsSettings = this.taskLabels;
 
             return {
-                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show),
                 fill: DataViewObjects.getFillColor(objects, properties.fill, defaultSettings.fill),
+                fontFamily:
+                    DataViewObjects.getValue<string>(objects, properties.fontFamily, defaultSettings.fontFamily),
                 fontSize: DataViewObjects.getValue<number>(objects, properties.fontSize, defaultSettings.fontSize),
-                fontFamily: DataViewObjects.getValue<string>(objects, properties.fontFamily, defaultSettings.fontFamily),
-                width: DataViewObjects.getValue<number>(objects, properties.width, defaultSettings.width),
-                isExpanded: DataViewObjects.getValue<boolean>(objects, properties.isExpanded, defaultSettings.isExpanded),
-                isHierarchy: DataViewObjects.getValue<boolean>(objects, properties.isHierarchy, defaultSettings.isHierarchy)
+                isExpanded:
+                    DataViewObjects.getValue<boolean>(objects, properties.isExpanded, defaultSettings.isExpanded),
+                isHierarchy:
+                    DataViewObjects.getValue<boolean>(objects, properties.isHierarchy, defaultSettings.isHierarchy),
+                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show),
+                width: DataViewObjects.getValue<number>(objects, properties.width, defaultSettings.width)
             };
         }
-        private static parseColumnHeaderSettings(objects: DataViewObjects, colors: IColorPalette): IColumnHeaderSettings {
+        private static parseColumnHeaderSettings(objects: DataViewObjects,
+                                                 colors: IColorPalette): IColumnHeaderSettings {
             // tslint:disable-next-line:typedef
             const properties = ganttProperties.columnHeader;
             const defaultSettings: IColumnHeaderSettings = this.columnHeader;
 
             return {
+                columnOutline:
+                    DataViewObjects.getValue<string>(objects, properties.columnOutline, defaultSettings.columnOutline),
                 fill: DataViewObjects.getFillColor(objects, properties.fill, defaultSettings.fill),
                 fill2: DataViewObjects.getFillColor(objects, properties.fill2, defaultSettings.fill2),
-                columnOutline: DataViewObjects.getValue<string>(objects, properties.columnOutline, defaultSettings.columnOutline),
-                fontFamily: DataViewObjects.getValue<string>(objects, properties.fontFamily, defaultSettings.fontFamily),
+                fontFamily:
+                    DataViewObjects.getValue<string>(objects, properties.fontFamily, defaultSettings.fontFamily),
                 fontSize: DataViewObjects.getValue<number>(objects, properties.fontSize, defaultSettings.fontSize)
+
             };
         }
 
-        private static parseTaskResourceSettings(objects: DataViewObjects, colors: IColorPalette): ITaskResourceSettings {
+        private static parseTaskResourceSettings(objects: DataViewObjects,
+                                                 colors: IColorPalette): ITaskResourceSettings {
             // tslint:disable-next-line:typedef
             const properties = ganttProperties.taskResource;
             const defaultSettings: ITaskResourceSettings = this.taskResource;
 
             return {
-                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show),
-                position: DataViewObjects.getValue<string>(objects, properties.position, defaultSettings.position),
                 fill: DataViewObjects.getFillColor(objects, properties.fill, defaultSettings.fill),
+                fontFamily: DataViewObjects.getValue<string>
+                    (objects, properties.fontFamily, defaultSettings.fontFamily),
                 fontSize: DataViewObjects.getValue<number>(objects, properties.fontSize, defaultSettings.fontSize),
-                fontFamily: DataViewObjects.getValue<string>(objects, properties.fontFamily, defaultSettings.fontFamily)
+                position: DataViewObjects.getValue<string>(objects, properties.position, defaultSettings.position),
+                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show)
+
             };
         }
 
-        private static parseTaskGridLinesSettings(objects: DataViewObjects, colors: IColorPalette): ITaskGridLinesSettings {
+        private static parseTaskGridLinesSettings(objects: DataViewObjects,
+                                                  colors: IColorPalette): ITaskGridLinesSettings {
             // tslint:disable-next-line:typedef
             const properties = ganttProperties.taskGridlines;
             const defaultSettings: ITaskGridLinesSettings = this.taskGridLines;
 
             return {
-                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show),
                 fill: DataViewObjects.getFillColor(objects, properties.fill, defaultSettings.fill),
-                interval: DataViewObjects.getValue<number>(objects, properties.interval, defaultSettings.interval)
+                interval: DataViewObjects.getValue<number>(objects, properties.interval, defaultSettings.interval),
+                show: DataViewObjects.getValue<boolean>(objects, properties.show, defaultSettings.show)
             };
         }
 
@@ -309,8 +540,9 @@ module powerbi.extensibility.visual {
             const defaultSettings: IDateTypeSettings = this.dateType;
 
             return {
-                type: DataViewObjects.getValue<GanttDateType>(objects, properties.type, defaultSettings.type),
-                enableToday: DataViewObjects.getValue<boolean>(objects, properties.enableToday, defaultSettings.enableToday)
+                enableToday:
+                    DataViewObjects.getValue<boolean>(objects, properties.enableToday, defaultSettings.enableToday),
+                type: DataViewObjects.getValue<GanttDateType>(objects, properties.type, defaultSettings.type)
             };
         }
 
@@ -330,8 +562,10 @@ module powerbi.extensibility.visual {
             const defaultSettings: IScrollPositionSettings = this.scrollPosition;
 
             return {
-                position: DataViewObjects.getValue<GanttScrollPositionType>(objects, properties.position, defaultSettings.position),
-                position2: DataViewObjects.getValue<GanttScrollPositionType>(objects, properties.position2, defaultSettings.position2)
+                position: DataViewObjects
+                    .getValue<GanttScrollPositionType>(objects, properties.position, defaultSettings.position),
+                position2: DataViewObjects
+                    .getValue<GanttScrollPositionType>(objects, properties.position2, defaultSettings.position2)
             };
         }
 
@@ -341,104 +575,21 @@ module powerbi.extensibility.visual {
             const defaultSettings: IKPIColumnTypeSettings = this.kpiColumnType;
 
             return {
-                value: DataViewObjects.getValue<GanttKPIType>(objects, properties.value, defaultSettings.value),
-                indicator: DataViewObjects.getValue<GanttKPIType>(objects, properties.indicator, defaultSettings.indicator),
-                type: DataViewObjects.getValue<GanttKPIType>(objects, properties.type, defaultSettings.type)
+                indicator: DataViewObjects
+                    .getValue<GanttKPIType>(objects, properties.indicator, defaultSettings.indicator),
+                type: DataViewObjects.getValue<GanttKPIType>(objects, properties.type, defaultSettings.type),
+                value: DataViewObjects.getValue<GanttKPIType>(objects, properties.value, defaultSettings.value)
             };
         }
 
         // tslint:disable-next-line:no-any
-        private static getColor(objects: DataViewObjects, properties: any, defaultColor: string, colors: IColorPalette): string {
+        private static getColor(objects: DataViewObjects,
+                                properties: any, defaultColor: string, colors: IColorPalette): string {
             let colorHelper: ColorHelper;
             colorHelper = new ColorHelper(colors, properties, defaultColor);
 
             return colorHelper.getColorForMeasure(objects, properties);
         }
 
-        // Default Settings
-        private static general: IGeneralSettings = {
-            groupTasks: false
-        };
-
-        private static barColor: IBarColor = {
-            defaultColor: '#5F6B6D',
-            showall: true,
-            fillColor: '#5F6B6D'
-        };
-
-        private static legend: ILegendSettings = {
-            show: true,
-            position: 'Right',
-            showTitle: true,
-            titleText: '',
-            labelColor: '#000000',
-            fontSize: 8
-        };
-
-        private static taskLabels: ITaskLabelsSettings = {
-            show: true,
-            fill: '#000000',
-            fontSize: 11,
-            fontFamily: 'Segoe UI',
-            width: 10,
-            isExpanded: true,
-            isHierarchy: false
-        };
-
-        private static columnHeader: IColumnHeaderSettings = {
-            fill: '#000000',
-            fill2: '#ffffff',
-            columnOutline: 'none',
-            fontFamily: 'Segoe UI',
-            fontSize: 11
-        };
-
-        private static taskResource: ITaskResourceSettings = {
-            show: true,
-            position: 'Right',
-            fill: '#000000',
-            fontSize: 11,
-            fontFamily: 'Segoe UI'
-        };
-
-        private static taskGridLines: ITaskGridLinesSettings = {
-            show: true,
-            fill: '#808080',
-            interval: 2
-        };
-
-        private static dateType: IDateTypeSettings = {
-            type: 'Month',
-            enableToday: true
-        };
-
-        private static datatype: IDataTypeSettings = {
-            type: 'Integer'
-        };
-
-        private static kpiColumnType: IKPIColumnTypeSettings = {
-            value: 'Value',
-            indicator: 'Indicator',
-            type: 'Type'
-        };
-
-        private static scrollPosition: IScrollPositionSettings = {
-            position: 'Start',
-            position2: 'Start'
-        };
-
-        private static displayRatio: IDisplayRatioSettings = {
-            ratio: 40
-        };
-
-        private static categoryColumnsWidth: ICategoryColumnsWidthSettings = {
-            width: '',
-            categoryLength: 0
-        };
-        private static sortAttributes: IsortAttributesSettings = {
-            sortOrder: 'asc',
-            sortLevel: 0,
-            prevSortedColumn: -1
-        };
     }
 }

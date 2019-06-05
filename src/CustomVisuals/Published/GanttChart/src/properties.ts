@@ -28,82 +28,87 @@ module powerbi.extensibility.visual {
 
     // tslint:disable-next-line:typedef
     export const ganttProperties = {
-        general: {
-            groupTasks: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'groupTasks' }
-        },
         barColor: {
-            defaultColor: <DataViewObjectPropertyIdentifier>{ objectName: 'barColor', propertyName: 'defaultColor' },
-            showall: <DataViewObjectPropertyIdentifier>{ objectName: 'barColor', propertyName: 'showall' },
-            fillColor: <DataViewObjectPropertyIdentifier>{ objectName: 'barColor', propertyName: 'fillColor' }
-        },
-        legend: {
-            show: <DataViewObjectPropertyIdentifier>{ objectName: 'legend', propertyName: 'show' },
-            position: <DataViewObjectPropertyIdentifier>{ objectName: 'legend', propertyName: 'position' },
-            showTitle: <DataViewObjectPropertyIdentifier>{ objectName: 'legend', propertyName: 'showTitle' },
-            titleText: <DataViewObjectPropertyIdentifier>{ objectName: 'legend', propertyName: 'titleText' },
-            labelColor: <DataViewObjectPropertyIdentifier>{ objectName: 'legend', propertyName: 'labelColor' },
-            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'legend', propertyName: 'fontSize' }
-        },
-        taskLabels: {
-            show: <DataViewObjectPropertyIdentifier>{ objectName: 'taskLabels', propertyName: 'show' },
-            fill: <DataViewObjectPropertyIdentifier>{ objectName: 'taskLabels', propertyName: 'fill' },
-            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'taskLabels', propertyName: 'fontSize' },
-            fontFamily: <DataViewObjectPropertyIdentifier>{ objectName: 'taskLabels', propertyName: 'fontFamily' },
-            width: <DataViewObjectPropertyIdentifier>{ objectName: 'taskLabels', propertyName: 'width' },
-            isExpanded: <DataViewObjectPropertyIdentifier>{ objectName: 'taskLabels', propertyName: 'isExpanded' },
-            isHierarchy: <DataViewObjectPropertyIdentifier>{ objectName: 'taskLabels', propertyName: 'isHierarchy' }
-        },
-        columnHeader: {
-            fill: <DataViewObjectPropertyIdentifier>{ objectName: 'columnHeader', propertyName: 'fill' },
-            fill2: <DataViewObjectPropertyIdentifier>{ objectName: 'columnHeader', propertyName: 'fill2' },
-            columnOutline: <DataViewObjectPropertyIdentifier>{ objectName: 'columnHeader', propertyName: 'columnOutline' },
-            fontFamily: <DataViewObjectPropertyIdentifier>{ objectName: 'columnHeader', propertyName: 'fontFamily' },
-            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'columnHeader', propertyName: 'fontSize' }
-        },
-        taskResource: {
-            show: <DataViewObjectPropertyIdentifier>{ objectName: 'taskResource', propertyName: 'show' },
-            position: <DataViewObjectPropertyIdentifier>{ objectName: 'taskResource', propertyName: 'position' },
-            fill: <DataViewObjectPropertyIdentifier>{ objectName: 'taskResource', propertyName: 'fill' },
-            fontSize: <DataViewObjectPropertyIdentifier>{ objectName: 'taskResource', propertyName: 'fontSize' },
-            fontFamily: <DataViewObjectPropertyIdentifier>{ objectName: 'taskResource', propertyName: 'fontFamily' }
-        },
-        dateType: {
-            type: <DataViewObjectPropertyIdentifier>{ objectName: 'dateType', propertyName: 'type' },
-            enableToday: <DataViewObjectPropertyIdentifier>{ objectName: 'dateType', propertyName: 'enableToday' }
-        },
-        datatype: {
-            type: <DataViewObjectPropertyIdentifier>{ objectName: 'datatype', propertyName: 'type' }
-        },
-        scrollPosition: {
-            position: <DataViewObjectPropertyIdentifier>{ objectName: 'scrollPosition', propertyName: 'position' },
-            position2: <DataViewObjectPropertyIdentifier>{ objectName: 'scrollPosition', propertyName: 'position2' }
-        },
-        kpiColumnType: {
-            value: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPosition', propertyName: 'value' },
-            indicator: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPosition', propertyName: 'indicator' },
-            type: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPosition', propertyName: 'type' }
-        },
-        taskGridlines: {
-            show: <DataViewObjectPropertyIdentifier>{ objectName: 'taskGridlines', propertyName: 'show' },
-            fill: <DataViewObjectPropertyIdentifier>{ objectName: 'taskGridlines', propertyName: 'fill' },
-            interval: <DataViewObjectPropertyIdentifier>{ objectName: 'taskGridlines', propertyName: 'interval' }
-        },
-        displayRatio: {
-            ratio: <DataViewObjectPropertyIdentifier>{ objectName: 'displayRatio', propertyName: 'ratio' }
+            defaultColor: { objectName: "barColor", propertyName: "defaultColor" } as DataViewObjectPropertyIdentifier,
+            fillColor: { objectName: "barColor", propertyName: "fillColor" } as DataViewObjectPropertyIdentifier,
+            showall: { objectName: "barColor", propertyName: "showall" } as DataViewObjectPropertyIdentifier
         },
         categoryColumnsWidth: {
-            width: <DataViewObjectPropertyIdentifier>{ objectName: 'categoryColumnsWidth', propertyName: 'width' },
-            categoryLength: <DataViewObjectPropertyIdentifier>{ objectName: 'categoryColumnsWidth', propertyName: 'categoryLength' }
+            categoryLength:
+             { objectName: "categoryColumnsWidth", propertyName: "categoryLength" } as DataViewObjectPropertyIdentifier,
+            width: { objectName: "categoryColumnsWidth", propertyName: "width" } as DataViewObjectPropertyIdentifier
         },
-        sortAttributes: {
-            sortOrder: <DataViewObjectPropertyIdentifier>{ objectName: 'sortAttributes', propertyName: 'sortOrder' },
-            sortLevel: <DataViewObjectPropertyIdentifier>{ objectName: 'sortAttributes', propertyName: 'sortLevel' },
-            prevSortedColumn: <DataViewObjectPropertyIdentifier>{ objectName: 'sortAttributes', propertyName: 'prevSortedColumn' }
+        columnHeader: {
+            columnOutline:
+             { objectName: "columnHeader", propertyName: "columnOutline" } as DataViewObjectPropertyIdentifier,
+            fill: { objectName: "columnHeader", propertyName: "fill" } as DataViewObjectPropertyIdentifier,
+            fill2: { objectName: "columnHeader", propertyName: "fill2" } as DataViewObjectPropertyIdentifier,
+            fontFamily: { objectName: "columnHeader", propertyName: "fontFamily" } as DataViewObjectPropertyIdentifier,
+            fontSize: { objectName: "columnHeader", propertyName: "fontSize" } as DataViewObjectPropertyIdentifier
 
+        },
+        datatype: {
+            type: { objectName: "datatype", propertyName: "type" } as DataViewObjectPropertyIdentifier
+        },
+        dateType: {
+            enableToday: { objectName: "dateType", propertyName: "enableToday" } as DataViewObjectPropertyIdentifier,
+            type: { objectName: "dateType", propertyName: "type" } as DataViewObjectPropertyIdentifier
+        },
+        displayRatio: {
+            ratio: { objectName: "displayRatio", propertyName: "ratio" } as DataViewObjectPropertyIdentifier
+        },
+        general: {
+            groupTasks: { objectName: "general", propertyName: "groupTasks" } as DataViewObjectPropertyIdentifier
+        },
+        kpiColumnType: {
+            indicator: { objectName: "dataPosition", propertyName: "indicator" } as DataViewObjectPropertyIdentifier,
+            type: { objectName: "dataPosition", propertyName: "type" } as DataViewObjectPropertyIdentifier,
+            value: { objectName: "dataPosition", propertyName: "value" } as DataViewObjectPropertyIdentifier
+        },
+        legend: {
+            fontSize: { objectName: "legend", propertyName: "fontSize" } as DataViewObjectPropertyIdentifier,
+            labelColor: { objectName: "legend", propertyName: "labelColor" } as DataViewObjectPropertyIdentifier,
+            position: { objectName: "legend", propertyName: "position" } as DataViewObjectPropertyIdentifier,
+            show: { objectName: "legend", propertyName: "show" } as DataViewObjectPropertyIdentifier,
+            showTitle: { objectName: "legend", propertyName: "showTitle" } as DataViewObjectPropertyIdentifier,
+            titleText: { objectName: "legend", propertyName: "titleText" } as DataViewObjectPropertyIdentifier
         },
         persistExpandCollapseState: {
             // tslint:disable-next-line:max-line-length
-            expandCollapseState: <DataViewObjectPropertyIdentifier>{objectName: 'persistExpandCollapseState', propertyName: 'expandCollapseState'}
+            expandCollapseState: {objectName: "persistExpandCollapseState", propertyName: "expandCollapseState"} as DataViewObjectPropertyIdentifier
+        },
+        scrollPosition: {
+            position: { objectName: "scrollPosition", propertyName: "position" } as DataViewObjectPropertyIdentifier,
+            position2: { objectName: "scrollPosition", propertyName: "position2" } as DataViewObjectPropertyIdentifier
+        },
+        sortAttributes: {
+            prevSortedColumn:
+             { objectName: "sortAttributes", propertyName: "prevSortedColumn" } as DataViewObjectPropertyIdentifier,
+            sortLevel: { objectName: "sortAttributes", propertyName: "sortLevel" } as DataViewObjectPropertyIdentifier,
+            sortOrder: { objectName: "sortAttributes", propertyName: "sortOrder" } as DataViewObjectPropertyIdentifier
+        },
+        taskGridlines: {
+            fill: { objectName: "taskGridlines", propertyName: "fill" } as DataViewObjectPropertyIdentifier,
+            interval: { objectName: "taskGridlines", propertyName: "interval" } as DataViewObjectPropertyIdentifier,
+            show: { objectName: "taskGridlines", propertyName: "show" } as DataViewObjectPropertyIdentifier
+        },
+        taskLabels: {
+            fill: { objectName: "taskLabels", propertyName: "fill" } as DataViewObjectPropertyIdentifier,
+            fontFamily: { objectName: "taskLabels", propertyName: "fontFamily" } as DataViewObjectPropertyIdentifier,
+            fontSize: { objectName: "taskLabels", propertyName: "fontSize" } as DataViewObjectPropertyIdentifier,
+            isExpanded: { objectName: "taskLabels", propertyName: "isExpanded" } as DataViewObjectPropertyIdentifier,
+            isHierarchy: { objectName: "taskLabels", propertyName: "isHierarchy" } as DataViewObjectPropertyIdentifier,
+            show: { objectName: "taskLabels", propertyName: "show" } as DataViewObjectPropertyIdentifier,
+            width: { objectName: "taskLabels", propertyName: "width" } as DataViewObjectPropertyIdentifier
+
+        },
+        taskResource: {
+            fill: { objectName: "taskResource", propertyName: "fill" } as DataViewObjectPropertyIdentifier,
+            fontFamily: { objectName: "taskResource", propertyName: "fontFamily" } as DataViewObjectPropertyIdentifier,
+            fontSize: { objectName: "taskResource", propertyName: "fontSize" } as DataViewObjectPropertyIdentifier,
+            position: { objectName: "taskResource", propertyName: "position" } as DataViewObjectPropertyIdentifier,
+            show: { objectName: "taskResource", propertyName: "show" } as DataViewObjectPropertyIdentifier
+
         }
     };
 }

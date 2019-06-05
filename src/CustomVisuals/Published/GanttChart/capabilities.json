@@ -165,7 +165,7 @@
       }
     },
     "legend": {
-      "displayName": "Legend",
+      "displayName": "KPI Legend",
       "description": "Display legend options",
       "properties": {
         "show": {
@@ -357,7 +357,7 @@
           }
         },
         "fill": {
-          "displayName": "Fill",
+          "displayName": "Font color",
           "type": {
             "fill": {
               "solid": {
@@ -513,7 +513,7 @@
                 "displayName": "Left"
               },
               {
-                "value": "Top",
+                "value": "Center",
                 "displayName": "Center"
               },
               {
@@ -524,7 +524,7 @@
           }
         },
         "fill": {
-          "displayName": "Color",
+          "displayName": "Font color",
           "type": {
             "fill": {
               "solid": {
@@ -784,7 +784,7 @@
           }
         },
         "fill": {
-          "displayName": "Color",
+          "displayName": "Font color",
           "type": {
             "fill": {
               "solid": {
