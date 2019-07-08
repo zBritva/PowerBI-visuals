@@ -16,11 +16,16 @@
     "powerbi-visuals-utils-typeutils": "^1.2.0"
   },
   "devDependencies": {
+    "powerbi-visuals-tools": "^2.6.0",
     "tslint": "^5.16.0",
     "tslint-microsoft-contrib": "^6.1.1"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "pbiviz package",
+    "start": "pbiviz start",
+    "cert": "pbiviz --create-cert",
+    "lint": "tslint -c tslint.json -p tsconfig.json"
   },
   "repository": {
     "type": "git",
